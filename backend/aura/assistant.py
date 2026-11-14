@@ -1,0 +1,249 @@
+"""AURA assistant: the floating "Ask AURA" chat, available on every screen.
+
+Unlike the flight-surgeon panel (which is about one astronaut's data), the assistant answers any
+question: health questions about whoever is on screen, how to use AURA, the real NASA research
+data, or general spaceflight-health questions. Every reply has a short answer, optional numbered
+steps, and optional one-click actions that drive the dashboard (open an indicator, the check-in
+form, the crew editor...). Actions are validated here, so the model can't invent targets.
+
+Safety: the same rules as the flight surgeon. The rule engine owns every alert level, critical
+readings always escalate, and it never diagnoses, prescribes or doses medication.
+"""
+
+from __future__ import annotations
+
+import json
+import logging
+import re
+from typing import Literal
+
+from pydantic import BaseModel, Field
+
+from . import research
+from .ai import FALLBACK_BETA, _client, _describe, _refused, ai_status, build_context
+from .alerts import Level
+from .store import MissionStore
+
+log = logging.getLogger("aura.assistant")
+
+ActionType = Literal["open_indicator", "open_checkin", "open_briefing", "open_crew_editor",
+                     "open_import", "add_indicator", "open_research", "start_tour", "select_crew"]
+
+APP_GUIDE = """\
+AURA dashboard guide (use these exact names when telling the user where to click):
+- Crew box (left sidebar): click a crew member to view them. "✎ Edit" opens the crew editor (add/remove \
+members, name, role, age, personal baselines, health scenario). "⬆ Import" adds a crew member from the \
+user's own CSV (a 'day' column; days -7..-1 are preflight baseline, 1, 2, 3... mission days; one column per \
+indicator; template at data/import_template.csv).
+- Mission replay (sidebar): drag the slider to see any past day; "Live" is the current day.
+- Mission routine (sidebar): daily tasks, streaks, points, levels and badges. Measurement tasks tick \
+themselves when a check-in logs the reading.
+- Header: environment selector (ISS, lunar surface, Mars transit) regenerates the mission; "▶ Demo tour" \
+walks through the story in 11 steps.
+- Status banner: the overall Normal / Warning / Critical level for the selected person and day.
+- AI flight surgeon panel: "Generate daily briefing" and a chat about the selected astronaut.
+- Body status: clickable body figure coloured by each body system's worst indicator; click a region to \
+filter the indicator cards.
+- Health indicators panel: one card per indicator; click a card for the detail view (trend chart with \
+personal baseline band and limits, why it matters, how to measure, actions, references). "+ Add indicator" \
+(top right of that panel) creates a custom indicator (presets: body weight, heart rate variability, daily \
+steps, water intake).
+- Daily check-in panel: type today's readings (and mood, notes). Only for the live day.
+- Alert timeline: every change of alert level; click one to jump there.
+- Real crew data · Inspiration4 panel (bottom): real NASA OSDR bloodwork (metabolic panel and blood count) \
+for 4 civilian crew, 92 days before launch to 194 days after return; "Review C00n" gives an AI review.
+Alert rules: Critical = a predefined critical limit is crossed (contact the flight surgeon now). Warning = a \
+warning limit is crossed, or the last 3 readings sit on the adverse side of the personal baseline (each \
+>=1.5 SD, mean >=2 SD and a meaningful change), or one reading is >=3.5 SD out (re-measure). Baselines come \
+from 7 preflight days. Demo telemetry is synthetic; the Inspiration4 data is real; imported data is the user's.
+"""
+
+ASSISTANT_PROMPT = """\
+You are "Ask AURA", the assistant built into AURA, a health self-monitoring tool for astronauts on \
+long-duration missions. You appear as a chat window on every screen. The user may be an astronaut, a \
+mission medical team member, or a hackathon judge trying the demo.
+
+You receive: the app guide, what the user is looking at (crew member, day, selected indicator), a JSON \
+snapshot of that person's indicators and alerts, the crew roster, and a summary of the real NASA research \
+data. Answer ANY question:
+- Health questions: ground every claim in the data given, with numbers and units. Explain what a level \
+means, link related indicators and spaceflight hazards, and give practical steps doable on a spacecraft.
+- "How do I..." questions: give the exact clicks, using the names in the app guide.
+- General spaceflight or health questions: answer briefly from general knowledge and say when something \
+is general information rather than this person's data.
+- Off-topic questions: answer briefly if harmless, then offer to help with AURA.
+
+Rules:
+1. Alert levels come from AURA's rule engine and are authoritative; never change or contradict them.
+2. If the person on screen has any critical reading, or the user describes an emergency (chest pain, \
+trouble breathing, confusion, fainting, severe bleeding), set escalate=true and say first: follow the \
+critical actions and contact the flight surgeon now.
+3. Never diagnose, prescribe or dose medication. Defer clinical decisions to the flight surgeon.
+4. Steps: 0-4 short imperative steps when the user should do something; empty for simple facts.
+5. Actions: 0-3 buttons that help right now, chosen ONLY from the allowed types. open_indicator and \
+select_crew need a target from the context (an indicator key / a crew id); others take no target.
+6. Be brief: the answer is at most about 90 words. Plain language; explain medical terms briefly.
+"""
+
+
+class ChatTurn(BaseModel):
+    role: Literal["user", "assistant"]
+    content: str = Field(max_length=4000)
+
+
+class AssistantAction(BaseModel):
+    type: ActionType
+    label: str = Field(description="Button text, at most 5 words")
+    target: str | None = Field(None, description="Indicator key for open_indicator, crew id for select_crew")
+
+
+class AssistantReply(BaseModel):
+    answer: str = Field(description="At most about 90 words, plain language")
+    steps: list[str] = Field(description="0-4 short imperative steps")
+    actions: list[AssistantAction] = Field(description="0-3 one-click actions")
+    escalate: bool = Field(description="True if the user should contact the flight surgeon now")
+    topic: Literal["health", "app_help", "research", "general", "off_topic"]
+
+
+def _research_summary() -> dict | None:
+    sets = research.all_datasets()
+    if not sets:
+        return None
+    return {
+        "mission": "Inspiration4 (3-day orbital flight, Sept 2021), 4 civilian crew C001-C004, real NASA OSDR data",
+        "panels": [{"title": d["title"], "osd": d["osd"],
+                    "most_out_of_range": [f"{a['name']} ({a['out_of_range']})" for a in
+                                          sorted(d["analytes"], key=lambda a: -a["out_of_range"])[:4]
+                                          if a["out_of_range"]]} for d in sets],
+        "quality_issues": [q["reason"] for d in sets for q in d["quality_issues"]],
+    }
+
+
+def build_assistant_context(store: MissionStore, crew_id: str | None, day: int | None,
+                            indicator: str | None) -> dict:
+    roster = []
+    for c in store.crew.values():
+        s = store.status(c.id)
+        roster.append({"id": c.id, "name": c.name, "role": c.role, "overall": s["overall"],
+                       "data": "imported" if c.imported is not None else "synthetic"})
+    ctx: dict = {"mission_day": store.current_day, "environment": store.dataset.environment_info["name"],
+                 "crew_roster": roster, "research_data": _research_summary()}
+    if crew_id in store.crew:
+        snap = build_context(store, crew_id, day)
+        for i in snap["indicators"]:  # keep the snapshot compact
+            i["recent"] = [r["value"] for r in i["recent"]]
+        ctx["viewing"] = {"crew_id": crew_id, "day": snap["mission"]["day"], "selected_indicator": indicator}
+        ctx["person"] = snap
+    return ctx
+
+
+# --------------------------------------------------------------------------- validation
+def _clean(reply: AssistantReply, ctx: dict) -> AssistantReply:
+    person = ctx.get("person") or {}
+    keys = {i["key"] for i in person.get("indicators", [])}
+    crew_ids = {c["id"] for c in ctx["crew_roster"]}
+    ok = []
+    for a in reply.actions:
+        if a.type == "open_indicator" and a.target not in keys:
+            continue
+        if a.type == "select_crew" and a.target not in crew_ids:
+            continue
+        if a.type not in ("open_indicator", "select_crew"):
+            a.target = None
+        ok.append(a)
+    reply.actions = ok[:3]
+    reply.steps = reply.steps[:4]
+    reply.escalate = reply.escalate or bool(person.get("escalate"))
+    return reply
+
+
+# --------------------------------------------------------------------------- offline
+FAQ: list[tuple[str, str, list[str], list[tuple[str, str]]]] = [
+    (r"import|csv|upload|my (own )?data", "You can add yourself as a crew member from a CSV of your own readings.",
+     ["Click ⬆ Import in the Crew box.", "Enter your name, role and age.",
+      "Choose a CSV with a 'day' column (−7 to −1 = baseline, 1, 2, 3… = mission days).",
+      "Click Import and add to crew."], [("open_import", "Import my data")]),
+    (r"(add|new|custom).*(indicator|measure|metric)|weight|hrv|steps", "Add any measurement with + Add indicator.",
+     ["Open the Health indicators panel.", "Click + Add indicator (top right).",
+      "Pick a preset or fill in the name, unit, typical range and limits.", "Click Add indicator."],
+     [("add_indicator", "Add an indicator")]),
+    (r"edit|crew member|add (a )?(person|member)|scenario|rename", "The crew editor lets you change who is on the mission.",
+     ["Click ✎ Edit in the Crew box.", "Change names, roles, ages, baselines or the health scenario.",
+      "Click Save and regenerate."], [("open_crew_editor", "Edit the crew")]),
+    (r"check.?in|log|enter|record|measure", "Log today's readings in the Daily check-in panel.",
+     ["Go back to Live if you are replaying a past day.", "Type the values you measured.",
+      "Click Log check-in. The status updates straight away."], [("open_checkin", "Open check-in")]),
+    (r"tour|demo|judge|present", "The demo tour walks through AURA's story in 11 steps.",
+     ["Click ▶ Demo tour in the header.", "Use Next → to move through the steps."], [("start_tour", "Start the tour")]),
+    (r"real|nasa|osdr|inspiration|blood", "The Real crew data panel shows real NASA OSDR bloodwork from the Inspiration4 crew.",
+     ["Scroll to Real crew data · Inspiration4.", "Switch panels and pick a marker.",
+      "Choose a crew member and click Review for an AI summary."], [("open_research", "Show real data")]),
+    (r"warning|critical|level|threshold|baseline|alert", "Critical means a predefined critical limit was crossed: contact the flight surgeon now. "
+     "Warning means a warning limit was crossed, or your last 3 readings sit well away from your own preflight baseline.",
+     ["Open a flagged indicator card to see the reason and the actions."], []),
+]
+
+
+def offline_reply(question: str, ctx: dict) -> AssistantReply:
+    q = question.lower()
+    person = ctx.get("person")
+    escalate = bool(person and person.get("escalate"))
+    for pattern, answer, steps, actions in FAQ:
+        if re.search(pattern, q):
+            return AssistantReply(answer=answer, steps=steps,
+                                  actions=[AssistantAction(type=t, label=lbl) for t, lbl in actions],
+                                  escalate=escalate, topic="app_help")
+    if person:
+        order = {Level.CRITICAL.label: 0, Level.WARNING.label: 1}
+        flagged = sorted((i for i in person["indicators"] if i["level"] in order), key=lambda i: order[i["level"]])
+        name = person["astronaut"]["name"]
+        if flagged:
+            top = flagged[0]
+            answer = (f"{name} is {person['overall_level']} today. {len(flagged)} indicator(s) flagged; most urgent: "
+                      f"{top['name']} ({top['level']}). {top['reasons'][0] if top['reasons'] else ''}")
+            return AssistantReply(
+                answer=("Critical reading: follow the actions and contact the flight surgeon now. " if escalate else "") + answer,
+                steps=top["rule_actions"][:3],
+                actions=[AssistantAction(type="open_indicator", label=f"Open {i['name']}"[:40], target=i["key"]) for i in flagged[:2]],
+                escalate=escalate, topic="health")
+        return AssistantReply(answer=f"{name}'s indicators are all within their personal baseline. Keep up the daily routine.",
+                              steps=[], actions=[AssistantAction(type="open_briefing", label="Daily briefing")],
+                              escalate=False, topic="health")
+    return AssistantReply(answer="I can help with crew health, using AURA, and the real NASA data. Select a crew member to start.",
+                          steps=[], actions=[AssistantAction(type="start_tour", label="Start the tour")],
+                          escalate=False, topic="app_help")
+
+
+# --------------------------------------------------------------------------- AI
+def ask_assistant(store: MissionStore, question: str, history: list[ChatTurn], crew_id: str | None = None,
+                  day: int | None = None, indicator: str | None = None) -> dict:
+    ctx = build_assistant_context(store, crew_id, day, indicator)
+    status = ai_status()
+    if not status["enabled"]:
+        return {"mode": "offline", "model": None, "reply": _clean(offline_reply(question, ctx), ctx).model_dump(),
+                "note": "Rule-based answers (no Claude login)."}
+    messages = [{"role": t.role, "content": t.content} for t in history[-10:]]
+    messages.append({"role": "user", "content": "<aura_context>\n" + json.dumps(ctx, separators=(",", ":"))
+                     + "\n</aura_context>\n\nQuestion: " + question})
+    try:
+        response = _client().beta.messages.parse(
+            model=status["model"],
+            max_tokens=8000,
+            betas=[FALLBACK_BETA],
+            fallbacks="default",
+            output_config={"effort": "low"},
+            system=[{"type": "text", "text": ASSISTANT_PROMPT + "\n" + APP_GUIDE,
+                     "cache_control": {"type": "ephemeral"}}],
+            messages=messages,
+            output_format=AssistantReply,
+        )
+        if _refused(response) or response.parsed_output is None:
+            reply = AssistantReply(answer="I can't help with that one. For medical concerns, contact the flight surgeon.",
+                                   steps=[], actions=[], escalate=False, topic="off_topic")
+        else:
+            reply = response.parsed_output
+        return {"mode": "ai", "model": response.model, "reply": _clean(reply, ctx).model_dump(), "note": None}
+    except Exception as exc:  # noqa: BLE001
+        log.warning("Assistant failed: %s", _describe(exc))
+        return {"mode": "offline", "model": None, "reply": _clean(offline_reply(question, ctx), ctx).model_dump(),
+                "note": f"AI unavailable ({_describe(exc)}). Rule-based answer."}

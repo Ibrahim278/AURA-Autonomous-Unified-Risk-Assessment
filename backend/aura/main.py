@@ -21,7 +21,7 @@ from fastapi.responses import PlainTextResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
-from . import __version__, ai, custom, gamification, importer, research
+from . import __version__, ai, assistant, custom, gamification, importer, research
 from .indicators import INDICATORS, Hazard
 from .simulator import (DEFAULT_CREW_SPECS, DEFAULTS, EDITABLE_BASELINES, ENVIRONMENTS, SCENARIOS,
                         generate, imported_records, make_member)
@@ -401,3 +401,19 @@ def delete_indicator(key: str):
     store.remove_indicator(key)
     custom.unregister(key)
     return {"deleted": key}
+
+
+# ---------------------------------------------------------------- Ask AURA (floating assistant)
+class AssistantRequest(BaseModel):
+    question: str = Field(..., min_length=1, max_length=2000)
+    history: list[assistant.ChatTurn] = Field(default_factory=list, max_length=20)
+    crew_id: str | None = Field(None, description="Who the user is looking at")
+    day: int | None = Field(None, ge=1)
+    indicator: str | None = Field(None, description="Selected indicator, if any")
+
+
+@app.post("/api/assistant", tags=["ai"])
+def ask_assistant(body: AssistantRequest):
+    """Answer any question with an answer, steps and one-click dashboard actions."""
+    crew_id = body.crew_id if body.crew_id in store.crew else None
+    return assistant.ask_assistant(store, body.question, body.history, crew_id, body.day, body.indicator)
