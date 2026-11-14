@@ -39,7 +39,7 @@ indicator; template at data/import_template.csv).
 - Mission routine (sidebar): daily tasks, streaks, points, levels and badges. Measurement tasks tick \
 themselves when a check-in logs the reading.
 - Header: environment selector (ISS, lunar surface, Mars transit) regenerates the mission; "▶ Demo tour" \
-walks through the story in 11 steps.
+walks through the story in 12 steps.
 - Status banner: the overall Normal / Warning / Critical level for the selected person and day.
 - AI flight surgeon panel: "Generate daily briefing" (left) and the "Early-warning forecast" (right): \
 indicators whose straight-line trend would cross the edge of the personal baseline, a warning or a critical \
@@ -178,7 +178,7 @@ FAQ: list[tuple[str, str, list[str], list[tuple[str, str]]]] = [
     (r"check.?in|log|enter|record|measure", "Log today's readings in the Daily check-in panel.",
      ["Go back to Live if you are replaying a past day.", "Type the values you measured.",
       "Click Log check-in. The status updates straight away."], [("open_checkin", "Open check-in")]),
-    (r"tour|demo|judge|present", "The demo tour walks through AURA's story in 11 steps.",
+    (r"tour|demo|judge|present", "The demo tour walks through AURA's story in 12 steps.",
      ["Click ▶ Demo tour in the header.", "Use Next → to move through the steps."], [("start_tour", "Start the tour")]),
     (r"real|nasa|osdr|inspiration|blood", "The Real crew data panel shows real NASA OSDR bloodwork from the Inspiration4 crew.",
      ["Scroll to Real crew data · Inspiration4.", "Switch panels and pick a marker.",

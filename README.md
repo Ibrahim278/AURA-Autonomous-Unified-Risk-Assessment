@@ -29,7 +29,8 @@ already being abnormal *for that person*.
 | 📈 | **Personal baselines.** Each astronaut is compared with their own 7-day preflight baseline, so a sustained shift is caught even when it's still Earth-normal |
 | 🚦 | **Three transparent levels.** 🟢 Normal, 🟡 Warning, 🔴 Critical, with the reason and the next actions every time |
 | 🧍 | **Clickable body figure** colored by each body system's worst indicator |
-| ✦ | **AI flight surgeon** (Claude) that writes a 30-second daily briefing and answers questions grounded in the astronaut's data |
+| ✦ | **AI flight surgeon** (Claude) that writes a 30-second daily briefing grounded in the astronaut's data |
+| 📈 | **Early-warning forecast.** Projects each indicator's trend and flags any that would cross the edge of the personal baseline, a warning or a critical limit within 14 days, with a dashed projection on the chart. Kenji's heart-rate warning is forecast 2 days before it fires |
 | 💬 | **Ask AURA**: a chat button in the bottom-right corner on every screen. Ask anything (health, "how do I…", the NASA data) and get an answer, numbered steps and one-click buttons that take you to the right place. It knows which crew member, day and indicator you're viewing |
 | 🎮 | **Gamified routine.** Daily tasks, streaks, points, levels and badges reward measuring regularly and following up on warnings |
 | ⏪ | **Mission replay** to see what AURA showed on any day, plus ISS, lunar surface and Mars transit environments |
@@ -37,7 +38,7 @@ already being abnormal *for that person*.
 | 👩‍🚀 | **Editable crew.** Add or edit up to 6 members: name, role, age, personal baselines and a health scenario (5 to choose from). The AI isn't told the scenario, so it has to find the pattern |
 | ➕ | **Custom indicators.** Add any measurement (body weight, HRV, steps, water intake, or your own) with its unit, typical range and warning/critical limits. It gets baselines, alerts, charts, check-ins, CSV import and AI coverage like the built-in ten |
 | ⬆ | **Import your own data** from a CSV (one row per day) and become a crew member: alerts, tasks and the AI briefing all run on your readings |
-| ▶ | **Guided demo tour** that walks through the mission story, real NASA data and your own data in 11 steps |
+| ▶ | **Guided demo tour** that walks through the mission story, real NASA data and your own data in 12 steps |
 
 ### Alert logic (in `backend/aura/alerts.py`)
 
@@ -133,6 +134,7 @@ Edited crews and imported data live in memory, so restarting the back end return
 frontend/  React 19 + Vite + Recharts dashboard  ──/api──►  backend/  FastAPI (Python)
                                                               ├─ indicators.py    catalog, limits, actions, references
                                                               ├─ alerts.py        baseline-deviation alert engine
+                                                              ├─ forecast.py      trend projection / early warning
                                                               ├─ simulator.py     seeded synthetic telemetry + health scenarios
                                                               ├─ importer.py      CSV import of your own data
                                                               ├─ custom.py        user-defined indicators
@@ -163,6 +165,7 @@ data/osdr/  NASA OSDR files (unchanged)        data/import_template.csv  example
 | GET | `/api/crew` | Crew with overall status |
 | GET | `/api/crew/{id}/status?day=` | Per-indicator assessment and body-system rollup |
 | GET | `/api/crew/{id}/telemetry` | Chart series with baseline and limits |
+| GET | `/api/crew/{id}/forecast?day=` | Early-warning forecast: trend crossings within 14 days, plus 7-day projections |
 | GET | `/api/crew/{id}/alerts` | Timeline of alert-level changes |
 | POST | `/api/crew/{id}/checkins` | Log manual measurements; returns the updated status |
 | GET | `/api/crew/{id}/tasks` | Today's tasks, streaks, level and badges |
@@ -195,6 +198,6 @@ Export the dataset with `python -m aura.simulator --out ../data` (from `backend/
 cd backend && python -m pytest
 ```
 
-76 tests cover the alert engine, the simulator scenarios, every API endpoint, gamification,
-the OSDR parser and quality check, the CSV importer, crew editing, custom indicators, and the AI layer (with a
+80 tests cover the alert engine, the simulator scenarios, every API endpoint, gamification,
+the OSDR parser and quality check, the CSV importer, crew editing, custom indicators, the forecast, Ask AURA, and the AI layer (with a
 mocked Claude API).

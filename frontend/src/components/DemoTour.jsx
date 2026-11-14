@@ -16,6 +16,11 @@ export const TOUR_STEPS = [
     crew: 'aura-2', day: 42, indicator: 'sleep_hours', target: '.detail',
   },
   {
+    title: 'Day 48: AURA sees it coming',
+    text: 'His heart rate is still “normal”, but the early-warning forecast projects each trend forward and flags it: it reaches the edge of his baseline in about a day. Click a forecast row to see the dashed projection on the chart.',
+    crew: 'aura-2', day: 48, indicator: 'heart_rate', target: '.forecast',
+  },
+  {
     title: 'Day 50: the heart follows',
     text: 'Resting heart rate is 71 bpm. That is normal on Earth, but it has sat well above his 64 bpm baseline for 3 days running. A one-size-fits-all threshold would miss this.',
     crew: 'aura-2', day: 50, indicator: 'heart_rate', target: '.detail',

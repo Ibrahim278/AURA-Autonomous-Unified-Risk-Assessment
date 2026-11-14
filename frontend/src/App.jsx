@@ -27,6 +27,8 @@ export default function App() {
   const [telemetry, setTelemetry] = useState(null)
   const [alerts, setAlerts] = useState([])
   const [routine, setRoutine] = useState(null)
+  const [forecast, setForecast] = useState(null)
+  const [askSignal, setAskSignal] = useState(0)
   const [system, setSystem] = useState(null)
   const [selected, setSelected] = useState(null)
   const [error, setError] = useState(null)
@@ -50,12 +52,14 @@ export default function App() {
   const loadCrew = useCallback(async () => {
     if (!crewId) return
     try {
-      const [s, t, a, r] = await Promise.all([
+      const [s, t, a, r, f] = await Promise.all([
         api.status(crewId, day),
         api.telemetry(crewId),
         api.alerts(crewId),
         api.tasks(crewId),
+        api.forecast(crewId, day),
       ])
+      setForecast(f)
       setStatus(s)
       setTelemetry(t)
       setAlerts(a)
@@ -186,7 +190,9 @@ export default function App() {
                 day={shownDay}
                 live={day === null}
                 catalog={catalog}
-                onSelectIndicator={setSelected}
+                onSelectIndicator={(k) => { setSystem(null); setSelected(k); scrollTo('.detail') }}
+                forecast={forecast}
+                onAsk={() => setAskSignal((n) => n + 1)}
               />
               <section className="overview">
                 <div className="panel body-panel">
@@ -216,6 +222,7 @@ export default function App() {
                   assessment={selectedAssessment}
                   info={catalog[selected]}
                   series={telemetry?.series[selected]}
+                  projection={forecast?.day === shownDay ? forecast?.series[selected] : null}
                   day={shownDay}
                   onClose={() => setSelected(null)}
                 />
@@ -284,6 +291,7 @@ export default function App() {
         selected={selected}
         selectedName={selected ? catalog[selected]?.name : null}
         hidden={tourStep !== null}
+        openSignal={askSignal}
         onAction={handleAction}
       />
       <footer className="footer">

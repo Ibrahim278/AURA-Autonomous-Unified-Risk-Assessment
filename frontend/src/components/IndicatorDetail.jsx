@@ -1,7 +1,7 @@
 import { HAZARD_LABEL, LEVEL, TREND_LABEL, fmt } from '../levels.js'
 import TrendChart from './TrendChart.jsx'
 
-export default function IndicatorDetail({ assessment: a, info, series, day, onClose }) {
+export default function IndicatorDetail({ assessment: a, info, series, day, onClose, projection }) {
   const lvl = LEVEL[a.level]
   return (
     <section className={`panel detail ${lvl.cls}`}>
@@ -19,7 +19,7 @@ export default function IndicatorDetail({ assessment: a, info, series, day, onCl
             <div><span className="muted">Trend (7 days)</span><strong>{TREND_LABEL[a.trend]}</strong></div>
             {a.z_score != null && <div><span className="muted">Deviation</span><strong>{a.z_score > 0 ? '+' : ''}{a.z_score} SD</strong></div>}
           </div>
-          <TrendChart series={series} day={day} />
+          <TrendChart series={series} day={day} projection={projection} />
         </div>
         <div className="detail-text">
           <h3>Why this status?</h3>
