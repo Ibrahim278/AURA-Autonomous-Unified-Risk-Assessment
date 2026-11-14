@@ -11,6 +11,7 @@ import AlertTimeline from './components/AlertTimeline.jsx'
 import DayScrubber from './components/DayScrubber.jsx'
 import AIPanel from './components/AIPanel.jsx'
 import MissionRoutine from './components/MissionRoutine.jsx'
+import CrewEditor from './components/CrewEditor.jsx'
 import ResearchPanel from './components/ResearchPanel.jsx'
 import DemoTour, { TOUR_STEPS } from './components/DemoTour.jsx'
 
@@ -28,6 +29,7 @@ export default function App() {
   const [selected, setSelected] = useState(null)
   const [error, setError] = useState(null)
   const [tourStep, setTourStep] = useState(null)
+  const [editingCrew, setEditingCrew] = useState(false)
 
   const loadMission = useCallback(async () => {
     try {
@@ -104,7 +106,17 @@ export default function App() {
 
   return (
     <div className="app">
-      <Header mission={mission} onTour={() => goToStep(0)} onReset={async (env) => {
+      <Header mission={mission} onTour={async () => {
+        // The tour follows the demo crew's scripted scenarios, so restore them if the crew was edited.
+        const demoReady = crew.some((c) => c.id === 'aura-2' && c.scenario === 'behavioural_cardio') &&
+          crew.some((c) => c.id === 'aura-3' && c.scenario === 'immune_fever')
+        if (!demoReady) {
+          const o = await api.crewOptions()
+          await api.setCrew({ crew: o.default_crew })
+          await refreshAll()
+        }
+        goToStep(0)
+      }} onReset={async (env) => {
         await api.reset({ environment: env, days: mission?.days ?? 60 })
         setDay(null)
         setSelected(null)
@@ -112,7 +124,7 @@ export default function App() {
       }} />
       <div className="layout">
         <aside className="sidebar">
-          <CrewList crew={crew} selectedId={crewId} onSelect={(id) => {
+          <CrewList crew={crew} selectedId={crewId} onEdit={() => setEditingCrew(true)} onSelect={(id) => {
             setCrewId(id)
             setSelected(null)
             setSystem(null)
@@ -210,6 +222,19 @@ export default function App() {
           )}
         </main>
       </div>
+      {editingCrew && (
+        <CrewEditor
+          crew={crew}
+          onClose={() => setEditingCrew(false)}
+          onSaved={async (saved) => {
+            setDay(null)
+            setSelected(null)
+            setSystem(null)
+            setCrewId((prev) => (saved.some((c) => c.id === prev) ? prev : saved[0]?.id ?? null))
+            await refreshAll()
+          }}
+        />
+      )}
       {tourStep !== null && (
         <DemoTour step={tourStep} onStep={goToStep} onClose={() => { setTourStep(null); setDay(null) }} />
       )}

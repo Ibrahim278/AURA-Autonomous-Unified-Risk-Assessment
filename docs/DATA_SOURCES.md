@@ -39,9 +39,17 @@ Notes on interpretation:
   reflect sample handling (for example delayed processing), so AURA shows it without comment.
 - The CBC file labels haemoglobin as `percent`; the values and ranges are clearly g/dL, so the
   UI shows g/dL and says so.
+- Quality check: in a CBC, absolute neutrophils must equal WBC × neutrophil %. The published
+  C003 L-92 row breaks this (10.1/µL vs about 6,826/µL expected) and several red-cell indices are
+  shifted too, so AURA excludes that whole sample from charts and the AI review and says why.
 - These crew are separate people from AURA's synthetic demo crew; the two are never mixed.
 
 ## Synthetic telemetry
+
+The crew is editable in the dashboard (✎ Edit crew): name, role, age, personal baselines and a
+health scenario (nominal, behavioural → cardio, immune fever, circadian disruption, exercise
+deconditioning). Scenarios are anchored to the end of the mission, so the story always finishes
+on the current day.
 
 `backend/aura/simulator.py` generates a deterministic (seeded) mission timeline for a small
 crew. It models the documented direction of in-flight change, for example:
