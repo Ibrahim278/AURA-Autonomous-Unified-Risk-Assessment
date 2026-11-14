@@ -104,11 +104,14 @@ class Point:
     value: float | None
     range_min: float | None
     range_max: float | None
+    suspect: bool = False  # failed a data-quality check; kept, but excluded from analysis
 
     @property
     def flag(self) -> str | None:
         if self.value is None:
             return None
+        if self.suspect:
+            return "suspect"
         if self.range_min is not None and self.value < self.range_min:
             return "low"
         if self.range_max is not None and self.value > self.range_max:
@@ -117,7 +120,8 @@ class Point:
 
     def to_dict(self) -> dict:
         return {"timepoint": self.timepoint, "day": self.day, "value": self.value,
-                "range_min": self.range_min, "range_max": self.range_max, "flag": self.flag}
+                "range_min": self.range_min, "range_max": self.range_max, "flag": self.flag,
+                "suspect": self.suspect}
 
 
 @dataclass
@@ -129,7 +133,7 @@ class Analyte:
     def to_dict(self) -> dict:
         info = ANALYTE_INFO.get(self.key, {})
         ranges = [(p.range_min, p.range_max) for pts in self.series.values() for p in pts
-                  if p.value is not None]
+                  if p.value is not None and not p.suspect]
         common = max(set(ranges), key=ranges.count) if ranges else (None, None)
         return {
             "key": self.key,
@@ -205,6 +209,37 @@ def parse_transformed_csv(path: Path) -> dict[str, Analyte]:
     return analytes
 
 
+def quality_check(analytes: dict[str, Analyte]) -> list[dict]:
+    """Mark samples whose values contradict each other, so they can't skew charts or the AI.
+
+    CBC rule: absolute neutrophils must equal WBC (x10^3/uL) x neutrophil % x 10, as the lab
+    derives one from the other. A mismatch over 25% means the row's columns are misaligned.
+    (In the published LSDS-7 file this catches C003 at L-92, where the absolute counts and
+    several red-cell indices are shifted by one column.)
+    """
+    need = ("white_blood_cell_count", "neutrophils", "absolute_neutrophils")
+    if not all(k in analytes for k in need):
+        return []
+    issues = []
+    for crew, pts in analytes["absolute_neutrophils"].series.items():
+        for i, p in enumerate(pts):
+            wbc = analytes["white_blood_cell_count"].series[crew][i].value
+            pct = analytes["neutrophils"].series[crew][i].value
+            if None in (p.value, wbc, pct) or wbc * pct == 0:
+                continue
+            expected = wbc * pct * 10
+            if abs(p.value - expected) / expected > 0.25:
+                for an in analytes.values():
+                    for q in an.series.get(crew, []):
+                        if q.timepoint == p.timepoint:
+                            q.suspect = True
+                issues.append({"crew": crew, "timepoint": p.timepoint,
+                               "reason": f"Absolute neutrophils {p.value:g}/µL but WBC × neutrophil % "
+                                         f"gives {expected:.0f}/µL: the row's columns look misaligned, "
+                                         "so the whole sample is excluded."})
+    return issues
+
+
 @lru_cache(maxsize=None)
 def load(dataset: str) -> dict | None:
     meta = DATASETS[dataset]
@@ -212,6 +247,7 @@ def load(dataset: str) -> dict | None:
     if not path.exists():
         return None
     analytes = parse_transformed_csv(path)
+    qc = quality_check(analytes)
     ordered = sorted(analytes.values(), key=lambda a: (a.key not in ANALYTE_INFO,
                                                        list(ANALYTE_INFO).index(a.key) if a.key in ANALYTE_INFO else 0,
                                                        a.key))
@@ -227,6 +263,7 @@ def load(dataset: str) -> dict | None:
         "notice": ("Real, de-identified crew data from NASA OSDR, shown exactly as published. "
                    "Reference ranges are the clinical lab's, per sample. An out-of-range value "
                    "alone is not a diagnosis, and it can reflect sample handling."),
+        "quality_issues": qc,
         "crew": crews,
         "timepoints": [{"label": t, "day": timepoint_day(t),
                         "phase": "preflight" if t.startswith("L") else "postflight"} for t in tps],
@@ -242,3 +279,49 @@ def all_datasets() -> list[dict]:
 def available() -> list[dict]:
     return [{"dataset": k, "osd": v["osd"], "title": v["title"], "url": v["url"],
              "loaded": (DATA_DIR / v["file"]).exists()} for k, v in DATASETS.items()]
+
+
+# --------------------------------------------------------------------------- per-crew summary
+PREFLIGHT = ("L-92", "L-44", "L-3")
+
+
+def crew_profile(crew: str) -> dict | None:
+    """Compact per-crew summary across every loaded dataset, for the AI review.
+
+    For each featured marker: preflight mean (personal baseline), the R+1 value and its change
+    from baseline, the latest value, and every out-of-range timepoint.
+    """
+    datasets = all_datasets()
+    if not datasets or crew not in {c for d in datasets for c in d["crew"]}:
+        return None
+    markers = []
+    for d in datasets:
+        for a in d["analytes"]:
+            if not a["featured"]:
+                continue
+            pts = {p["timepoint"]: p for p in a["series"].get(crew, [])}
+            pts = {t: p for t, p in pts.items() if not p["suspect"]}
+            pre = [pts[t]["value"] for t in PREFLIGHT if t in pts and pts[t]["value"] is not None]
+            base = round(sum(pre) / len(pre), 2) if pre else None
+            r1 = pts.get("R+1", {}).get("value")
+            last = next((pts[t["label"]] for t in reversed(d["timepoints"])
+                         if pts.get(t["label"], {}).get("value") is not None), None)
+            markers.append({
+                "key": a["key"], "name": a["name"], "unit": a["unit"], "panel": d["dataset"],
+                "lab_range": a["typical_range"],
+                "preflight_mean": base,
+                "return_day_1": r1,
+                "change_at_return_pct": round(100 * (r1 - base) / base, 1) if base and r1 is not None else None,
+                "latest": {"timepoint": last["timepoint"], "value": last["value"]} if last else None,
+                "out_of_range": [{"timepoint": p["timepoint"], "value": p["value"], "flag": p["flag"]}
+                                 for p in pts.values() if p["flag"] in ("low", "high")],
+                "values": {t: p["value"] for t, p in pts.items()},
+            })
+    return {
+        "crew": crew,
+        "mission": "Inspiration4 (3-day orbital flight, Sept 2021)",
+        "timepoints": "L-n = n days before launch; R+n = n days after return",
+        "source": "NASA OSDR " + ", ".join(f"{d['osd']} ({d['lsds']})" for d in datasets),
+        "excluded_samples": [q for d in datasets for q in d["quality_issues"] if q["crew"] == crew],
+        "markers": markers,
+    }
