@@ -176,7 +176,8 @@ def build_context(store: MissionStore, crew_id: str, day: int | None = None) -> 
         "mission": {
             "environment": store.dataset.environment_info["name"],
             "day": day,
-            "data": "synthetic demo telemetry",
+            "data": ("readings imported by the user from their own CSV (real or self-recorded)"
+                     if member.imported is not None else "synthetic demo telemetry"),
         },
         "astronaut": {"name": member.name, "role": member.role, "age": member.age},
         "overall_level": status["overall"],
