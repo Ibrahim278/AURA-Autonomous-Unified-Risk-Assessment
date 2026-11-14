@@ -335,3 +335,23 @@ button:disabled { opacity: 0.6; cursor: default; }
 .findings .marker { font-weight: 600; padding: 0; }
 .findings .concern { margin-left: 8px; font-size: 0.7rem; text-transform: uppercase; color: var(--lvl); }
 .caveats { margin: 0; padding-left: 18px; font-size: 0.8rem; color: var(--muted); }
+
+/* ---------- Crew editor ---------- */
+.crew-head { margin-bottom: 4px; }
+.modal-backdrop { position: fixed; inset: 0; background: rgba(2, 6, 18, 0.7); display: grid; place-items: center; z-index: 50; padding: 16px; }
+.modal { background: linear-gradient(180deg, var(--panel), var(--bg2)); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 20px; width: min(880px, 100%); max-height: 90vh; overflow-y: auto; }
+.crew-row { border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; margin-top: 10px; }
+.crew-row-main { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.crew-row input, .crew-row select { background: var(--bg2); color: var(--text); border: 1px solid var(--border); border-radius: 8px; padding: 6px 8px; font: inherit; font-size: 0.88rem; }
+.crew-row input[aria-label="Name"] { flex: 1 1 180px; }
+.crew-row input.age { width: 64px; }
+.scen-desc { margin: 6px 0 0; }
+.baseline-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 8px; margin-top: 10px; }
+.baseline-grid label { display: grid; gap: 3px; font-size: 0.8rem; color: var(--muted); }
+.baseline-grid em { font-style: normal; opacity: 0.7; }
+.baseline-grid p { grid-column: 1 / -1; margin: 0; }
+.modal-foot { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-top: 16px; }
+.link.danger { color: var(--critical); }
+.baseline-grid input { width: 100%; min-width: 0; }
+.crew-row-main .link.danger { margin-left: auto; }

@@ -122,6 +122,9 @@ frontend/  React 19 + Vite + Recharts dashboard  ──/api──►  backend/  
 | POST | `/api/crew/{id}/briefing` | AI (or rule-based) daily briefing |
 | POST | `/api/crew/{id}/ask` | Ask the AI flight surgeon a question |
 | GET | `/api/research/{cmp\|cbc}` | Real Inspiration4 crew bloodwork from NASA OSDR |
+| POST | `/api/research/crew/{C001..C004}/review` | AI review of one real crew member's bloodwork |
+| GET | `/api/crew-options` | Scenarios and baselines for the crew editor |
+| PUT | `/api/mission/crew` | Replace the crew (name, role, age, scenario, baselines) and regenerate |
 
 ## Data and sources
 
@@ -131,7 +134,9 @@ seeded **synthetic telemetry** stands in for continuous astronaut readings, whic
 public. Every record carries a `source` (`synthetic`, `research` or `manual`), and each
 threshold lists its references. The **Real crew data** panel charts actual Inspiration4 crew
 bloodwork from NASA OSDR (OSD-575 metabolic panel and OSD-569 blood count), unaltered and
-labelled `research`. See [docs/DATA_SOURCES.md](docs/DATA_SOURCES.md).
+labelled `research`, and Claude can review each real crew member's bloodwork against their own
+preflight baseline. A quality check excludes one published CBC sample (C003, L-92) whose columns
+are misaligned. See [docs/DATA_SOURCES.md](docs/DATA_SOURCES.md).
 
 Export the dataset with `python -m aura.simulator --out ../data` (from `backend/`).
 

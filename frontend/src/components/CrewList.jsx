@@ -1,9 +1,12 @@
 import { LEVEL } from '../levels.js'
 
-export default function CrewList({ crew, selectedId, onSelect }) {
+export default function CrewList({ crew, selectedId, onSelect, onEdit }) {
   return (
     <div className="crew-list">
-      <h2>Crew</h2>
+      <div className="panel-head crew-head">
+        <h2>Crew</h2>
+        {onEdit && <button className="link" onClick={onEdit}>✎ Edit crew</button>}
+      </div>
       {crew.map((c) => {
         const lvl = LEVEL[c.overall]
         return (
