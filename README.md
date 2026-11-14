@@ -35,7 +35,7 @@ already being abnormal *for that person*.
 | 🧪 | **Real crew data.** Actual Inspiration4 bloodwork from NASA OSDR (metabolic panel and blood count), charted per crew member against lab ranges, with an **AI review** of each person's changes versus their own preflight baseline |
 | 👩‍🚀 | **Editable crew.** Add or edit up to 6 members: name, role, age, personal baselines and a health scenario (5 to choose from). The AI isn't told the scenario, so it has to find the pattern |
 | ⬆ | **Import your own data** from a CSV (one row per day) and become a crew member: alerts, tasks and the AI briefing all run on your readings |
-| ▶ | **Guided demo tour** that walks through the whole mission story in 8 steps |
+| ▶ | **Guided demo tour** that walks through the mission story, real NASA data and your own data in 11 steps |
 
 ### Alert logic (in `backend/aura/alerts.py`)
 
