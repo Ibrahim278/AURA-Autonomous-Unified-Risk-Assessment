@@ -312,3 +312,105 @@ def ask(store: MissionStore, crew_id: str, question: str, history: list[ChatTurn
         return {"mode": "offline", "model": None,
                 "answer": f"The AI assistant is unavailable right now ({_describe(exc)}). "
                           "Use the indicator guidance, and contact the flight surgeon if anything is critical."}
+
+
+# --------------------------------------------------------------------------- real crew data review
+RESEARCH_PROMPT = """\
+You are AURA's flight-surgeon assistant, reviewing REAL, de-identified clinical lab data from \
+one of the four Inspiration4 crew (a 3-day orbital flight in September 2021), published by NASA's \
+Open Science Data Repository. The reader is a mission medical team or a judge evaluating AURA.
+
+What you receive: JSON with each blood marker's personal preflight mean (the mean of L-92, L-44 \
+and L-3), the value 1 day after return (R+1) and its change from preflight, the latest value, the \
+lab's reference range, any out-of-range timepoints, and samples excluded by AURA's quality check.
+
+Rules:
+1. Compare the astronaut to their OWN preflight baseline first, then to the lab range. A big \
+change inside the range can matter more than a small excursion outside it.
+2. Link changes to known spaceflight effects only where it fits: fluid shift and plasma volume \
+loss, red cell loss ("space anaemia"), launch and landing stress on white cells, bone calcium \
+release, reduced activity and glucose, re-adaptation to gravity. Say "consistent with", never \
+"caused by"; three days in orbit is short and there is no control group here.
+3. A single odd value at one timepoint, especially if every other crew member shows the same \
+jump, may be sample handling or lab variation. Say so instead of building a story on it.
+4. Recommendations are what AURA would have this astronaut monitor or do around a future \
+flight (measurements to add, countermeasures, follow-up timing). Never diagnose, prescribe or \
+dose medication; defer clinical decisions to a physician.
+5. Use only the data given. Be brief and concrete, with numbers and units.
+"""
+
+
+class ResearchFinding(BaseModel):
+    marker: str = Field(description="Marker name as given, e.g. 'Glucose'")
+    observation: str = Field(description="ONE sentence, at most 25 words, with numbers and units vs preflight")
+    interpretation: str = Field(description="ONE sentence, at most 25 words, hedged ('consistent with...')")
+    concern: Literal["low", "moderate", "high"] = Field(description="How much attention it deserves")
+
+
+class ResearchRecommendation(BaseModel):
+    action: str = Field(description="At most 15 words, starting with a verb")
+    rationale: str = Field(description="ONE sentence, at most 20 words")
+
+
+class ResearchReview(BaseModel):
+    headline: str = Field(description="One sentence, at most 25 words: the overall picture")
+    findings: list[ResearchFinding] = Field(description="2-4 findings, most important first")
+    recommendations: list[ResearchRecommendation] = Field(description="2-3 recommendations")
+    data_caveats: list[str] = Field(description="0-2 short caveats about the data itself")
+
+
+def offline_research_review(profile: dict) -> ResearchReview:
+    """Deterministic review: largest return-day shifts and out-of-range markers."""
+    ms = [m for m in profile["markers"] if m["change_at_return_pct"] is not None]
+    ms.sort(key=lambda m: -abs(m["change_at_return_pct"]))
+    findings = []
+    for m in ms[:3]:
+        pct = m["change_at_return_pct"]
+        oor = ", ".join(f"{o['timepoint']} ({o['flag']})" for o in m["out_of_range"]) or "none"
+        findings.append(ResearchFinding(
+            marker=m["name"],
+            observation=f"{m['preflight_mean']:g} → {m['return_day_1']:g} {m['unit']} the day after return "
+                        f"({pct:+.0f}% vs preflight).",
+            interpretation=f"Out-of-range timepoints: {oor}. Rule-based summary; enable Claude for interpretation.",
+            concern="moderate" if m["out_of_range"] or abs(pct) >= 30 else "low"))
+    return ResearchReview(
+        headline=f"Largest return-day shifts for {profile['crew']} are listed below versus their own preflight mean.",
+        findings=findings,
+        recommendations=[
+            ResearchRecommendation(action="Repeat bloodwork within a week of return",
+                                   rationale="Separates real flight effects from one-off sample variation."),
+            ResearchRecommendation(action="Track these markers in AURA's daily check-in on future flights",
+                                   rationale="A personal baseline makes small shifts visible early."),
+        ],
+        data_caveats=[q["reason"] for q in profile.get("excluded_samples", [])][:1],
+    )
+
+
+def research_review(profile: dict) -> dict:
+    status = ai_status()
+    if not status["enabled"]:
+        return {"mode": "offline", "model": None, "review": offline_research_review(profile).model_dump(),
+                "note": "AI is off (no Claude credentials found). Showing the rule-based summary."}
+    try:
+        response = _client().beta.messages.parse(
+            model=status["model"],
+            max_tokens=16000,
+            betas=[FALLBACK_BETA],
+            fallbacks="default",
+            output_config={"effort": "medium"},
+            system=[{"type": "text", "text": RESEARCH_PROMPT, "cache_control": {"type": "ephemeral"}}],
+            messages=[{
+                "role": "user",
+                "content": "Review this crew member's bloodwork across the flight. Keep every field to its "
+                "word limit.\n\n<crew_lab_data>\n" + json.dumps(profile, separators=(",", ":"))
+                + "\n</crew_lab_data>",
+            }],
+            output_format=ResearchReview,
+        )
+        if _refused(response) or response.parsed_output is None:
+            raise RuntimeError(f"no review returned (stop_reason={response.stop_reason})")
+        return {"mode": "ai", "model": response.model, "review": response.parsed_output.model_dump(), "note": None}
+    except Exception as exc:  # noqa: BLE001
+        log.warning("AI research review failed: %s", _describe(exc))
+        return {"mode": "offline", "model": None, "review": offline_research_review(profile).model_dump(),
+                "note": f"AI unavailable ({_describe(exc)}). Showing the rule-based summary."}

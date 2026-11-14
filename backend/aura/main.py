@@ -241,6 +241,15 @@ def research_datasets():
     return research.available()
 
 
+@app.post("/api/research/crew/{crew}/review", tags=["research", "ai"])
+def research_crew_review(crew: str):
+    """AI (or rule-based) review of one Inspiration4 crew member's real bloodwork."""
+    profile = research.crew_profile(crew.upper())
+    if profile is None:
+        raise HTTPException(404, f"No research data for crew '{crew}'")
+    return ai.research_review(profile)
+
+
 @app.get("/api/research/{dataset}", tags=["research"])
 def research_dataset(dataset: str):
     """One dataset (cmp or cbc): every analyte per crew member and timepoint, with lab ranges."""

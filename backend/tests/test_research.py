@@ -47,3 +47,23 @@ def test_research_endpoints():
     r = client.get("/api/research/cmp")
     assert r.status_code == 200 and r.json()["source"] == "research"
     assert client.get("/api/research/nope").status_code == 404
+
+
+def test_quality_check_excludes_misaligned_cbc_row():
+    d = research.load("cbc")
+    assert [(q["crew"], q["timepoint"]) for q in d["quality_issues"]] == [("C003", "L-92")]
+    wbc = next(a for a in d["analytes"] if a["key"] == "white_blood_cell_count")
+    assert wbc["series"]["C003"][0]["flag"] == "suspect"
+    prof = research.crew_profile("C003")
+    plt = next(m for m in prof["markers"] if m["key"] == "platelet_count")
+    assert "L-92" not in plt["values"]
+
+
+def test_offline_review(monkeypatch):
+    monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
+    monkeypatch.delenv("ANTHROPIC_AUTH_TOKEN", raising=False)
+    monkeypatch.setenv("ANTHROPIC_CONFIG_DIR", "/nonexistent-aura-test")
+    r = client.post("/api/research/crew/C003/review").json()
+    assert r["mode"] == "offline"
+    assert 1 <= len(r["review"]["findings"]) <= 3
+    assert client.post("/api/research/crew/C999/review").status_code == 404
