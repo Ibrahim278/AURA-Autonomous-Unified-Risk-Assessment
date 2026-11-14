@@ -94,3 +94,34 @@ def test_reset_environment():
     m = client.post("/api/mission/reset", json={"environment": "iss", "days": 30}).json()
     assert m["environment"] == "iss" and m["current_day"] == 30
     assert client.post("/api/mission/reset", json={"environment": "venus"}).status_code == 422
+
+
+def test_edit_crew_regenerates_mission():
+    from aura.simulator import DEFAULT_CREW_SPECS
+    opts = client.get("/api/crew-options").json()
+    assert {s["key"] for s in opts["scenarios"]} >= {"nominal", "immune_fever", "deconditioning"}
+    r = client.put("/api/mission/crew", json={"crew": [
+        {"id": "aura-1", "name": "Ibrahim Test", "role": "Commander", "age": 30, "scenario": "immune_fever",
+         "baseline": {"heart_rate": 55}},
+        {"name": "New Member", "scenario": "nominal"},
+    ]})
+    assert r.status_code == 200
+    crew = {c["id"]: c for c in r.json()}
+    assert set(crew) == {"aura-1", "aura-2"}
+    assert crew["aura-1"]["name"] == "Ibrahim Test" and crew["aura-1"]["overall"] == "critical"
+    assert crew["aura-2"]["overall"] == "normal"
+    t = client.get("/api/crew/aura-1/telemetry?indicators=heart_rate").json()
+    pre = t["series"]["heart_rate"]["preflight"]
+    assert abs(sum(pre) / len(pre) - 55) < 3
+    bad = client.put("/api/mission/crew", json={"crew": [{"name": "X", "scenario": "nope"}]})
+    assert bad.status_code == 422
+    bad = client.put("/api/mission/crew", json={"crew": [{"name": "X", "baseline": {"spo2": 90}}]})
+    assert bad.status_code == 422
+    assert client.put("/api/mission/crew", json={"crew": DEFAULT_CREW_SPECS}).status_code == 200
+
+
+def test_shorter_mission_still_tells_the_scenario_story():
+    from aura.simulator import generate
+    from aura.store import MissionStore
+    s = MissionStore(generate(days=30))
+    assert s.status("aura-3")["overall"] == "critical"
