@@ -10,7 +10,7 @@ from bisect import insort
 from collections import defaultdict
 from datetime import datetime, timezone
 
-from .alerts import Assessment, Baseline, Level, Reading, assess, body_system_rollup, overall_level
+from .alerts import MIN_BASELINE_READINGS, Assessment, Baseline, Level, Reading, assess, body_system_rollup, overall_level
 from .indicators import INDICATORS
 from .simulator import DEFAULTS, MissionDataset, generate
 
@@ -45,6 +45,7 @@ class MissionStore:
             self._baselines = {
                 key: Baseline.from_values(values, INDICATORS[key[1]])
                 for key, values in self._preflight.items()
+                if len(values) >= MIN_BASELINE_READINGS  # imported data may have few preflight days
             }
 
     @classmethod
@@ -121,6 +122,28 @@ class MissionStore:
         return events
 
     # ------------------------------------------------------------------ writes
+    def add_member(self, member, records) -> None:
+        """Add a crew member with their own records, keeping everyone else's data and check-ins."""
+        with self._lock:
+            if member.id in self.crew:
+                raise ValueError(f"crew id '{member.id}' already exists")
+            self.dataset.crew = [*self.dataset.crew, member]
+            self.dataset.records = [*self.dataset.records, *records]
+            self.crew[member.id] = member
+            for r in records:
+                key = (r.crew_id, r.indicator)
+                if r.phase == "preflight":
+                    self._preflight[key].append(r.value)
+                else:
+                    self._inflight[key].append(Reading(r.day, r.value, r.source, r.timestamp))
+            for ind in INDICATORS:
+                key = (member.id, ind)
+                self._inflight[key].sort(key=lambda r: r.day)
+                values = self._preflight.get(key, [])
+                try:
+                    self._baselines[key] = Baseline.from_values(values, INDICATORS[ind])
+                except ValueError:
+                    pass  # too few preflight days: fixed limits only
     def add_checkin(
         self, crew_id: str, values: dict[str, float], day: int | None = None, note: str | None = None
     ) -> int:

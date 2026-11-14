@@ -77,11 +77,16 @@ class CrewMember:
     scenario_description: str
     baseline_means: dict[str, float] = field(default_factory=dict)
     offset_fn: OffsetFn | None = field(default=None, repr=False, compare=False)
+    # (indicator, day, value) readings uploaded by the user; replaces simulation for this member.
+    imported: list[tuple[str, int, float]] | None = field(default=None, repr=False, compare=False)
 
     def public(self) -> dict:
         d = asdict(self)
         d.pop("offset_fn")
+        imported = d.pop("imported")
         d["baseline"] = d.pop("baseline_means")
+        d["data_source"] = "imported" if imported is not None else "synthetic"
+        d["imported_readings"] = len(imported) if imported is not None else 0
         return d
 
 
@@ -287,6 +292,9 @@ def generate(
     records: list[TelemetryRecord] = []
 
     for member in crew:
+        if member.imported is not None:
+            records.extend(imported_records(member, start))
+            continue
         for day in [*range(-PREFLIGHT_DAYS, 0), *range(1, days + 1)]:
             offsets: dict[str, float] = {}
             for src in (_in_flight_adaptation(day), member.offset_fn(day, days) if day >= 1 else {}):
@@ -326,6 +334,13 @@ def generate(
         crew=crew,
         records=records,
     )
+
+
+def imported_records(member: CrewMember, start: date) -> list[TelemetryRecord]:
+    return [TelemetryRecord(crew_id=member.id, indicator=key, day=day,
+                            phase="preflight" if day < 1 else "inflight",
+                            timestamp=_timestamp(start, day), value=value, source="imported")
+            for key, day, value in member.imported or []]
 
 
 def export(dataset: MissionDataset, out_dir: Path) -> list[Path]:

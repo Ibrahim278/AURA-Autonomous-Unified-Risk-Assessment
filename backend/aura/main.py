@@ -14,14 +14,17 @@ from __future__ import annotations
 
 import os
 
+from datetime import date
+
 from fastapi import FastAPI, HTTPException, Query
+from fastapi.responses import PlainTextResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
-from . import __version__, ai, gamification, research
+from . import __version__, ai, gamification, importer, research
 from .indicators import INDICATORS, Hazard
 from .simulator import (DEFAULT_CREW_SPECS, DEFAULTS, EDITABLE_BASELINES, ENVIRONMENTS, SCENARIOS,
-                        generate, make_member)
+                        generate, imported_records, make_member)
 from .store import MissionStore, UnknownCrewError
 
 
@@ -93,6 +96,13 @@ class CrewUpdate(BaseModel):
     crew: list[CrewSpec] = Field(..., min_length=1, max_length=6)
 
 
+class CrewImport(BaseModel):
+    name: str = Field(..., min_length=1, max_length=60)
+    role: str = Field("Mission Specialist", min_length=1, max_length=40)
+    age: int = Field(40, ge=18, le=80)
+    csv: str = Field(..., min_length=1, max_length=2_000_000, description="CSV text (see /api/crew/import/template)")
+
+
 class ResetRequest(BaseModel):
     environment: str = Field("lunar_surface", description=f"One of {sorted(ENVIRONMENTS)}")
     days: int = Field(60, ge=10, le=365)
@@ -158,11 +168,17 @@ def set_crew(body: CrewUpdate):
                 n += 1
             cid = f"aura-{n}"
             used.add(cid)
+        old = store.crew.get(cid)
         try:
-            members.append(make_member(cid, spec.name.strip(), spec.role.strip(), spec.age,
-                                       spec.scenario, spec.baseline))
+            if old is not None and old.imported is not None:
+                # Imported members keep their uploaded data; only the profile changes.
+                m = make_member(cid, spec.name.strip(), spec.role.strip(), spec.age)
+                m.scenario, m.scenario_description, m.imported = "imported", old.scenario_description, old.imported
+            else:
+                m = make_member(cid, spec.name.strip(), spec.role.strip(), spec.age, spec.scenario, spec.baseline)
         except ValueError as exc:
             raise HTTPException(422, f"{spec.name}: {exc}") from exc
+        members.append(m)
     ds = store.dataset
     store.load(generate(days=ds.days, environment=ds.environment, seed=ds.seed, crew=members))
     return crew_list()
@@ -318,3 +334,36 @@ def research_dataset(dataset: str):
     if data is None:
         raise HTTPException(404, f"{research.DATASETS[dataset]['file']} is not in data/osdr/")
     return data
+
+
+# ---------------------------------------------------------------- import your own data
+@app.get("/api/crew/import/template", tags=["crew"], response_class=PlainTextResponse)
+def import_template():
+    """Example CSV (wide layout: one row per day; negative days are preflight)."""
+    return PlainTextResponse(importer.template(), media_type="text/csv",
+                             headers={"Content-Disposition": 'attachment; filename="aura_import_template.csv"'})
+
+
+@app.post("/api/crew/import", tags=["crew"], status_code=201)
+def import_crew(body: CrewImport):
+    """Add a crew member from your own CSV data. Other members and check-ins are kept."""
+    if len(store.crew) >= 6:
+        raise HTTPException(422, "The crew is full (6 members). Remove someone in the crew editor first.")
+    try:
+        readings, warnings = importer.parse_csv(body.csv, store.dataset.days)
+    except importer.ImportError_ as exc:
+        raise HTTPException(422, str(exc)) from exc
+    n = 1
+    while f"aura-{n}" in store.crew:
+        n += 1
+    member = make_member(f"aura-{n}", body.name.strip(), body.role.strip(), body.age)
+    member.scenario = "imported"
+    member.scenario_description = (f"Your own data: {len(readings)} readings imported from CSV "
+                                   f"(days {min(d for _, d, _ in readings)} to {max(d for _, d, _ in readings)}).")
+    member.imported = readings
+    store.add_member(member, imported_records(member, date.fromisoformat(store.dataset.start_date)))
+    status = store.status(member.id)
+    return {"member": {**member.public(), "overall": status["overall"]}, "warnings": warnings,
+            "readings": len(readings),
+            "indicators": sorted({k for k, _, _ in readings}),
+            "last_day": max(d for _, d, _ in readings)}
