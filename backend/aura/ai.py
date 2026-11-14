@@ -88,18 +88,24 @@ clinical certainty.
 
 
 class BriefingPriority(BaseModel):
-    title: str = Field(description="Short headline, e.g. 'Sleep debt is building'")
-    detail: str = Field(description="1-2 sentences: what the data shows and why it matters")
-    action: str = Field(description="One concrete thing to do today")
+    title: str = Field(description="Headline of at most 6 words, e.g. 'Sleep debt is building'")
+    detail: str = Field(
+        description="ONE sentence, at most 25 words: the key number vs baseline and why it matters"
+    )
+    action: str = Field(
+        description="ONE action to do today, at most 15 words, starting with a verb. No lists."
+    )
     indicators: list[str] = Field(description="Indicator keys this priority is about")
 
 
 class Briefing(BaseModel):
-    headline: str = Field(description="One-sentence overall assessment")
+    headline: str = Field(description="One sentence, at most 20 words")
     escalate: bool = Field(description="True if the astronaut should contact the flight surgeon now")
-    priorities: list[BriefingPriority] = Field(description="Up to 3, most important first")
-    patterns: list[str] = Field(description="Cross-indicator patterns or trends worth knowing (0-3)")
-    encouragement: str = Field(description="One short, genuine line of encouragement")
+    priorities: list[BriefingPriority] = Field(description="At most 3, most important first")
+    patterns: list[str] = Field(
+        description="0-2 cross-indicator patterns, each one sentence of at most 25 words"
+    )
+    encouragement: str = Field(description="One genuine line, at most 12 words")
 
 
 class ChatTurn(BaseModel):
@@ -245,7 +251,10 @@ def generate_briefing(store: MissionStore, crew_id: str, day: int | None = None)
             system=[{"type": "text", "text": SYSTEM_PROMPT, "cache_control": {"type": "ephemeral"}}],
             messages=[{
                 "role": "user",
-                "content": "Write today's health briefing for this astronaut.\n\n<astronaut_data>\n"
+                "content": "Write today's health briefing for this astronaut. It is read in under 30 seconds "
+                "between tasks, so keep every field to its word limit, give exactly one action per "
+                "priority, and leave detailed reasoning for follow-up questions in chat."
+                "\n\n<astronaut_data>\n"
                 + json.dumps(ctx, separators=(",", ":"))
                 + "\n</astronaut_data>",
             }],
