@@ -324,3 +324,14 @@ button:disabled { opacity: 0.6; cursor: default; }
 .sw.ring { background: transparent; border: 1.5px solid var(--warning); border-radius: 50%; }
 .small { font-size: 0.8rem; }
 .muted { color: var(--muted); }
+.research-review { margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--border); }
+.research-review .seg button { display: inline-flex; align-items: center; gap: 6px; }
+.review-grid { display: grid; grid-template-columns: 1.3fr 1fr; gap: 20px; }
+@media (max-width: 900px) { .review-grid { grid-template-columns: 1fr; } }
+.research-review h4 { margin: 10px 0 6px; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); }
+.findings { list-style: none; padding: 0; margin: 0; display: grid; gap: 10px; }
+.findings li { border-left: 3px solid var(--lvl); padding: 4px 0 4px 10px; }
+.findings p { margin: 3px 0; font-size: 0.88rem; }
+.findings .marker { font-weight: 600; padding: 0; }
+.findings .concern { margin-left: 8px; font-size: 0.7rem; text-transform: uppercase; color: var(--lvl); }
+.caveats { margin: 0; padding-left: 18px; font-size: 0.8rem; color: var(--muted); }
