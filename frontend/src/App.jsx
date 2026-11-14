@@ -10,6 +10,7 @@ import CheckInForm from './components/CheckInForm.jsx'
 import AlertTimeline from './components/AlertTimeline.jsx'
 import DayScrubber from './components/DayScrubber.jsx'
 import AIPanel from './components/AIPanel.jsx'
+import MissionRoutine from './components/MissionRoutine.jsx'
 
 export default function App() {
   const [mission, setMission] = useState(null)
@@ -20,6 +21,7 @@ export default function App() {
   const [status, setStatus] = useState(null)
   const [telemetry, setTelemetry] = useState(null)
   const [alerts, setAlerts] = useState([])
+  const [routine, setRoutine] = useState(null)
   const [system, setSystem] = useState(null)
   const [selected, setSelected] = useState(null)
   const [error, setError] = useState(null)
@@ -40,14 +42,16 @@ export default function App() {
   const loadCrew = useCallback(async () => {
     if (!crewId) return
     try {
-      const [s, t, a] = await Promise.all([
+      const [s, t, a, r] = await Promise.all([
         api.status(crewId, day),
         api.telemetry(crewId),
         api.alerts(crewId),
+        api.tasks(crewId),
       ])
       setStatus(s)
       setTelemetry(t)
       setAlerts(a)
+      setRoutine(r)
     } catch (e) {
       setError(e.message)
     }
@@ -105,6 +109,17 @@ export default function App() {
               onChange={(d) => setDay(d >= mission.current_day ? null : d)}
             />
           )}
+          <div className="panel-lite">
+            <MissionRoutine
+              crewId={crewId}
+              data={routine}
+              onChange={setRoutine}
+              onGoToCheckin={() => {
+                setDay(null)
+                document.getElementById('checkin')?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+              }}
+            />
+          </div>
         </aside>
 
         <main className="main">
@@ -154,7 +169,7 @@ export default function App() {
               )}
 
               <section className="bottom">
-                <div className="panel">
+                <div className="panel" id="checkin">
                   <CheckInForm
                     crewId={crewId}
                     catalog={catalog}
