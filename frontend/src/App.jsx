@@ -33,6 +33,7 @@ export default function App() {
   const [selected, setSelected] = useState(null)
   const [error, setError] = useState(null)
   const [tourStep, setTourStep] = useState(null)
+  const [assistantOpen, setAssistantOpen] = useState(false)
   const [editingCrew, setEditingCrew] = useState(false)
   const [managingIndicators, setManagingIndicators] = useState(false)
 
@@ -280,7 +281,7 @@ export default function App() {
           }}
         />
       )}
-      {tourStep !== null && (
+      {tourStep !== null && !assistantOpen && (
         <DemoTour step={tourStep} onStep={goToStep} onClose={() => { setTourStep(null); setDay(null) }} />
       )}
       <AssistantWidget
@@ -290,7 +291,8 @@ export default function App() {
         live={day === null}
         selected={selected}
         selectedName={selected ? catalog[selected]?.name : null}
-        hidden={tourStep !== null}
+        onOpenChange={setAssistantOpen}
+        highlight={tourStep !== null && TOUR_STEPS[tourStep]?.highlight === 'assistant'}
         openSignal={askSignal}
         onAction={handleAction}
       />

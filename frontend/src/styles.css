@@ -292,7 +292,7 @@ button:disabled { opacity: 0.6; cursor: default; }
 /* ---------- demo tour ---------- */
 .tour-btn { cursor: pointer; background: linear-gradient(90deg, #0ea5e9, #8b5cf6); border: 0; color: #fff; font-weight: 700; }
 .tour {
-  position: fixed; right: 24px; bottom: 24px; width: min(380px, calc(100vw - 32px)); z-index: 50;
+  position: fixed; right: 24px; bottom: 88px; /* sits above the Ask AURA button */ width: min(380px, calc(100vw - 32px)); z-index: 50;
   background: #111a3d; border: 1px solid #8b5cf6; border-radius: 16px; padding: 16px 18px;
   box-shadow: 0 20px 60px #000a, 0 0 30px #8b5cf640; animation: rise 0.25s ease;
 }
@@ -425,3 +425,7 @@ button:disabled { opacity: 0.6; cursor: default; }
 .forecast-detail { font-size: 0.82rem; }
 .forecast-item .badge { text-transform: capitalize; }
 .sw.proj { background: transparent; border-top: 2px dashed #c4b5fd; height: 0; }
+
+@media (max-width: 600px) { .tour { right: 12px; bottom: 72px; } }
+.assistant-fab.pulse { animation: fabpulse 1.4s ease-in-out infinite; }
+@keyframes fabpulse { 50% { box-shadow: 0 0 0 8px #8b5cf655, 0 0 40px #8b5cf6aa; transform: scale(1.05); } }

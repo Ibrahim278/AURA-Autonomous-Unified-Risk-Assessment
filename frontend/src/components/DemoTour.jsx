@@ -56,6 +56,11 @@ export const TOUR_STEPS = [
     crew: 'aura-2', day: null, indicator: null, target: '.crew-list',
   },
   {
+    title: 'Ask AURA anything',
+    text: 'The ✦ Ask AURA button below is on every screen. Ask about anyone’s health, what to do next, or how to use AURA, and get an answer, numbered steps and one-click buttons that take you there. Opening it pauses this tour; minimise it to come back.',
+    crew: 'aura-2', day: null, indicator: null, target: '.banner', highlight: 'assistant',
+  },
+  {
     title: 'Built on NASA research',
     text: 'Indicators map to NASA’s five hazards of human spaceflight, and every threshold cites its source. Demo telemetry is synthetic and clearly labelled. Switch to ISS or Mars transit in the header.',
     crew: 'aura-2', day: null, indicator: 'radiation_dose', target: '.detail',

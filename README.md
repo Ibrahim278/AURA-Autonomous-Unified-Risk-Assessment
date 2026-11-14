@@ -1,10 +1,19 @@
+# NASA Space Apps Challenge 2026
+
+## Project overview
+
+| | |
+| --- | --- |
+| **Project** | AURA: Autonomous Unified Risk Assessment |
+| **Challenge** | Create Health Monitoring Software for Astronauts on Space Missions |
+| **Team** | NeuralAI |
+| **Project lead** | Ibrahim Irfan |
+| **Team members** | Ibrahim Irfan, Melvyn Avoa |
+
 # AURA: Autonomous Unified Risk Assessment
 
 **Health monitoring that lets astronauts on long-duration missions assess their own health,
 see changes early, and know exactly when to act or call the ground.**
-
-Built for the **NASA Space Apps Challenge 2026**, "Create Health Monitoring Software for
-Astronauts on Space Missions".
 
 ![AURA dashboard](docs/screenshots/dashboard.png)
 
@@ -38,7 +47,7 @@ already being abnormal *for that person*.
 | 👩‍🚀 | **Editable crew.** Add or edit up to 6 members: name, role, age, personal baselines and a health scenario (5 to choose from). The AI isn't told the scenario, so it has to find the pattern |
 | ➕ | **Custom indicators.** Add any measurement (body weight, HRV, steps, water intake, or your own) with its unit, typical range and warning/critical limits. It gets baselines, alerts, charts, check-ins, CSV import and AI coverage like the built-in ten |
 | ⬆ | **Import your own data** from a CSV (one row per day) and become a crew member: alerts, tasks and the AI briefing all run on your readings |
-| ▶ | **Guided demo tour** that walks through the mission story, real NASA data and your own data in 12 steps |
+| ▶ | **Guided demo tour** that walks through the mission story, real NASA data and your own data in 13 steps |
 
 ### Alert logic (in `backend/aura/alerts.py`)
 
@@ -74,7 +83,9 @@ npm install
 npm run dev
 ```
 
-Open **http://localhost:5173** and click **▶ Demo tour** in the header.
+Open **http://localhost:5173** and click **▶ Demo tour** in the header. The **✦ Ask AURA**
+button stays in the bottom-right corner, just below the tour card; opening it pauses the tour,
+and minimising it brings the tour back.
 The interactive API docs are at http://localhost:8000/docs.
 
 ### Turn on the AI flight surgeon (optional)

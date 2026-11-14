@@ -1,4 +1,4 @@
-# AURA demo script (about 3½ minutes)
+# AURA demo script (about 4 minutes)
 
 Before you start, run the back end and front end, open http://localhost:5173, and make sure
 the header says **Lunar surface base** and **Mission day 60**. If you've been clicking
@@ -18,8 +18,9 @@ restores the demo crew automatically if it was edited.
 | 2:30 | Step 9 (real crew data, glucose) | "That mission is synthetic, but AURA also runs on real astronaut data: the Inspiration4 crew's bloodwork from NASA's OSDR. All four had higher glucose the day after landing than just before launch." |
 | 2:45 | Step 10 → click **Review C003** | "Claude reviews each real crew member against their own preflight average and suggests what to monitor next flight. AURA's quality check even caught a misaligned row in NASA's published file." |
 | 3:05 | Step 11 (crew sidebar) | "It isn't just our demo crew: edit the crew, or import your own CSV and AURA assesses you." |
-| 3:15 | Step 12 → switch the header to **Mars transit** | "Every indicator maps to NASA's five hazards, and every threshold cites its source. The same tool works on the ISS, a lunar base or a Mars transit." |
-| 3:30 | Close the tour, open **✦ Ask AURA** | "AURA: personal baselines, transparent alerts and an AI flight surgeon, so astronauts catch problems early, wherever they are." |
+| 3:10 | Step 12 (Ask AURA, button pulses) → click **✦ Ask AURA**, ask "What should Kenji focus on?", click a button in the answer, then minimise | "And whenever you have a question, Ask AURA is one click away on every screen: answers, steps, and buttons that take you straight there." |
+| 3:25 | Step 13 → switch the header to **Mars transit** | "Every indicator maps to NASA's five hazards, and every threshold cites its source. The same tool works on the ISS, a lunar base or a Mars transit." |
+| 3:40 | Close the tour | "AURA: personal baselines, transparent alerts and an AI flight surgeon, so astronauts catch problems early, wherever they are." |
 
 **Backup if the AI is offline:** the briefing falls back to rule-based mode automatically.
 Say "this also works fully offline, which matters with Mars communication delays".
