@@ -18,7 +18,7 @@ from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
-from . import __version__, ai, gamification
+from . import __version__, ai, gamification, research
 from .indicators import INDICATORS, Hazard
 from .simulator import ENVIRONMENTS, generate
 from .store import MissionStore, UnknownCrewError
@@ -232,3 +232,21 @@ def complete_task(crew_id: str, task_id: str):
     except ValueError as exc:
         raise HTTPException(422, str(exc)) from exc
     return gamification.mission_tasks(store, crew_id)
+
+
+# ---------------------------------------------------------------- real research data (NASA OSDR)
+@app.get("/api/research", tags=["research"])
+def research_datasets():
+    """Real Inspiration4 crew lab datasets from NASA OSDR and whether each file is loaded."""
+    return research.available()
+
+
+@app.get("/api/research/{dataset}", tags=["research"])
+def research_dataset(dataset: str):
+    """One dataset (cmp or cbc): every analyte per crew member and timepoint, with lab ranges."""
+    if dataset not in research.DATASETS:
+        raise HTTPException(404, f"Unknown dataset '{dataset}'. Use one of {sorted(research.DATASETS)}")
+    data = research.load(dataset)
+    if data is None:
+        raise HTTPException(404, f"{research.DATASETS[dataset]['file']} is not in data/osdr/")
+    return data
