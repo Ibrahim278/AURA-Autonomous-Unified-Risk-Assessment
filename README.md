@@ -141,6 +141,21 @@ For the presentation script, see [docs/DEMO_SCRIPT.md](docs/DEMO_SCRIPT.md). To 
 
 Edited crews and imported data live in memory, so restarting the back end returns to the demo crew.
 
+## Tech stack
+
+| Layer | Technology | Used for |
+| --- | --- | --- |
+| Back end | **Python 3.11+**, **FastAPI** 0.162, **Uvicorn** 0.54 | REST API, interactive docs at `/docs` |
+| Data validation | **Pydantic** 2.14 | Request validation and the AI's structured output schemas |
+| Numerics | **NumPy** 2.5 | Seeded synthetic telemetry, statistics, trend fitting for the forecast |
+| AI | **Anthropic Claude API** (`anthropic` Python SDK 2.8) | Daily briefing, Ask AURA assistant, review of the real crew bloodwork |
+| Front end | **React** 19.3 (JavaScript/JSX), **Vite** 8.3 | Single-page dashboard and dev server (proxies `/api` to the back end) |
+| Charts | **Recharts** 3.10 | Trend charts, sparklines, forecast projections, research charts |
+| Testing | **pytest** 9.2, **httpx** | 81 back-end tests, including a mocked Claude API |
+| Data | NASA OSDR (CSV), JSON, in-memory store | Real Inspiration4 labs; mission data kept in memory for zero-setup demos |
+
+No database or cloud services are needed: clone, install, and run two terminals.
+
 ## Architecture
 
 ```
@@ -205,6 +220,40 @@ preflight baseline. A quality check excludes one published CBC sample (C003, L-9
 are misaligned. See [docs/DATA_SOURCES.md](docs/DATA_SOURCES.md).
 
 Export the dataset with `python -m aura.simulator --out ../data` (from `backend/`).
+
+## AI usage disclosure
+
+In line with the NASA Space Apps guidance on AI use, here is where AI was and wasn't used.
+
+**AI inside the product**
+
+- AURA calls the **Anthropic Claude API** for three features: the daily briefing, the
+  **Ask AURA** assistant, and the review of the real Inspiration4 bloodwork. The model is set in
+  `backend/aura/ai.py` and can be changed with `AURA_AI_MODEL`.
+- The AI **never sets an alert level**. Normal, Warning and Critical always come from AURA's
+  transparent rule engine (`alerts.py`), and the back end forces an escalation whenever any
+  reading is critical, whatever the AI says. The forecast is plain statistics, not AI.
+- The AI is instructed not to diagnose, prescribe or dose medication, and to defer to the flight
+  surgeon. Its answers are grounded in the data AURA sends it, and buttons it suggests are
+  checked against the real dashboard before they are shown.
+- Every AI feature has a **rule-based fallback**, so the app works fully without AI.
+
+**AI used to build the project**
+
+- The team used **Claude Code** (Anthropic's AI coding assistant) to help write code, tests and
+  documentation. The team set the goals, design and features, reviewed and tested the results,
+  and made all decisions. Every change was committed to this repository.
+
+**Data and media**
+
+- No AI-generated data is presented as real. Real data (NASA OSDR Inspiration4) is shown
+  unchanged and labelled `research`. Synthetic telemetry comes from a seeded, deterministic
+  Python simulator (not an AI model) and is labelled `synthetic`. User data is labelled
+  `imported` or `manual`.
+- Screenshots in `docs/screenshots/` are captures of the running app. No AI-generated images,
+  video or audio are used.
+- Alert thresholds come from cited, published sources (see each indicator's references) and are
+  prototype rules, not clinically validated limits.
 
 ## Tests
 
