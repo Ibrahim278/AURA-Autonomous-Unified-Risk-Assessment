@@ -75,6 +75,9 @@ class Indicator:
     how_to_measure: str
     actions: dict[str, list[str]] = field(default_factory=dict)
     references: tuple[str, ...] = ()
+    # False for environmental exposures (e.g. radiation), where an Earth-based personal
+    # baseline is meaningless; only absolute limits apply.
+    use_baseline: bool = True
 
     def to_dict(self) -> dict:
         return {
@@ -91,6 +94,7 @@ class Indicator:
             "how_to_measure": self.how_to_measure,
             "actions": self.actions,
             "references": list(self.references),
+            "use_baseline": self.use_baseline,
         }
 
 
@@ -439,6 +443,7 @@ INDICATORS: dict[str, Indicator] = {
                 "Mars on the Mars Science Laboratory', Science 340:1080 (2013)",
                 "CSA, 'Monitoring radiation for astronaut health'",
             ),
+            use_baseline=False,
         ),
     ]
 }
