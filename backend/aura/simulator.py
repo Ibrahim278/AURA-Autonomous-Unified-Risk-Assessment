@@ -139,7 +139,8 @@ def _scenario_immune_fever(day: int, days: int) -> dict[str, float]:
     """Viral reactivation: fever and raised heart rate building over the last days."""
     steps = [0.3, 0.6, 0.9, 1.3, 1.7, 2.1, 2.5]
     i = day - (days - len(steps) + 1)
-    fever = steps[i] if 0 <= i < len(steps) else 0.0
+    # Past the planned end (the user pressed "Next day"), the fever persists until treated.
+    fever = steps[min(i, len(steps) - 1)] if i >= 0 else 0.0
     return {
         "body_temp": fever,
         "heart_rate": fever * 9,
@@ -339,6 +340,36 @@ def generate(
         crew=crew,
         records=records,
     )
+
+
+def next_day_records(member: CrewMember, day: int, scenario_days: int, environment: str, seed: int,
+                     start: date) -> list[TelemetryRecord]:
+    """Synthetic readings for one extra mission day (the "Next day" button).
+
+    Same model as ``generate`` (baseline + in-flight adaptation + scenario + noise), but with a
+    random stream keyed by (seed, member, day) so earlier days never change. Scenarios stay
+    anchored to the planned mission length, so their ramps hold at their caps afterwards.
+    """
+    import zlib
+
+    env = ENVIRONMENTS[environment]
+    rng = np.random.default_rng([seed, zlib.crc32(member.id.encode()), day])
+    offsets: dict[str, float] = {}
+    for src in (_in_flight_adaptation(day), member.offset_fn(day, scenario_days) if member.offset_fn else {}):
+        for k, v in src.items():
+            offsets[k] = offsets.get(k, 0.0) + v
+    out = []
+    for key, ind in INDICATORS.items():
+        mean, sd, lo, hi = DEFAULTS[key]
+        mean = member.baseline_means.get(key, mean)
+        if key == "radiation_dose":
+            value = env["radiation_mSv_day"] * rng.normal(1.0, 0.06)
+        else:
+            value = rng.normal(mean + offsets.get(key, 0.0), sd)
+        out.append(TelemetryRecord(crew_id=member.id, indicator=key, day=day, phase="inflight",
+                                   timestamp=_timestamp(start, day),
+                                   value=round(float(np.clip(value, lo, hi)), ind.decimals)))
+    return out
 
 
 def custom_records(crew_id: str, days: int, seed: int, start: date,

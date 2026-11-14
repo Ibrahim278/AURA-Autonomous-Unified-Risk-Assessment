@@ -15,7 +15,7 @@ base". This regenerates the mission and clears check-ins. Restarting the back en
 
 | # | Do | Expected |
 | --- | --- | --- |
-| A1 | `cd backend && python -m pytest` | `80 passed` and no failures |
+| A1 | `cd backend && python -m pytest` | `81 passed` and no failures |
 | A2 | `cd frontend && npm run build` | `✓ built in …` and no errors |
 
 ## B. Back end smoke tests (terminal)
@@ -55,7 +55,9 @@ Run these while the back end is up. `curl` is built into macOS.
 | D3 | Drag replay to a past day | The check-in form is disabled ("Return to live to log readings") |
 | D4 | Back on Live, log blood pressure, temperature, glucose and mood | **Mission routine** ticks "Morning vitals", "Fasting glucose" and "Mood check-in", and points go up |
 | D5 | Tick a wellness task (e.g. "Hydrate") | It's checked and +10 points |
-| D6 | Reset (ISS → Lunar surface) | Ortiz is back to Normal; check-ins are cleared |
+| D6 | Click **▶ Next day** in the check-in panel | Header and check-in show **day 61**; replay slider extends to 61; message "Mission day 61 has started". Diallo is still Critical (the fever persists) |
+| D7 | On day 61, log Mood **3** for Ortiz, then **▶ Next day** and log Mood **3** again | Mood turns Warning on both days; the alert timeline shows the change; the trend and forecast use the new days |
+| D8 | Reset (ISS → Lunar surface) | Ortiz is back to Normal; check-ins are cleared |
 
 ## E. Early-warning forecast and AI
 

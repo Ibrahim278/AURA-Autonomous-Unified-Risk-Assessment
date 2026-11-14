@@ -136,6 +136,15 @@ def reset(req: ResetRequest):
     return mission()
 
 
+@app.post("/api/mission/next-day", tags=["mission"])
+def next_day():
+    """Advance the mission by one day (max 365). Synthetic crew get new readings; log yours with a check-in."""
+    if store.current_day >= 365:
+        raise HTTPException(422, "The mission can't run past day 365. Reset it from the header.")
+    store.advance_day()
+    return mission()
+
+
 @app.get("/api/crew-options", tags=["mission"])
 def crew_options():
     """Scenarios, editable baselines and the default demo crew, for the crew editor."""

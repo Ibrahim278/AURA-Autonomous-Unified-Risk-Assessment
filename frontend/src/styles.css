@@ -429,3 +429,4 @@ button:disabled { opacity: 0.6; cursor: default; }
 @media (max-width: 600px) { .tour { right: 12px; bottom: 72px; } }
 .assistant-fab.pulse { animation: fabpulse 1.4s ease-in-out infinite; }
 @keyframes fabpulse { 50% { box-shadow: 0 0 0 8px #8b5cf655, 0 0 40px #8b5cf6aa; transform: scale(1.05); } }
+.chip.next-day { cursor: pointer; border-color: var(--accent); color: var(--accent); font-weight: 600; }
