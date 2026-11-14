@@ -117,7 +117,7 @@ sample (C003 at L-92) and says why.
 | `aura-3` | Amara Diallo | Viral reactivation: fever builds from day 54 and turns **critical** on day 60. |
 
 Everyone gets a solar particle event dose on day 22 (lunar surface and Mars transit only).
-For the presentation script, see [docs/DEMO_SCRIPT.md](docs/DEMO_SCRIPT.md).
+For the presentation script, see [docs/DEMO_SCRIPT.md](docs/DEMO_SCRIPT.md). To check everything works, follow [docs/TEST_CASES.md](docs/TEST_CASES.md).
 
 ### Make the crew your own
 
