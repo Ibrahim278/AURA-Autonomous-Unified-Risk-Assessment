@@ -35,5 +35,7 @@ export const api = {
     request(`/api/crew/${id}/briefing`, { method: 'POST', body: JSON.stringify({ day: day ?? null }) }),
   ask: (id, body) =>
     request(`/api/crew/${id}/ask`, { method: 'POST', body: JSON.stringify(body) }),
+  research: () => request('/api/research'),
+  researchDataset: (ds) => request(`/api/research/${ds}`),
   reset: (body) => request('/api/mission/reset', { method: 'POST', body: JSON.stringify(body) }),
 }

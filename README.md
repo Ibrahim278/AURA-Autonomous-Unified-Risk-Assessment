@@ -121,6 +121,7 @@ frontend/  React 19 + Vite + Recharts dashboard  ──/api──►  backend/  
 | GET | `/api/ai/status` | Whether Claude is available |
 | POST | `/api/crew/{id}/briefing` | AI (or rule-based) daily briefing |
 | POST | `/api/crew/{id}/ask` | Ask the AI flight surgeon a question |
+| GET | `/api/research/{cmp\|cbc}` | Real Inspiration4 crew bloodwork from NASA OSDR |
 
 ## Data and sources
 
@@ -128,7 +129,9 @@ AURA uses a **hybrid approach**: NASA research (OSDR, the Life Sciences Portal a
 Research Program) informs which indicators matter and how spaceflight shifts them, and
 seeded **synthetic telemetry** stands in for continuous astronaut readings, which are not
 public. Every record carries a `source` (`synthetic`, `research` or `manual`), and each
-threshold lists its references. See [docs/DATA_SOURCES.md](docs/DATA_SOURCES.md).
+threshold lists its references. The **Real crew data** panel charts actual Inspiration4 crew
+bloodwork from NASA OSDR (OSD-575 metabolic panel and OSD-569 blood count), unaltered and
+labelled `research`. See [docs/DATA_SOURCES.md](docs/DATA_SOURCES.md).
 
 Export the dataset with `python -m aura.simulator --out ../data` (from `backend/`).
 

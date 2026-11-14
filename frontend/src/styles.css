@@ -305,3 +305,22 @@ button:disabled { opacity: 0.6; cursor: default; }
 .tour-dot { width: 8px; height: 8px; border-radius: 50%; border: 0; padding: 0; background: var(--border); }
 .tour-dot.on { background: #8b5cf6; width: 20px; border-radius: 999px; }
 .tour-actions { display: flex; justify-content: space-between; }
+
+/* ---------- Real research data (NASA OSDR) ---------- */
+.research-panel { margin-top: 16px; border-color: #1f5a4f; }
+.research-panel a { color: var(--accent); }
+.source-tag.research { padding: 4px 10px; border-radius: 999px; font-size: 0.72rem; text-transform: uppercase;
+  letter-spacing: 0.05em; background: color-mix(in srgb, var(--normal) 18%, transparent); color: #86efac;
+  border: 1px solid color-mix(in srgb, var(--normal) 45%, transparent); white-space: nowrap; }
+.research-controls { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 8px; }
+.research-controls select { max-width: 100%; }
+.seg { display: inline-flex; border: 1px solid var(--border); border-radius: 999px; overflow: hidden; }
+.seg button { background: transparent; color: var(--muted); border: 0; padding: 6px 14px; cursor: pointer; font: inherit; font-size: 0.85rem; }
+.seg button.active { background: var(--panel2); color: var(--text); }
+.research-why { color: var(--muted); font-size: 0.88rem; margin: 6px 0 10px; }
+.research-notice { color: var(--muted); font-size: 0.78rem; margin: 10px 0 0; }
+.research-tip { background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px; font-size: 0.82rem; }
+.research-tip .tip-flag { color: var(--warning); font-weight: 600; }
+.sw.ring { background: transparent; border: 1.5px solid var(--warning); border-radius: 50%; }
+.small { font-size: 0.8rem; }
+.muted { color: var(--muted); }
