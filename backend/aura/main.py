@@ -18,7 +18,7 @@ from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
-from . import __version__, ai
+from . import __version__, ai, gamification
 from .indicators import INDICATORS, Hazard
 from .simulator import ENVIRONMENTS, generate
 from .store import MissionStore, UnknownCrewError
@@ -213,3 +213,22 @@ def crew_ask(crew_id: str, body: AskRequest):
     """Ask the AI flight surgeon a question about this astronaut's data."""
     _crew_or_404(crew_id)
     return ai.ask(store, crew_id, body.question, body.history, body.day)
+
+
+# ---------------------------------------------------------------- mission routine / gamification
+@app.get("/api/crew/{crew_id}/tasks", tags=["routine"])
+def crew_tasks(crew_id: str):
+    """Today's mission health tasks, streaks, points, level and badges."""
+    _crew_or_404(crew_id)
+    return gamification.mission_tasks(store, crew_id)
+
+
+@app.post("/api/crew/{crew_id}/tasks/{task_id}/complete", tags=["routine"])
+def complete_task(crew_id: str, task_id: str):
+    """Tick off a wellness task. Measurement tasks complete themselves via check-ins."""
+    _crew_or_404(crew_id)
+    try:
+        gamification.complete_wellness(store, crew_id, task_id)
+    except ValueError as exc:
+        raise HTTPException(422, str(exc)) from exc
+    return gamification.mission_tasks(store, crew_id)
