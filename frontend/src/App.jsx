@@ -124,7 +124,7 @@ export default function App() {
       }} />
       <div className="layout">
         <aside className="sidebar">
-          <CrewList crew={crew} selectedId={crewId} onEdit={() => setEditingCrew(true)} onSelect={(id) => {
+          <CrewList crew={crew} selectedId={crewId} onEdit={() => setEditingCrew('edit')} onImport={() => setEditingCrew('import')} onSelect={(id) => {
             setCrewId(id)
             setSelected(null)
             setSystem(null)
@@ -226,11 +226,12 @@ export default function App() {
         <CrewEditor
           crew={crew}
           onClose={() => setEditingCrew(false)}
-          onSaved={async (saved) => {
+          startImport={editingCrew === 'import'}
+          onSaved={async (saved, focusId) => {
             setDay(null)
             setSelected(null)
             setSystem(null)
-            setCrewId((prev) => (saved.some((c) => c.id === prev) ? prev : saved[0]?.id ?? null))
+            setCrewId((prev) => focusId ?? (saved.some((c) => c.id === prev) ? prev : saved[0]?.id ?? null))
             await refreshAll()
           }}
         />

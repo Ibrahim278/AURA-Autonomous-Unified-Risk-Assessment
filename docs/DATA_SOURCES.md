@@ -44,6 +44,29 @@ Notes on interpretation:
   shifted too, so AURA excludes that whole sample from charts and the AI review and says why.
 - These crew are separate people from AURA's synthetic demo crew; the two are never mixed.
 
+## Your own data (CSV import)
+
+Click **⬆ Import** in the crew sidebar to add a crew member from your own readings, for example
+a week of wearable and blood-pressure data. Records are labelled `imported`.
+
+```csv
+day,heart_rate,systolic_bp,diastolic_bp,sleep_hours,mood
+-7,61,118,76,7.1,8
+-6,60,117,75,7.4,8
+-5,62,119,77,6.9,7
+1,64,121,78,6.4,7
+```
+
+- `day` -7 to -1 is preflight and becomes your personal baseline (3 or more days per indicator);
+  1, 2, 3... are mission days. There is no day 0.
+- Use any of the indicator keys (`heart_rate`, `systolic_bp`, `diastolic_bp`, `spo2`, `glucose`,
+  `body_temp`, `sleep_hours`, `mood`, `exercise_minutes`, `radiation_dose`) or common aliases
+  such as `hr`, `sbp`, `sleep`. A long layout (`day,indicator,value`) also works.
+- Blank cells are skipped; values outside the plausible range are rejected with the line number.
+- A full example is in `data/import_template.csv` (also at `GET /api/crew/import/template`).
+- Imported data lives in memory with the rest of the mission and keeps through crew edits and
+  environment changes, but not a back-end restart.
+
 ## Synthetic telemetry
 
 The crew is editable in the dashboard (✎ Edit crew): name, role, age, personal baselines and a
