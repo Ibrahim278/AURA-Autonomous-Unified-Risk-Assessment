@@ -15,6 +15,7 @@ def fresh_store(monkeypatch):
     main.store.load(generate())
     monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
     monkeypatch.delenv("ANTHROPIC_AUTH_TOKEN", raising=False)
+    monkeypatch.setenv("ANTHROPIC_CONFIG_DIR", "/nonexistent-aura-test")
 
 
 def test_status_disabled_without_key():
@@ -113,3 +114,11 @@ def test_ai_failure_falls_back(monkeypatch):
     monkeypatch.setattr(ai, "_client", boom)
     r = client.post("/api/crew/aura-3/briefing").json()
     assert r["mode"] == "offline" and r["briefing"]["escalate"] is True
+
+
+def test_ant_profile_detected(monkeypatch, tmp_path):
+    import anthropic.lib.credentials as creds
+
+    monkeypatch.setattr(creds, "default_credentials", lambda **_: object())
+    status = client.get("/api/ai/status").json()
+    assert status["enabled"] is True and status["credentials"] == "ant_profile"

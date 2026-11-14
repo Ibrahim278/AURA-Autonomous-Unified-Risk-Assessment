@@ -11,8 +11,10 @@ Safety design:
   * Without an API key (or if the API call fails), AURA falls back to a deterministic
     offline briefing, so the app always works in a demo.
 
-Configuration (environment variables, or backend/.env):
-    ANTHROPIC_API_KEY  enables the AI features
+Credentials (any one enables the AI features):
+    ANTHROPIC_API_KEY  in the environment or backend/.env
+    `ant auth login`   the Anthropic CLI profile is picked up automatically
+Configuration:
     AURA_AI_MODEL      default claude-opus-5-5
 """
 
@@ -105,9 +107,31 @@ class ChatTurn(BaseModel):
     content: str = Field(max_length=4000)
 
 
+def _credential_source() -> str | None:
+    """Which Claude credentials the SDK will use, or None if there are none.
+
+    Matches the SDK's own lookup order: ANTHROPIC_API_KEY, ANTHROPIC_AUTH_TOKEN, then an
+    `ant auth login` profile stored under ~/.config/anthropic/.
+    """
+    if os.getenv("ANTHROPIC_API_KEY"):
+        return "api_key"
+    if os.getenv("ANTHROPIC_AUTH_TOKEN"):
+        return "auth_token"
+    try:
+        from anthropic.lib.credentials import default_credentials
+
+        return "ant_profile" if default_credentials() is not None else None
+    except Exception:  # noqa: BLE001 - SDK missing or a broken profile: treat as no credentials
+        return None
+
+
 def ai_status() -> dict:
-    enabled = bool(os.getenv("ANTHROPIC_API_KEY") or os.getenv("ANTHROPIC_AUTH_TOKEN"))
-    return {"enabled": enabled, "model": os.getenv("AURA_AI_MODEL", DEFAULT_MODEL)}
+    source = _credential_source()
+    return {
+        "enabled": source is not None,
+        "credentials": source,
+        "model": os.getenv("AURA_AI_MODEL", DEFAULT_MODEL),
+    }
 
 
 def _client():
@@ -200,7 +224,7 @@ def generate_briefing(store: MissionStore, crew_id: str, day: int | None = None)
     status = ai_status()
     if not status["enabled"]:
         return {"mode": "offline", "model": None, "briefing": offline_briefing(ctx).model_dump(),
-                "note": "AI is off (no ANTHROPIC_API_KEY). Showing the rule-based briefing."}
+                "note": "AI is off (no Claude credentials found). Showing the rule-based briefing."}
     try:
         response = _client().beta.messages.parse(
             model=status["model"],
@@ -235,7 +259,8 @@ def ask(store: MissionStore, crew_id: str, question: str, history: list[ChatTurn
     status = ai_status()
     if not status["enabled"]:
         return {"mode": "offline", "model": None, "answer": (
-            "The AI assistant is off because no ANTHROPIC_API_KEY is set. In the meantime, open "
+            "The AI assistant is off because no Claude credentials were found (set ANTHROPIC_API_KEY "
+            "or run `ant auth login`). In the meantime, open "
             "any indicator card for its explanation and recommended actions"
             + (". Critical readings: contact the flight surgeon now." if ctx["escalate"] else ".")
         )}

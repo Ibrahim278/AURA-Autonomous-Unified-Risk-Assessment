@@ -67,7 +67,7 @@ export default function AIPanel({ crewId, member, day, live, catalog, onSelectIn
         <h2>✦ AI flight surgeon</h2>
         {aiInfo && (
           <span className={`pill ai-mode ${aiInfo.enabled ? 'on' : 'off'}`}>
-            {aiInfo.enabled ? `Claude · ${aiInfo.model}` : 'Rule-based mode (no API key)'}
+            {aiInfo.enabled ? `Claude · ${aiInfo.model}` : 'Rule-based mode (no Claude login)'}
           </span>
         )}
       </div>
