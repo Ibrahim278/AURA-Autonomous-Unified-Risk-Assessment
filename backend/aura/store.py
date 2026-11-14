@@ -33,6 +33,7 @@ class MissionStore:
             self._preflight: dict[tuple[str, str], list[float]] = defaultdict(list)
             self._inflight: dict[tuple[str, str], list[Reading]] = defaultdict(list)
             self.notes: dict[str, list[dict]] = defaultdict(list)
+            self.task_completions: dict[str, dict[int, set[str]]] = {}
             for r in dataset.records:
                 key = (r.crew_id, r.indicator)
                 if r.phase == "preflight":
