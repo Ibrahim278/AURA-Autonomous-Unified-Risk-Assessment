@@ -9,7 +9,7 @@ function suggestionsFor(member, selectedName) {
   return s.slice(0, 4)
 }
 
-export default function AssistantWidget({ crewId, member, day, live, selected, selectedName, hidden, onAction }) {
+export default function AssistantWidget({ crewId, member, day, live, selected, selectedName, hidden, onAction, openSignal = 0 }) {
   const [open, setOpen] = useState(false)
   const [chat, setChat] = useState([])
   const [question, setQuestion] = useState('')
@@ -25,6 +25,10 @@ export default function AssistantWidget({ crewId, member, day, live, selected, s
   useEffect(() => {
     if (open) input.current?.focus()
   }, [open])
+
+  useEffect(() => {
+    if (openSignal) setOpen(true)
+  }, [openSignal])
 
   const send = async (text) => {
     const q = (text ?? question).trim()

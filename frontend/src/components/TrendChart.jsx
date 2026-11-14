@@ -11,15 +11,21 @@ function Dot({ cx, cy, payload }) {
   return <circle cx={cx} cy={cy} r={2.2} fill={payload.phase === 'preflight' ? 'var(--muted)' : 'var(--line)'} />
 }
 
-export default function TrendChart({ series, day }) {
+export default function TrendChart({ series, day, projection = null }) {
   if (!series) return null
   const pre = series.preflight.map((value, i) => ({
     day: i - series.preflight.length, value, phase: 'preflight', source: 'synthetic',
   }))
   const data = [...pre, ...series.points.filter((p) => p.day <= day).map((p) => ({ ...p, phase: 'inflight' }))]
+  // Dashed 7-day trend projection, starting from the fitted value on the current day.
+  if (projection?.length) {
+    const today = data.find((d) => d.day === projection[0].day)
+    if (today) today.projection = projection[0].value
+    for (const pt of projection.slice(1)) data.push({ day: pt.day, projection: pt.value, phase: 'projection' })
+  }
   const b = series.baseline
   const lim = series.limits
-  const values = data.map((d) => d.value)
+  const values = data.flatMap((d) => [d.value, d.projection]).filter((v) => v != null)
   const lo = Math.min(...values, b ? b.mean - 2 * b.sd : Infinity)
   const hi = Math.max(...values, b ? b.mean + 2 * b.sd : -Infinity)
   const pad = (hi - lo) * 0.15 || 1
@@ -50,6 +56,10 @@ export default function TrendChart({ series, day }) {
           ))}
           <ReferenceLine x={0} stroke="var(--accent)" label={{ value: 'launch', fill: 'var(--accent)', fontSize: 10, position: 'insideTopRight' }} />
           <Line type="monotone" dataKey="value" stroke="var(--line)" strokeWidth={2} dot={<Dot />} isAnimationActive={false} />
+          {projection?.length > 0 && (
+            <Line type="linear" dataKey="projection" stroke="#c4b5fd" strokeWidth={2} strokeDasharray="5 4" dot={false}
+              connectNulls isAnimationActive={false} />
+          )}
         </ComposedChart>
       </ResponsiveContainer>
       <div className="chart-legend">
@@ -57,6 +67,7 @@ export default function TrendChart({ series, day }) {
         <span><i className="sw warn" /> warning limit</span>
         <span><i className="sw crit" /> critical limit</span>
         <span><i className="sw manual" /> manual entry</span>
+        {projection?.length > 0 && <span><i className="sw proj" /> 7-day trend projection</span>}
       </div>
     </div>
   )
