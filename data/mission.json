@@ -1,0 +1,42 @@
+{
+  "mission_name": "AURA Demo Mission",
+  "environment": "lunar_surface",
+  "environment_info": {
+    "name": "Lunar surface base",
+    "radiation_mSv_day": 1.37,
+    "gravity_g": 0.165,
+    "source": "Zhang et al., Science Advances 6 (2020), Chang'e 4 LND: 1.37 mSv/day"
+  },
+  "start_date": "2026-11-14",
+  "days": 60,
+  "current_day": 60,
+  "preflight_days": 7,
+  "seed": 42,
+  "data_notice": "All telemetry is SYNTHETIC unless a record's source says otherwise.",
+  "crew": [
+    {
+      "id": "aura-1",
+      "name": "Cmdr. Lena Ortiz",
+      "role": "Commander",
+      "age": 44,
+      "scenario": "nominal",
+      "scenario_description": "Adapts well. Only expected in-flight changes."
+    },
+    {
+      "id": "aura-2",
+      "name": "Dr. Kenji Sato",
+      "role": "Flight Engineer",
+      "age": 39,
+      "scenario": "behavioural_cardio",
+      "scenario_description": "Sleep starts to decline around day 32, then mood drops and exercise slips, and resting heart rate and blood pressure climb. Shows how AURA catches a behavioural-health pattern before it becomes a cardiovascular event."
+    },
+    {
+      "id": "aura-3",
+      "name": "Amara Diallo",
+      "role": "Mission Specialist",
+      "age": 35,
+      "scenario": "immune_fever",
+      "scenario_description": "Latent viral reactivation causes a fever that builds from day 54 and becomes critical, with a raised heart rate and falling SpO2."
+    }
+  ]
+}

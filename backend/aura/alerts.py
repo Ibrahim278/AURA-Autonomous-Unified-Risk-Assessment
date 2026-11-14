@@ -167,6 +167,9 @@ def assess(
             reasons=["No readings yet. Take a measurement to start tracking."],
         )
 
+    if not ind.use_baseline:
+        baseline = None
+
     latest = readings[-1]
     level, limit_reason = _check_limits(latest.value, ind)
     reasons: list[str] = [limit_reason] if limit_reason else []
@@ -213,7 +216,11 @@ def assess(
             )
 
     if level is Level.NORMAL:
-        reasons.append("No significant deviation from your personal baseline.")
+        reasons.append(
+            "No significant deviation from your personal baseline."
+            if baseline is not None
+            else "Within the prototype safe range."
+        )
 
     return Assessment(
         indicator=ind,
