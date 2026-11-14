@@ -121,6 +121,40 @@ class MissionStore:
         events.sort(key=lambda e: (e["day"], e["indicator"]))
         return events
 
+    # ------------------------------------------------------------------ custom indicators
+    def add_indicator(self, key: str) -> None:
+        """Give every synthetic crew member synthetic readings for a newly added indicator."""
+        from datetime import date
+
+        from .simulator import custom_records
+
+        start = date.fromisoformat(self.dataset.start_date)
+        with self._lock:
+            self.remove_indicator(key, locked=True)
+            new = []
+            for member in self.dataset.crew:
+                if member.imported is None:
+                    new += custom_records(member.id, self.dataset.days, self.dataset.seed, start, [key])
+            self.dataset.records = [*self.dataset.records, *new]
+            for r in new:
+                if r.phase == "preflight":
+                    self._preflight[(r.crew_id, key)].append(r.value)
+                else:
+                    self._inflight[(r.crew_id, key)].append(Reading(r.day, r.value, r.source, r.timestamp))
+            for cid in self.crew:
+                values = self._preflight.get((cid, key), [])
+                if len(values) >= MIN_BASELINE_READINGS:
+                    self._baselines[(cid, key)] = Baseline.from_values(values, INDICATORS[key])
+
+    def remove_indicator(self, key: str, locked: bool = False) -> None:
+        if not locked:
+            with self._lock:
+                return self.remove_indicator(key, locked=True)
+        self.dataset.records = [r for r in self.dataset.records if r.indicator != key]
+        for d in (self._preflight, self._inflight, self._baselines):
+            for k in [k for k in d if k[1] == key]:
+                del d[k]
+
     # ------------------------------------------------------------------ writes
     def add_member(self, member, records) -> None:
         """Add a crew member with their own records, keeping everyone else's data and check-ins."""

@@ -78,6 +78,7 @@ class Indicator:
     # False for environmental exposures (e.g. radiation), where an Earth-based personal
     # baseline is meaningless; only absolute limits apply.
     use_baseline: bool = True
+    custom: bool = False  # added by the user at runtime (see custom.py)
 
     def to_dict(self) -> dict:
         return {
@@ -95,6 +96,7 @@ class Indicator:
             "actions": self.actions,
             "references": list(self.references),
             "use_baseline": self.use_baseline,
+            "custom": self.custom,
         }
 
 
@@ -454,3 +456,4 @@ def get_indicator(key: str) -> Indicator:
         return INDICATORS[key]
     except KeyError as exc:  # pragma: no cover - defensive
         raise KeyError(f"Unknown indicator '{key}'") from exc
+BUILTIN_KEYS: tuple[str, ...] = tuple(INDICATORS)  # custom indicators are added after these
