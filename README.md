@@ -103,6 +103,22 @@ Open http://localhost:5173. The dev server proxies `/api` to the back end.
 - Mission replay slider to see what AURA showed on any day, plus an environment switcher
   (ISS, lunar surface, Mars transit).
 
+## AI flight surgeon (optional)
+
+AURA uses the Claude API (`claude-opus-5-5`) for two features:
+
+- **Daily briefing:** a structured summary of the astronaut's top priorities, the patterns
+  across indicators (for example, sleep loss leading to a heart-rate rise), and one action each.
+- **Ask the flight surgeon:** chat grounded only in that astronaut's telemetry.
+
+To turn it on, copy `backend/.env.example` to `backend/.env`, add your `ANTHROPIC_API_KEY`, and
+restart the back end. Without a key, AURA shows a rule-based briefing instead, so the demo
+always works.
+
+Safety design: alert levels always come from the rule engine. The AI explains and coaches, is
+told never to change a level, and can't hide an escalation (the back end forces `escalate`
+when any reading is critical). It never prescribes medication.
+
 ## Data
 
 See [docs/DATA_SOURCES.md](docs/DATA_SOURCES.md) for what is real research data, what is
