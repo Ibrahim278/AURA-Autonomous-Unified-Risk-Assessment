@@ -27,6 +27,9 @@ export const api = {
   alerts: (id) => request(`/api/crew/${id}/alerts`),
   checkin: (id, body) =>
     request(`/api/crew/${id}/checkins`, { method: 'POST', body: JSON.stringify(body) }),
+  tasks: (id) => request(`/api/crew/${id}/tasks`),
+  completeTask: (id, taskId) =>
+    request(`/api/crew/${id}/tasks/${taskId}/complete`, { method: 'POST' }),
   aiStatus: () => request('/api/ai/status'),
   briefing: (id, day) =>
     request(`/api/crew/${id}/briefing`, { method: 'POST', body: JSON.stringify({ day: day ?? null }) }),
