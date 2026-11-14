@@ -30,7 +30,7 @@ Astronauts on Space Missions".
 
 ```
 backend/    Python (FastAPI) API, alert engine, synthetic telemetry generator
-frontend/   React (Vite) dashboard (coming next)
+frontend/   React (Vite) dashboard
 docs/       Data sources, provenance and threshold references
 ```
 
@@ -76,6 +76,32 @@ All three receive a solar particle event dose on day 22 (lunar surface / Mars tr
 
 Regenerate the CSV/JSON export in `data/` with
 `python -m aura.simulator --out ../data` (from `backend/`).
+
+![AURA dashboard](docs/screenshots/dashboard.png)
+
+## Run the front end
+
+In a second terminal (needs Node 20+), with the back end already running on port 8000:
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+Open http://localhost:5173. The dev server proxies `/api` to the back end.
+
+**Dashboard features**
+
+- Crew list with each astronaut's overall status (color plus icon, so it doesn't rely on color alone).
+- Clickable body figure: each region is colored by its worst indicator. Click it to filter the cards.
+- Indicator cards with value, personal baseline, trend and a 14-day sparkline.
+- Detail panel: a trend chart with the preflight baseline band and the warning/critical limits,
+  why the status fired, what to do now, why it matters in space, how to measure, and sources.
+- Daily check-in form (manual entry, mood slider, notes). It updates the status immediately.
+- Alert timeline. Click an event to jump to that day.
+- Mission replay slider to see what AURA showed on any day, plus an environment switcher
+  (ISS, lunar surface, Mars transit).
 
 ## Data
 
