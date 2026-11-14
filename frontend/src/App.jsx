@@ -1,0 +1,176 @@
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { api } from './api.js'
+import Header from './components/Header.jsx'
+import CrewList from './components/CrewList.jsx'
+import StatusBanner from './components/StatusBanner.jsx'
+import BodyFigure from './components/BodyFigure.jsx'
+import IndicatorGrid from './components/IndicatorGrid.jsx'
+import IndicatorDetail from './components/IndicatorDetail.jsx'
+import CheckInForm from './components/CheckInForm.jsx'
+import AlertTimeline from './components/AlertTimeline.jsx'
+import DayScrubber from './components/DayScrubber.jsx'
+
+export default function App() {
+  const [mission, setMission] = useState(null)
+  const [catalog, setCatalog] = useState({})
+  const [crew, setCrew] = useState([])
+  const [crewId, setCrewId] = useState(null)
+  const [day, setDay] = useState(null) // null = live (current mission day)
+  const [status, setStatus] = useState(null)
+  const [telemetry, setTelemetry] = useState(null)
+  const [alerts, setAlerts] = useState([])
+  const [system, setSystem] = useState(null)
+  const [selected, setSelected] = useState(null)
+  const [error, setError] = useState(null)
+
+  const loadMission = useCallback(async () => {
+    try {
+      const [m, inds, c] = await Promise.all([api.mission(), api.indicators(), api.crew()])
+      setMission(m)
+      setCatalog(Object.fromEntries(inds.map((i) => [i.key, i])))
+      setCrew(c)
+      setCrewId((prev) => prev ?? c[0]?.id ?? null)
+      setError(null)
+    } catch (e) {
+      setError(`Can't reach the AURA API (${e.message}). Is the back end running on port 8000?`)
+    }
+  }, [])
+
+  const loadCrew = useCallback(async () => {
+    if (!crewId) return
+    try {
+      const [s, t, a] = await Promise.all([
+        api.status(crewId, day),
+        api.telemetry(crewId),
+        api.alerts(crewId),
+      ])
+      setStatus(s)
+      setTelemetry(t)
+      setAlerts(a)
+    } catch (e) {
+      setError(e.message)
+    }
+  }, [crewId, day])
+
+  useEffect(() => {
+    loadMission()
+  }, [loadMission])
+
+  useEffect(() => {
+    loadCrew()
+  }, [loadCrew])
+
+  const refreshAll = useCallback(async () => {
+    await Promise.all([loadMission(), loadCrew()])
+  }, [loadMission, loadCrew])
+
+  const member = useMemo(() => crew.find((c) => c.id === crewId), [crew, crewId])
+  const shownDay = day ?? mission?.current_day
+  const selectedAssessment = status?.indicators.find((i) => i.indicator === selected)
+
+  if (error && !mission) {
+    return (
+      <div className="app">
+        <div className="error-screen">
+          <h1>AURA</h1>
+          <p>{error}</p>
+          <code>cd backend &amp;&amp; uvicorn aura.main:app --reload</code>
+          <button onClick={loadMission}>Retry</button>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="app">
+      <Header mission={mission} onReset={async (env) => {
+        await api.reset({ environment: env, days: mission?.days ?? 60 })
+        setDay(null)
+        setSelected(null)
+        await refreshAll()
+      }} />
+      <div className="layout">
+        <aside className="sidebar">
+          <CrewList crew={crew} selectedId={crewId} onSelect={(id) => {
+            setCrewId(id)
+            setSelected(null)
+            setSystem(null)
+          }} />
+          {mission && (
+            <DayScrubber
+              currentDay={mission.current_day}
+              day={shownDay}
+              live={day === null}
+              onChange={(d) => setDay(d >= mission.current_day ? null : d)}
+            />
+          )}
+        </aside>
+
+        <main className="main">
+          {error && <div className="toast error">{error}</div>}
+          {status && member && (
+            <>
+              <StatusBanner member={member} status={status} live={day === null} />
+              <section className="overview">
+                <div className="panel body-panel">
+                  <h2>Body status</h2>
+                  <BodyFigure
+                    systems={status.body_systems}
+                    selected={system}
+                    onSelect={(s) => setSystem((prev) => (prev === s ? null : s))}
+                  />
+                </div>
+                <div className="panel">
+                  <IndicatorGrid
+                    indicators={status.indicators}
+                    telemetry={telemetry}
+                    filterSystem={system}
+                    onClearFilter={() => setSystem(null)}
+                    selected={selected}
+                    onSelect={setSelected}
+                    day={shownDay}
+                  />
+                </div>
+              </section>
+
+              {selectedAssessment && (
+                <IndicatorDetail
+                  assessment={selectedAssessment}
+                  info={catalog[selected]}
+                  series={telemetry?.series[selected]}
+                  day={shownDay}
+                  onClose={() => setSelected(null)}
+                />
+              )}
+
+              <section className="bottom">
+                <div className="panel">
+                  <CheckInForm
+                    crewId={crewId}
+                    catalog={catalog}
+                    disabled={day !== null}
+                    onSaved={refreshAll}
+                  />
+                </div>
+                <div className="panel">
+                  <AlertTimeline
+                    alerts={alerts}
+                    upToDay={shownDay}
+                    onSelect={(key, d) => {
+                      setSelected(key)
+                      setDay(d >= mission.current_day ? null : d)
+                    }}
+                  />
+                </div>
+              </section>
+            </>
+          )}
+        </main>
+      </div>
+      <footer className="footer">
+        Prototype: thresholds are research-informed prototype rules, not clinically validated
+        flight-medicine limits. Demo telemetry is synthetic.
+      </footer>
+    </div>
+  )
+}
