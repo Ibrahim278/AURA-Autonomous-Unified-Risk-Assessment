@@ -64,7 +64,7 @@ DEFAULTS: dict[str, tuple[float, float, float, float]] = {
     "radiation_dose": (0.0, 0.0, 0, 500),  # set by environment
 }
 
-OffsetFn = Callable[[int], dict[str, float]]
+OffsetFn = Callable[[int, int], dict[str, float]]  # (day, mission_days) -> indicator offsets
 
 
 @dataclass
@@ -81,7 +81,7 @@ class CrewMember:
     def public(self) -> dict:
         d = asdict(self)
         d.pop("offset_fn")
-        d.pop("baseline_means")
+        d["baseline"] = d.pop("baseline_means")
         return d
 
 
@@ -91,6 +91,15 @@ def _ramp(day: int, start: int, rate: float, cap: float) -> float:
         return 0.0
     v = (day - start + 1) * rate
     return max(v, cap) if cap < 0 else min(v, cap)
+
+
+def _late(days: int, before_end: int) -> int:
+    """A day ``before_end`` days before the end of the mission (never before day 2).
+
+    Scenarios are anchored to the end of the mission so the story always finishes on the
+    current day, whatever the mission length. For the default 60 days these are the original days.
+    """
+    return max(2, days - before_end)
 
 
 def _in_flight_adaptation(day: int) -> dict[str, float]:
@@ -104,26 +113,28 @@ def _in_flight_adaptation(day: int) -> dict[str, float]:
     }
 
 
-def _scenario_nominal(day: int) -> dict[str, float]:
+def _scenario_nominal(day: int, days: int) -> dict[str, float]:
     return {}
 
 
-def _scenario_behavioural_cardio(day: int) -> dict[str, float]:
+def _scenario_behavioural_cardio(day: int, days: int) -> dict[str, float]:
     """Sleep declines, then mood, then exercise slips, then heart rate and BP rise."""
     return {
-        "sleep_hours": _ramp(day, 32, -0.11, -2.1),
-        "mood": _ramp(day, 36, -0.2, -4.0),
-        "exercise_minutes": _ramp(day, 40, -3.5, -60),
-        "heart_rate": _ramp(day, 42, 0.95, 17),
-        "systolic_bp": _ramp(day, 45, 1.6, 26),
-        "diastolic_bp": _ramp(day, 45, 0.9, 15),
-        "glucose": _ramp(day, 44, 0.9, 14),
+        "sleep_hours": _ramp(day, _late(days, 28), -0.11, -2.1),
+        "mood": _ramp(day, _late(days, 24), -0.2, -4.0),
+        "exercise_minutes": _ramp(day, _late(days, 20), -3.5, -60),
+        "heart_rate": _ramp(day, _late(days, 18), 0.95, 17),
+        "systolic_bp": _ramp(day, _late(days, 15), 1.6, 26),
+        "diastolic_bp": _ramp(day, _late(days, 15), 0.9, 15),
+        "glucose": _ramp(day, _late(days, 16), 0.9, 14),
     }
 
 
-def _scenario_immune_fever(day: int) -> dict[str, float]:
+def _scenario_immune_fever(day: int, days: int) -> dict[str, float]:
     """Viral reactivation: fever and raised heart rate building over the last days."""
-    fever = {54: 0.3, 55: 0.6, 56: 0.9, 57: 1.3, 58: 1.7, 59: 2.1, 60: 2.5}.get(day, 0.0)
+    steps = [0.3, 0.6, 0.9, 1.3, 1.7, 2.1, 2.5]
+    i = day - (days - len(steps) + 1)
+    fever = steps[i] if 0 <= i < len(steps) else 0.0
     return {
         "body_temp": fever,
         "heart_rate": fever * 9,
@@ -133,45 +144,82 @@ def _scenario_immune_fever(day: int) -> dict[str, float]:
     }
 
 
-CREW: list[CrewMember] = [
-    CrewMember(
-        id="aura-1",
-        name="Cmdr. Lena Ortiz",
-        role="Commander",
-        age=44,
-        scenario="nominal",
-        scenario_description="Adapts well. Only expected in-flight changes.",
-        baseline_means={"heart_rate": 58, "systolic_bp": 114, "sleep_hours": 7.0},
-        offset_fn=_scenario_nominal,
-    ),
-    CrewMember(
-        id="aura-2",
-        name="Dr. Kenji Sato",
-        role="Flight Engineer",
-        age=39,
-        scenario="behavioural_cardio",
-        scenario_description=(
-            "Sleep starts to decline around day 32, then mood drops and exercise slips, and "
-            "resting heart rate and blood pressure climb. Shows how AURA catches a "
-            "behavioural-health pattern before it becomes a cardiovascular event."
-        ),
-        baseline_means={"heart_rate": 63, "systolic_bp": 119, "diastolic_bp": 77, "mood": 8},
-        offset_fn=_scenario_behavioural_cardio,
-    ),
-    CrewMember(
-        id="aura-3",
-        name="Amara Diallo",
-        role="Mission Specialist",
-        age=35,
-        scenario="immune_fever",
-        scenario_description=(
-            "Latent viral reactivation causes a fever that builds from day 54 and becomes "
-            "critical, with a raised heart rate and falling SpO2."
-        ),
-        baseline_means={"heart_rate": 60, "body_temp": 36.5, "glucose": 85, "sleep_hours": 7.4},
-        offset_fn=_scenario_immune_fever,
-    ),
+def _scenario_circadian(day: int, days: int) -> dict[str, float]:
+    """Shift work and light exposure erode sleep early; mood dips but the body copes."""
+    return {
+        "sleep_hours": _ramp(day, _late(days, 45), -0.06, -1.6),
+        "mood": _ramp(day, _late(days, 30), -0.08, -1.8),
+    }
+
+
+def _scenario_deconditioning(day: int, days: int) -> dict[str, float]:
+    """Exercise countermeasures slip, so resting heart rate and glucose creep up."""
+    return {
+        "exercise_minutes": _ramp(day, _late(days, 40), -2.2, -75),
+        "heart_rate": _ramp(day, _late(days, 30), 0.45, 11),
+        "glucose": _ramp(day, _late(days, 25), 0.6, 13),
+        "diastolic_bp": _ramp(day, _late(days, 25), 0.3, 6),
+    }
+
+
+SCENARIOS: dict[str, dict] = {
+    "nominal": {"label": "Nominal", "fn": _scenario_nominal,
+                "description": "Adapts well. Only expected in-flight changes."},
+    "behavioural_cardio": {"label": "Behavioural → cardio", "fn": _scenario_behavioural_cardio,
+                           "description": (
+                               "Sleep starts to decline about four weeks before the current day, then "
+                               "mood drops and exercise slips, and resting heart rate and blood pressure "
+                               "climb. Shows how AURA catches a behavioural-health pattern before it "
+                               "becomes a cardiovascular event.")},
+    "immune_fever": {"label": "Immune: fever", "fn": _scenario_immune_fever,
+                     "description": ("Latent viral reactivation causes a fever that builds over the last "
+                                     "week and becomes critical, with a raised heart rate and falling SpO2.")},
+    "circadian": {"label": "Circadian disruption", "fn": _scenario_circadian,
+                  "description": "Sleep slowly erodes from mid-mission and mood dips, without vital-sign changes."},
+    "deconditioning": {"label": "Exercise deconditioning", "fn": _scenario_deconditioning,
+                       "description": ("Exercise sessions get shorter, then resting heart rate, glucose and "
+                                       "diastolic pressure creep up: the cost of skipped countermeasures.")},
+}
+
+# Personal baselines a user may set per crew member (others use DEFAULTS).
+EDITABLE_BASELINES = ("heart_rate", "systolic_bp", "diastolic_bp", "glucose", "body_temp", "sleep_hours", "mood")
+
+
+def make_member(id: str, name: str, role: str, age: int, scenario: str = "nominal",
+                baseline: dict[str, float] | None = None) -> CrewMember:
+    if scenario not in SCENARIOS:
+        raise ValueError(f"scenario must be one of {sorted(SCENARIOS)}")
+    baseline = baseline or {}
+    bad = [k for k in baseline if k not in EDITABLE_BASELINES]
+    if bad:
+        raise ValueError(f"baseline can only set {list(EDITABLE_BASELINES)}, not {bad}")
+    for k, v in baseline.items():
+        _, _, lo, hi = DEFAULTS[k]
+        if not lo <= v <= hi:
+            raise ValueError(f"baseline {k}={v} is outside {lo}-{hi}")
+    sc = SCENARIOS[scenario]
+    return CrewMember(id=id, name=name, role=role, age=age, scenario=scenario,
+                      scenario_description=sc["description"], baseline_means=dict(baseline),
+                      offset_fn=sc["fn"])
+
+
+DEFAULT_CREW_SPECS: list[dict] = [
+    {"id": "aura-1", "name": "Cmdr. Lena Ortiz", "role": "Commander", "age": 44, "scenario": "nominal",
+     "baseline": {"heart_rate": 58, "systolic_bp": 114, "sleep_hours": 7.0}},
+    {"id": "aura-2", "name": "Dr. Kenji Sato", "role": "Flight Engineer", "age": 39,
+     "scenario": "behavioural_cardio",
+     "baseline": {"heart_rate": 63, "systolic_bp": 119, "diastolic_bp": 77, "mood": 8}},
+    {"id": "aura-3", "name": "Amara Diallo", "role": "Mission Specialist", "age": 35,
+     "scenario": "immune_fever",
+     "baseline": {"heart_rate": 60, "glucose": 85, "sleep_hours": 7.4, "body_temp": 36.5}},
 ]
+
+
+def default_crew() -> list[CrewMember]:
+    return [make_member(**{**spec, "baseline": dict(spec["baseline"])}) for spec in DEFAULT_CREW_SPECS]
+
+
+CREW: list[CrewMember] = default_crew()
 
 SPE_DAY = 22  # Solar particle event affecting the whole crew
 SPE_DOSE = {21: 0.4, 22: 12.0, 23: 3.1, 24: 0.8}
@@ -226,7 +274,11 @@ def generate(
     seed: int = 42,
     start_date: date | None = None,
     mission_name: str = "AURA Demo Mission",
+    crew: list[CrewMember] | None = None,
 ) -> MissionDataset:
+    crew = default_crew() if crew is None else crew
+    if not crew:
+        raise ValueError("the crew needs at least one member")
     if environment not in ENVIRONMENTS:
         raise ValueError(f"environment must be one of {sorted(ENVIRONMENTS)}")
     env = ENVIRONMENTS[environment]
@@ -234,10 +286,10 @@ def generate(
     rng = np.random.default_rng(seed)
     records: list[TelemetryRecord] = []
 
-    for member in CREW:
+    for member in crew:
         for day in [*range(-PREFLIGHT_DAYS, 0), *range(1, days + 1)]:
             offsets: dict[str, float] = {}
-            for src in (_in_flight_adaptation(day), member.offset_fn(day) if day >= 1 else {}):
+            for src in (_in_flight_adaptation(day), member.offset_fn(day, days) if day >= 1 else {}):
                 for k, v in src.items():
                     offsets[k] = offsets.get(k, 0.0) + v
 
@@ -271,7 +323,7 @@ def generate(
         start_date=start.isoformat(),
         days=days,
         seed=seed,
-        crew=CREW,
+        crew=crew,
         records=records,
     )
 

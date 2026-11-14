@@ -20,7 +20,8 @@ from pydantic import BaseModel, Field
 
 from . import __version__, ai, gamification, research
 from .indicators import INDICATORS, Hazard
-from .simulator import ENVIRONMENTS, generate
+from .simulator import (DEFAULT_CREW_SPECS, DEFAULTS, EDITABLE_BASELINES, ENVIRONMENTS, SCENARIOS,
+                        generate, make_member)
 from .store import MissionStore, UnknownCrewError
 
 
@@ -78,6 +79,20 @@ class BriefingRequest(BaseModel):
     day: int | None = Field(None, ge=1)
 
 
+class CrewSpec(BaseModel):
+    id: str | None = Field(None, pattern=r"^[a-z0-9-]{1,32}$", description="Keep to edit; omit to add")
+    name: str = Field(..., min_length=1, max_length=60)
+    role: str = Field("Mission Specialist", min_length=1, max_length=40)
+    age: int = Field(40, ge=18, le=80)
+    scenario: str = Field("nominal", description=f"One of {sorted(SCENARIOS)}")
+    baseline: dict[str, float] = Field(default_factory=dict,
+                                       description=f"Optional personal means for {list(EDITABLE_BASELINES)}")
+
+
+class CrewUpdate(BaseModel):
+    crew: list[CrewSpec] = Field(..., min_length=1, max_length=6)
+
+
 class ResetRequest(BaseModel):
     environment: str = Field("lunar_surface", description=f"One of {sorted(ENVIRONMENTS)}")
     days: int = Field(60, ge=10, le=365)
@@ -105,8 +120,52 @@ def reset(req: ResetRequest):
     """Regenerate the synthetic mission (discards manual check-ins)."""
     if req.environment not in ENVIRONMENTS:
         raise HTTPException(422, f"environment must be one of {sorted(ENVIRONMENTS)}")
-    store.load(generate(days=req.days, environment=req.environment, seed=req.seed))
+    store.load(generate(days=req.days, environment=req.environment, seed=req.seed,
+                        crew=list(store.dataset.crew)))
     return mission()
+
+
+@app.get("/api/crew-options", tags=["mission"])
+def crew_options():
+    """Scenarios, editable baselines and the default demo crew, for the crew editor."""
+    return {
+        "scenarios": [{"key": k, "label": v["label"], "description": v["description"]}
+                      for k, v in SCENARIOS.items()],
+        "baselines": [{"key": k, "name": INDICATORS[k].name, "unit": INDICATORS[k].unit,
+                       "default": DEFAULTS[k][0], "min": DEFAULTS[k][2], "max": DEFAULTS[k][3]}
+                      for k in EDITABLE_BASELINES],
+        "roles": ["Commander", "Pilot", "Flight Engineer", "Mission Specialist", "Payload Specialist",
+                  "Flight Surgeon"],
+        "default_crew": DEFAULT_CREW_SPECS,
+    }
+
+
+@app.put("/api/mission/crew", tags=["mission"])
+def set_crew(body: CrewUpdate):
+    """Replace the crew and regenerate the synthetic mission (discards manual check-ins).
+
+    Each member's synthetic telemetry follows their personal baselines and chosen health
+    scenario. The AI briefing reads the new crew's data automatically.
+    """
+    used = {c.id for c in body.crew if c.id}
+    if len(used) != len([c for c in body.crew if c.id]):
+        raise HTTPException(422, "crew ids must be unique")
+    members, n = [], 1
+    for spec in body.crew:
+        cid = spec.id
+        if not cid:
+            while f"aura-{n}" in used:
+                n += 1
+            cid = f"aura-{n}"
+            used.add(cid)
+        try:
+            members.append(make_member(cid, spec.name.strip(), spec.role.strip(), spec.age,
+                                       spec.scenario, spec.baseline))
+        except ValueError as exc:
+            raise HTTPException(422, f"{spec.name}: {exc}") from exc
+    ds = store.dataset
+    store.load(generate(days=ds.days, environment=ds.environment, seed=ds.seed, crew=members))
+    return crew_list()
 
 
 @app.get("/api/indicators", tags=["reference"])
