@@ -1,0 +1,10 @@
+{
+  "name": "aura",
+  "private": true,
+  "description": "Convenience scripts so the front end can be started from the repo root.",
+  "scripts": {
+    "postinstall": "npm --prefix frontend install",
+    "dev": "npm --prefix frontend run dev",
+    "build": "npm --prefix frontend run build"
+  }
+}
