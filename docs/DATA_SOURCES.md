@@ -67,6 +67,16 @@ day,heart_rate,systolic_bp,diastolic_bp,sleep_hours,mood
 - Imported data lives in memory with the rest of the mission and keeps through crew edits and
   environment changes, but not a back-end restart.
 
+## Custom indicators
+
+Use **+ Add indicator** to track any extra measurement. You set the name, unit, typical
+range, optional warning and critical limits, the body system, the related NASA hazards and
+whether it uses a personal baseline. Custom limits are the user's own, not clinically
+validated, and each custom indicator says so in its references. Synthetic crew get synthetic
+readings for it around the middle of the typical range. These come from a separate random
+stream, so the built-in demo data never changes. To include it in a CSV import, add a column
+named after its key, for example `body_weight`.
+
 ## Synthetic telemetry
 
 The crew is editable in the dashboard (✎ Edit crew): name, role, age, personal baselines and a

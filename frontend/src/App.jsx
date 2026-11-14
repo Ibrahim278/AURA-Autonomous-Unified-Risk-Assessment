@@ -12,6 +12,7 @@ import DayScrubber from './components/DayScrubber.jsx'
 import AIPanel from './components/AIPanel.jsx'
 import MissionRoutine from './components/MissionRoutine.jsx'
 import CrewEditor from './components/CrewEditor.jsx'
+import IndicatorManager from './components/IndicatorManager.jsx'
 import ResearchPanel from './components/ResearchPanel.jsx'
 import DemoTour, { TOUR_STEPS } from './components/DemoTour.jsx'
 
@@ -30,6 +31,7 @@ export default function App() {
   const [error, setError] = useState(null)
   const [tourStep, setTourStep] = useState(null)
   const [editingCrew, setEditingCrew] = useState(false)
+  const [managingIndicators, setManagingIndicators] = useState(false)
 
   const loadMission = useCallback(async () => {
     try {
@@ -182,6 +184,7 @@ export default function App() {
                     selected={selected}
                     onSelect={setSelected}
                     day={shownDay}
+                    onManage={() => setManagingIndicators(true)}
                   />
                 </div>
               </section>
@@ -222,11 +225,23 @@ export default function App() {
           )}
         </main>
       </div>
+      {managingIndicators && (
+        <IndicatorManager
+          catalog={catalog}
+          onClose={() => setManagingIndicators(false)}
+          onChanged={async (key) => {
+            await refreshAll()
+            setSystem(null)
+            setSelected(key)
+          }}
+        />
+      )}
       {editingCrew && (
         <CrewEditor
           crew={crew}
           onClose={() => setEditingCrew(false)}
           startImport={editingCrew === 'import'}
+          customKeys={Object.values(catalog).filter((i) => i.custom).map((i) => i.key)}
           onSaved={async (saved, focusId) => {
             setDay(null)
             setSelected(null)

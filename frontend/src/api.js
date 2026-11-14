@@ -42,5 +42,8 @@ export const api = {
   setCrew: (body) => request('/api/mission/crew', { method: 'PUT', body: JSON.stringify(body) }),
   importCrew: (body) => request('/api/crew/import', { method: 'POST', body: JSON.stringify(body) }),
   importTemplateUrl: `${BASE}/api/crew/import/template`,
+  indicatorOptions: () => request('/api/indicators/options'),
+  addIndicator: (body) => request('/api/indicators', { method: 'POST', body: JSON.stringify(body) }),
+  deleteIndicator: (key) => request(`/api/indicators/${key}`, { method: 'DELETE' }),
   reset: (body) => request('/api/mission/reset', { method: 'POST', body: JSON.stringify(body) }),
 }

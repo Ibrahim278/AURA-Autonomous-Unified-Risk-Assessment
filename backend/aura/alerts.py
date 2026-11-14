@@ -90,6 +90,7 @@ class Assessment:
             "name": ind.name,
             "unit": ind.unit,
             "body_system": ind.body_system.value,
+            "custom": ind.custom,
             "level": self.level.label,
             "value": None if self.value is None else round(self.value, r),
             "day": self.day,
