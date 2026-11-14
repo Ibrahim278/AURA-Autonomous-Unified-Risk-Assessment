@@ -2,7 +2,7 @@
 
 Before you start, run the back end and front end, open http://localhost:5173, and make sure
 the header says **Lunar surface base** and **Mission day 60**. If you've been clicking
-around, pick "Lunar surface base" again in the header to reset the mission.
+around, switch the header to "ISS" and back to "Lunar surface base" to reset the mission.
 
 | Time | On screen | Say |
 | --- | --- | --- |
