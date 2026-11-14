@@ -153,7 +153,9 @@ def _clean(reply: AssistantReply, ctx: dict) -> AssistantReply:
         ok.append(a)
     reply.actions = ok[:3]
     reply.steps = reply.steps[:4]
-    reply.escalate = reply.escalate or bool(person.get("escalate"))
+    # A critical reading always escalates health answers; "how do I..." answers aren't nagged.
+    if reply.topic == "health":
+        reply.escalate = reply.escalate or bool(person.get("escalate"))
     return reply
 
 
@@ -192,7 +194,7 @@ def offline_reply(question: str, ctx: dict) -> AssistantReply:
         if re.search(pattern, q):
             return AssistantReply(answer=answer, steps=steps,
                                   actions=[AssistantAction(type=t, label=lbl) for t, lbl in actions],
-                                  escalate=escalate, topic="app_help")
+                                  escalate=False, topic="app_help")
     if person:
         order = {Level.CRITICAL.label: 0, Level.WARNING.label: 1}
         flagged = sorted((i for i in person["indicators"] if i["level"] in order), key=lambda i: order[i["level"]])
