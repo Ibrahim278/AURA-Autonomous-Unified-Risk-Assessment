@@ -18,7 +18,7 @@ from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
-from . import __version__
+from . import __version__, ai
 from .indicators import INDICATORS, Hazard
 from .simulator import ENVIRONMENTS, generate
 from .store import MissionStore, UnknownCrewError
@@ -66,6 +66,16 @@ class CheckIn(BaseModel):
     )
     day: int | None = Field(None, ge=1, description="Mission day (defaults to the current day)")
     note: str | None = Field(None, max_length=1000, description="Optional free-text note")
+
+
+class AskRequest(BaseModel):
+    question: str = Field(..., min_length=1, max_length=2000)
+    history: list[ai.ChatTurn] = Field(default_factory=list, max_length=20)
+    day: int | None = Field(None, ge=1)
+
+
+class BriefingRequest(BaseModel):
+    day: int | None = Field(None, ge=1)
 
 
 class ResetRequest(BaseModel):
@@ -182,3 +192,24 @@ def crew_checkin(crew_id: str, body: CheckIn):
     except (ValueError, UnknownCrewError) as exc:
         raise HTTPException(422, str(exc)) from exc
     return store.status(crew_id, day)
+
+
+# ---------------------------------------------------------------- AI flight surgeon
+@app.get("/api/ai/status", tags=["ai"])
+def ai_status():
+    """Whether the Claude-powered assistant is enabled (ANTHROPIC_API_KEY set)."""
+    return ai.ai_status()
+
+
+@app.post("/api/crew/{crew_id}/briefing", tags=["ai"])
+def crew_briefing(crew_id: str, body: BriefingRequest | None = None):
+    """Daily health briefing. Uses Claude when available, else a rule-based briefing."""
+    _crew_or_404(crew_id)
+    return ai.generate_briefing(store, crew_id, body.day if body else None)
+
+
+@app.post("/api/crew/{crew_id}/ask", tags=["ai"])
+def crew_ask(crew_id: str, body: AskRequest):
+    """Ask the AI flight surgeon a question about this astronaut's data."""
+    _crew_or_404(crew_id)
+    return ai.ask(store, crew_id, body.question, body.history, body.day)
