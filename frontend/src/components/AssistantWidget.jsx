@@ -9,7 +9,7 @@ function suggestionsFor(member, selectedName) {
   return s.slice(0, 4)
 }
 
-export default function AssistantWidget({ crewId, member, day, live, selected, selectedName, hidden, onAction, openSignal = 0 }) {
+export default function AssistantWidget({ crewId, member, day, live, selected, selectedName, onAction, openSignal = 0, onOpenChange, highlight = false }) {
   const [open, setOpen] = useState(false)
   const [chat, setChat] = useState([])
   const [question, setQuestion] = useState('')
@@ -30,6 +30,11 @@ export default function AssistantWidget({ crewId, member, day, live, selected, s
     if (openSignal) setOpen(true)
   }, [openSignal])
 
+  // While the chat is open the demo tour card steps aside; minimising brings it back.
+  useEffect(() => {
+    onOpenChange?.(open)
+  }, [open, onOpenChange])
+
   const send = async (text) => {
     const q = (text ?? question).trim()
     if (!q || busy) return
@@ -48,12 +53,10 @@ export default function AssistantWidget({ crewId, member, day, live, selected, s
     }
   }
 
-  if (hidden) return null
-
   return (
     <>
       {!open && (
-        <button className="assistant-fab" onClick={() => setOpen(true)} aria-label="Ask AURA">
+        <button className={`assistant-fab ${highlight ? 'pulse' : ''}`} onClick={() => setOpen(true)} aria-label="Ask AURA">
           <span className="fab-icon">✦</span> Ask AURA
         </button>
       )}
