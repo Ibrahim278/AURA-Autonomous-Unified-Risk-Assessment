@@ -11,6 +11,7 @@ import AlertTimeline from './components/AlertTimeline.jsx'
 import DayScrubber from './components/DayScrubber.jsx'
 import AIPanel from './components/AIPanel.jsx'
 import MissionRoutine from './components/MissionRoutine.jsx'
+import ResearchPanel from './components/ResearchPanel.jsx'
 import DemoTour, { TOUR_STEPS } from './components/DemoTour.jsx'
 
 export default function App() {
@@ -203,6 +204,8 @@ export default function App() {
                   />
                 </div>
               </section>
+
+              <ResearchPanel />
             </>
           )}
         </main>
@@ -212,7 +215,7 @@ export default function App() {
       )}
       <footer className="footer">
         Prototype: thresholds are research-informed prototype rules, not clinically validated
-        flight-medicine limits. Demo telemetry is synthetic.
+        flight-medicine limits. Demo telemetry is synthetic; the Inspiration4 panel shows real NASA OSDR data.
       </footer>
     </div>
   )
