@@ -111,9 +111,14 @@ AURA uses the Claude API (`claude-opus-5-5`) for two features:
   across indicators (for example, sleep loss leading to a heart-rate rise), and one action each.
 - **Ask the flight surgeon:** chat grounded only in that astronaut's telemetry.
 
-To turn it on, copy `backend/.env.example` to `backend/.env`, add your `ANTHROPIC_API_KEY`, and
-restart the back end. Without a key, AURA shows a rule-based briefing instead, so the demo
-always works.
+To turn it on, use either of these, then restart the back end:
+
+- **Anthropic CLI login (easiest):** `brew install anthropics/tap/ant`, then `ant auth login`.
+  AURA picks up the profile automatically.
+- **API key:** copy `backend/.env.example` to `backend/.env` and set `ANTHROPIC_API_KEY`.
+
+Check with http://localhost:8000/api/ai/status. Without credentials, AURA shows a rule-based
+briefing instead, so the demo always works.
 
 Safety design: alert levels always come from the rule engine. The AI explains and coaches, is
 told never to change a level, and can't hide an escalation (the back end forces `escalate`
