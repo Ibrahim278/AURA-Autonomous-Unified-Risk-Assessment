@@ -64,7 +64,10 @@ Use plain, calm, direct language. Explain medical terms briefly the first time y
 
 What you receive: a JSON snapshot of one astronaut's data. It holds each indicator's latest \
 value, their personal preflight baseline, the alert level (normal, warning or critical) and the \
-reasons for it, the 7-day trend, recent readings, an alert history and any notes they logged.
+reasons for it, the 7-day trend, recent readings, an alert history, any notes they logged, and a \
+"forecast": straight-line trend projections of indicators that would cross their baseline edge or a \
+limit within two weeks if nothing changes. Use the forecast to suggest prevention, and call it a trend, \
+not a prediction.
 
 Rules:
 1. The alert levels come from AURA's rule engine and are authoritative. Never upgrade, downgrade \
@@ -184,8 +187,18 @@ def build_context(store: MissionStore, crew_id: str, day: int | None = None) -> 
         "escalate": status["escalate"],
         "indicators": indicators,
         "alert_history": [e for e in store.alert_timeline(crew_id) if e["day"] <= day][-12:],
+        "forecast": _forecast_summary(store, crew_id, day),
         "notes": [n for n in store.notes.get(crew_id, []) if n["day"] <= day][-5:],
     }
+
+
+def _forecast_summary(store: MissionStore, crew_id: str, day: int) -> list[dict]:
+    """Trend projections (straight-line, not clinical predictions) for the model."""
+    from .forecast import forecast  # local import: forecast imports store, which ai also uses
+
+    return [{"indicator": r["indicator"], "trend_per_day": r["slope_per_day"],
+             "would_reach": f"{r['crossing']['label']} ({r['crossing']['level']}) in ~{r['crossing']['in_days']} days"}
+            for r in forecast(store, crew_id, day)["risks"][:5]]
 
 
 # --------------------------------------------------------------------------- offline
@@ -216,7 +229,9 @@ def offline_briefing(ctx: dict) -> Briefing:
         headline=headline,
         escalate=ctx["escalate"],
         priorities=priorities,
-        patterns=[],
+        patterns=[f"Trend watch: {next(i['name'] for i in ctx['indicators'] if i['key'] == f['indicator'])} "
+                  f"would reach the {f['would_reach']} if nothing changes."
+                  for f in ctx.get("forecast", [])[:2]],
         encouragement="Steady routines win long missions. Keep logging your check-ins.",
     )
 
