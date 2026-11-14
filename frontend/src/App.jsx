@@ -9,6 +9,7 @@ import IndicatorDetail from './components/IndicatorDetail.jsx'
 import CheckInForm from './components/CheckInForm.jsx'
 import AlertTimeline from './components/AlertTimeline.jsx'
 import DayScrubber from './components/DayScrubber.jsx'
+import AIPanel from './components/AIPanel.jsx'
 
 export default function App() {
   const [mission, setMission] = useState(null)
@@ -111,6 +112,15 @@ export default function App() {
           {status && member && (
             <>
               <StatusBanner member={member} status={status} live={day === null} />
+              <AIPanel
+                key={`${crewId}-${shownDay}`}
+                crewId={crewId}
+                member={member}
+                day={shownDay}
+                live={day === null}
+                catalog={catalog}
+                onSelectIndicator={setSelected}
+              />
               <section className="overview">
                 <div className="panel body-panel">
                   <h2>Body status</h2>
