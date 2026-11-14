@@ -124,6 +124,8 @@ frontend/  React 19 + Vite + Recharts dashboard  ──/api──►  backend/  
 | GET | `/api/research/{cmp\|cbc}` | Real Inspiration4 crew bloodwork from NASA OSDR |
 | POST | `/api/research/crew/{C001..C004}/review` | AI review of one real crew member's bloodwork |
 | GET | `/api/crew-options` | Scenarios and baselines for the crew editor |
+| POST | `/api/crew/import` | Add a crew member from your own CSV data |
+| GET | `/api/crew/import/template` | Example CSV for the import |
 | PUT | `/api/mission/crew` | Replace the crew (name, role, age, scenario, baselines) and regenerate |
 
 ## Data and sources

@@ -53,6 +53,7 @@ export default function IndicatorGrid({
                 <span>{TREND_LABEL[a.trend]}</span>
                 {a.baseline && <span>baseline {fmt(a.baseline.mean, a.unit)}</span>}
                 {a.source === 'manual' && <span className="tag">manual</span>}
+                {a.source === 'imported' && <span className="tag">imported</span>}
               </div>
               <Sparkline points={points} level={a.level} />
             </button>

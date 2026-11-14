@@ -355,3 +355,8 @@ button:disabled { opacity: 0.6; cursor: default; }
 .link.danger { color: var(--critical); }
 .baseline-grid input { width: 100%; min-width: 0; }
 .crew-row-main .link.danger { margin-left: auto; }
+.crew-actions { display: inline-flex; gap: 10px; }
+.source-tag.imported { padding: 4px 10px; border-radius: 999px; font-size: 0.72rem; text-transform: uppercase;
+  letter-spacing: 0.05em; color: #c4b5fd; border: 1px solid #6d28d9; background: rgba(109, 40, 217, 0.18); }
+.import-form h3 { margin-bottom: 6px; }
+.import-form input[type="file"] { flex: 1 1 220px; }

@@ -40,5 +40,7 @@ export const api = {
   researchReview: (crew) => request(`/api/research/crew/${crew}/review`, { method: 'POST' }),
   crewOptions: () => request('/api/crew-options'),
   setCrew: (body) => request('/api/mission/crew', { method: 'PUT', body: JSON.stringify(body) }),
+  importCrew: (body) => request('/api/crew/import', { method: 'POST', body: JSON.stringify(body) }),
+  importTemplateUrl: `${BASE}/api/crew/import/template`,
   reset: (body) => request('/api/mission/reset', { method: 'POST', body: JSON.stringify(body) }),
 }
