@@ -4,7 +4,7 @@ const ENV_LABEL = {
   mars_transit: 'Mars transit',
 }
 
-export default function Header({ mission, onReset }) {
+export default function Header({ mission, onReset, onTour }) {
   return (
     <header className="header">
       <div className="brand">
@@ -30,6 +30,7 @@ export default function Header({ mission, onReset }) {
             </select>
           </label>
           <span className="pill">Mission day {mission.current_day}</span>
+          <button className="pill tour-btn" onClick={onTour}>▶ Demo tour</button>
           <span className="pill synthetic" title={mission.data_notice}>Synthetic data</span>
         </div>
       )}

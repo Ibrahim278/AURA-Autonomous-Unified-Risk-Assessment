@@ -11,6 +11,7 @@ import AlertTimeline from './components/AlertTimeline.jsx'
 import DayScrubber from './components/DayScrubber.jsx'
 import AIPanel from './components/AIPanel.jsx'
 import MissionRoutine from './components/MissionRoutine.jsx'
+import DemoTour, { TOUR_STEPS } from './components/DemoTour.jsx'
 
 export default function App() {
   const [mission, setMission] = useState(null)
@@ -25,6 +26,7 @@ export default function App() {
   const [system, setSystem] = useState(null)
   const [selected, setSelected] = useState(null)
   const [error, setError] = useState(null)
+  const [tourStep, setTourStep] = useState(null)
 
   const loadMission = useCallback(async () => {
     try {
@@ -65,6 +67,19 @@ export default function App() {
     loadCrew()
   }, [loadCrew])
 
+  const goToStep = useCallback((i) => {
+    const st = TOUR_STEPS[i]
+    if (!st) return
+    setTourStep(i)
+    setCrewId(st.crew)
+    setDay(st.day)
+    setSystem(null)
+    setSelected(st.indicator)
+    setTimeout(() => {
+      document.querySelector(st.target)?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    }, 450)
+  }, [])
+
   const refreshAll = useCallback(async () => {
     await Promise.all([loadMission(), loadCrew()])
   }, [loadMission, loadCrew])
@@ -88,7 +103,7 @@ export default function App() {
 
   return (
     <div className="app">
-      <Header mission={mission} onReset={async (env) => {
+      <Header mission={mission} onTour={() => goToStep(0)} onReset={async (env) => {
         await api.reset({ environment: env, days: mission?.days ?? 60 })
         setDay(null)
         setSelected(null)
@@ -192,6 +207,9 @@ export default function App() {
           )}
         </main>
       </div>
+      {tourStep !== null && (
+        <DemoTour step={tourStep} onStep={goToStep} onClose={() => { setTourStep(null); setDay(null) }} />
+      )}
       <footer className="footer">
         Prototype: thresholds are research-informed prototype rules, not clinically validated
         flight-medicine limits. Demo telemetry is synthetic.

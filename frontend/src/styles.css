@@ -288,3 +288,20 @@ button:disabled { opacity: 0.6; cursor: default; }
 .badges small { color: var(--muted); font-size: 0.68rem; }
 .badges .locked { opacity: 0.45; }
 .badge-icon { font-size: 1.2rem; width: 26px; text-align: center; }
+
+/* ---------- demo tour ---------- */
+.tour-btn { cursor: pointer; background: linear-gradient(90deg, #0ea5e9, #8b5cf6); border: 0; color: #fff; font-weight: 700; }
+.tour {
+  position: fixed; right: 24px; bottom: 24px; width: min(380px, calc(100vw - 32px)); z-index: 50;
+  background: #111a3d; border: 1px solid #8b5cf6; border-radius: 16px; padding: 16px 18px;
+  box-shadow: 0 20px 60px #000a, 0 0 30px #8b5cf640; animation: rise 0.25s ease;
+}
+@keyframes rise { from { transform: translateY(12px); opacity: 0; } }
+.tour h3 { font-size: 1.05rem; margin: 6px 0; }
+.tour p { font-size: 0.88rem; line-height: 1.5; margin: 0 0 12px; }
+.tour-head { display: flex; justify-content: space-between; align-items: center; }
+.tour-count { font-size: 0.72rem; color: #c4b5fd; text-transform: uppercase; letter-spacing: 0.06em; }
+.tour-dots { display: flex; gap: 6px; margin-bottom: 12px; }
+.tour-dot { width: 8px; height: 8px; border-radius: 50%; border: 0; padding: 0; background: var(--border); }
+.tour-dot.on { background: #8b5cf6; width: 20px; border-radius: 999px; }
+.tour-actions { display: flex; justify-content: space-between; }
