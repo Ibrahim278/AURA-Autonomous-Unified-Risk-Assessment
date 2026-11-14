@@ -21,7 +21,7 @@ from fastapi.responses import PlainTextResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
-from . import __version__, ai, assistant, custom, gamification, importer, research
+from . import __version__, ai, assistant, custom, forecast, gamification, importer, research
 from .indicators import INDICATORS, Hazard
 from .simulator import (DEFAULT_CREW_SPECS, DEFAULTS, EDITABLE_BASELINES, ENVIRONMENTS, SCENARIOS,
                         generate, imported_records, make_member)
@@ -250,6 +250,13 @@ def crew_telemetry(
             "points": [{"day": r.day, "value": r.value, "source": r.source} for r in rs],
         }
     return {"crew_id": crew_id, "series": series}
+
+
+@app.get("/api/crew/{crew_id}/forecast", tags=["crew"])
+def crew_forecast(crew_id: str, day: int | None = Query(None, ge=1)):
+    """Early warning: indicators whose trend will cross a baseline edge or limit within 14 days."""
+    _crew_or_404(crew_id)
+    return forecast.forecast(store, crew_id, day)
 
 
 @app.get("/api/crew/{crew_id}/alerts", tags=["crew"])

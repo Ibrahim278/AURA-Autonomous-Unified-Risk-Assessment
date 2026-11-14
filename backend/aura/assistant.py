@@ -41,7 +41,10 @@ themselves when a check-in logs the reading.
 - Header: environment selector (ISS, lunar surface, Mars transit) regenerates the mission; "▶ Demo tour" \
 walks through the story in 11 steps.
 - Status banner: the overall Normal / Warning / Critical level for the selected person and day.
-- AI flight surgeon panel: "Generate daily briefing" and a chat about the selected astronaut.
+- AI flight surgeon panel: "Generate daily briefing" (left) and the "Early-warning forecast" (right): \
+indicators whose straight-line trend would cross the edge of the personal baseline, a warning or a critical \
+limit within 14 days. The trend chart in an indicator's detail view shows the 7-day projection as a dashed line.
+- Ask AURA: this chat (bottom-right button), available on every screen.
 - Body status: clickable body figure coloured by each body system's worst indicator; click a region to \
 filter the indicator cards.
 - Health indicators panel: one card per indicator; click a card for the detail view (trend chart with \
