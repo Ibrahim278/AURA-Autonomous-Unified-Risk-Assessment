@@ -13,6 +13,7 @@ import AIPanel from './components/AIPanel.jsx'
 import MissionRoutine from './components/MissionRoutine.jsx'
 import CrewEditor from './components/CrewEditor.jsx'
 import IndicatorManager from './components/IndicatorManager.jsx'
+import AssistantWidget from './components/AssistantWidget.jsx'
 import ResearchPanel from './components/ResearchPanel.jsx'
 import DemoTour, { TOUR_STEPS } from './components/DemoTour.jsx'
 
@@ -89,6 +90,37 @@ export default function App() {
     await Promise.all([loadMission(), loadCrew()])
   }, [loadMission, loadCrew])
 
+  const startTour = useCallback(async () => {
+        // The tour follows the demo crew's scripted scenarios, so restore them if the crew was edited.
+        const demoReady = crew.some((c) => c.id === 'aura-2' && c.scenario === 'behavioural_cardio') &&
+          crew.some((c) => c.id === 'aura-3' && c.scenario === 'immune_fever')
+        if (!demoReady) {
+          const o = await api.crewOptions()
+          await api.setCrew({ crew: o.default_crew })
+          await refreshAll()
+        }
+        goToStep(0)
+      }, [crew, refreshAll, goToStep])
+
+  const scrollTo = (sel) => setTimeout(() => {
+    document.querySelector(sel)?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+  }, 350)
+
+  const handleAction = (a) => {
+    switch (a.type) {
+      case 'open_indicator': setSystem(null); setSelected(a.target); scrollTo('.detail'); break
+      case 'select_crew': setCrewId(a.target); setSelected(null); setSystem(null); scrollTo('.banner'); break
+      case 'open_checkin': setDay(null); scrollTo('#checkin'); break
+      case 'open_briefing': scrollTo('.ai-panel'); break
+      case 'open_crew_editor': setEditingCrew('edit'); break
+      case 'open_import': setEditingCrew('import'); break
+      case 'add_indicator': setManagingIndicators(true); break
+      case 'open_research': scrollTo('#research'); break
+      case 'start_tour': startTour(); break
+      default: break
+    }
+  }
+
   const member = useMemo(() => crew.find((c) => c.id === crewId), [crew, crewId])
   const shownDay = day ?? mission?.current_day
   const selectedAssessment = status?.indicators.find((i) => i.indicator === selected)
@@ -108,17 +140,7 @@ export default function App() {
 
   return (
     <div className="app">
-      <Header mission={mission} onTour={async () => {
-        // The tour follows the demo crew's scripted scenarios, so restore them if the crew was edited.
-        const demoReady = crew.some((c) => c.id === 'aura-2' && c.scenario === 'behavioural_cardio') &&
-          crew.some((c) => c.id === 'aura-3' && c.scenario === 'immune_fever')
-        if (!demoReady) {
-          const o = await api.crewOptions()
-          await api.setCrew({ crew: o.default_crew })
-          await refreshAll()
-        }
-        goToStep(0)
-      }} onReset={async (env) => {
+      <Header mission={mission} onTour={startTour} onReset={async (env) => {
         await api.reset({ environment: env, days: mission?.days ?? 60 })
         setDay(null)
         setSelected(null)
@@ -254,6 +276,16 @@ export default function App() {
       {tourStep !== null && (
         <DemoTour step={tourStep} onStep={goToStep} onClose={() => { setTourStep(null); setDay(null) }} />
       )}
+      <AssistantWidget
+        crewId={crewId}
+        member={member}
+        day={shownDay}
+        live={day === null}
+        selected={selected}
+        selectedName={selected ? catalog[selected]?.name : null}
+        hidden={tourStep !== null}
+        onAction={handleAction}
+      />
       <footer className="footer">
         Prototype: thresholds are research-informed prototype rules, not clinically validated
         flight-medicine limits. Demo telemetry is synthetic; the Inspiration4 panel shows real NASA OSDR data.

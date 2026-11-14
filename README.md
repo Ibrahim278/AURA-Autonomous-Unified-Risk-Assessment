@@ -30,6 +30,7 @@ already being abnormal *for that person*.
 | 🚦 | **Three transparent levels.** 🟢 Normal, 🟡 Warning, 🔴 Critical, with the reason and the next actions every time |
 | 🧍 | **Clickable body figure** colored by each body system's worst indicator |
 | ✦ | **AI flight surgeon** (Claude) that writes a 30-second daily briefing and answers questions grounded in the astronaut's data |
+| 💬 | **Ask AURA**: a chat button in the bottom-right corner on every screen. Ask anything (health, "how do I…", the NASA data) and get an answer, numbered steps and one-click buttons that take you to the right place. It knows which crew member, day and indicator you're viewing |
 | 🎮 | **Gamified routine.** Daily tasks, streaks, points, levels and badges reward measuring regularly and following up on warnings |
 | ⏪ | **Mission replay** to see what AURA showed on any day, plus ISS, lunar surface and Mars transit environments |
 | 🧪 | **Real crew data.** Actual Inspiration4 bloodwork from NASA OSDR (metabolic panel and blood count), charted per crew member against lab ranges, with an **AI review** of each person's changes versus their own preflight baseline |
@@ -135,6 +136,7 @@ frontend/  React 19 + Vite + Recharts dashboard  ──/api──►  backend/  
                                                               ├─ simulator.py     seeded synthetic telemetry + health scenarios
                                                               ├─ importer.py      CSV import of your own data
                                                               ├─ custom.py        user-defined indicators
+                                                              ├─ assistant.py     Ask AURA chat (answer, steps, actions)
                                                               ├─ research.py      NASA OSDR Inspiration4 labs + quality check
                                                               ├─ store.py         in-memory mission store + check-ins
                                                               ├─ gamification.py  tasks, streaks, points, badges
@@ -168,6 +170,7 @@ data/osdr/  NASA OSDR files (unchanged)        data/import_template.csv  example
 | GET | `/api/ai/status` | Whether Claude is available |
 | POST | `/api/crew/{id}/briefing` | AI (or rule-based) daily briefing |
 | POST | `/api/crew/{id}/ask` | Ask the AI flight surgeon a question |
+| POST | `/api/assistant` | Ask AURA: any question, with the current view; returns answer, steps and actions |
 | GET | `/api/research` | Real research datasets and whether each is loaded |
 | GET | `/api/research/{cmp\|cbc}` | Real Inspiration4 crew bloodwork from NASA OSDR |
 | POST | `/api/research/crew/{C001..C004}/review` | AI review of one real crew member's bloodwork |
@@ -192,6 +195,6 @@ Export the dataset with `python -m aura.simulator --out ../data` (from `backend/
 cd backend && python -m pytest
 ```
 
-71 tests cover the alert engine, the simulator scenarios, every API endpoint, gamification,
+76 tests cover the alert engine, the simulator scenarios, every API endpoint, gamification,
 the OSDR parser and quality check, the CSV importer, crew editing, custom indicators, and the AI layer (with a
 mocked Claude API).
