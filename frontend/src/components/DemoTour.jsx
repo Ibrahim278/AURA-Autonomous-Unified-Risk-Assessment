@@ -36,6 +36,21 @@ export const TOUR_STEPS = [
     crew: 'aura-2', day: null, indicator: null, target: '.routine',
   },
   {
+    title: 'Real astronaut data from NASA',
+    text: 'Below the synthetic mission is real bloodwork from the four Inspiration4 crew (NASA OSDR), from 92 days before launch to 194 days after return. All four had higher glucose the day after landing than just before launch. Out-of-range points are circled, and the lab’s range is shaded.',
+    crew: 'aura-2', day: null, indicator: null, target: '#research', research: { dataset: 'cmp', key: 'glucose' },
+  },
+  {
+    title: 'AI review of real bloodwork',
+    text: 'White cells fell from launch to landing for all four. Pick a crew member and click Review: Claude compares their markers with their own preflight average and the lab ranges, then suggests what to monitor next flight. AURA’s quality check also caught a misaligned row in the published file and left it out.',
+    crew: 'aura-2', day: null, indicator: null, target: '#research-review', research: { dataset: 'cbc', key: 'white_blood_cell_count', crew: 'C003' },
+  },
+  {
+    title: 'Your crew, your data',
+    text: 'Use ✎ Edit to add or change crew members, their baselines and a health scenario; the AI isn’t told the scenario, so it has to find the pattern. Use ⬆ Import to upload your own CSV and see AURA assess you.',
+    crew: 'aura-2', day: null, indicator: null, target: '.crew-list',
+  },
+  {
     title: 'Built on NASA research',
     text: 'Indicators map to NASA’s five hazards of human spaceflight, and every threshold cites its source. Demo telemetry is synthetic and clearly labelled. Switch to ISS or Mars transit in the header.',
     crew: 'aura-2', day: null, indicator: 'radiation_dose', target: '.detail',

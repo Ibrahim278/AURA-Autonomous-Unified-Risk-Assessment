@@ -3,13 +3,16 @@ import { api } from '../api.js'
 
 const CONCERN = { high: 'critical', moderate: 'warning', low: 'normal' }
 
-export default function ResearchReview({ crew, colors, onSelectMarker }) {
+export default function ResearchReview({ crew, colors, onSelectMarker, focusCrew }) {
   const [who, setWho] = useState(crew[0])
   const [result, setResult] = useState({})
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
 
   useEffect(() => setError(null), [who])
+  useEffect(() => {
+    if (focusCrew && crew.includes(focusCrew)) setWho(focusCrew)
+  }, [focusCrew, crew])
 
   const run = async () => {
     setLoading(true)

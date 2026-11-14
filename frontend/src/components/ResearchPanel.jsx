@@ -40,13 +40,20 @@ function ChartTooltip({ active, payload, label, unit }) {
   )
 }
 
-export default function ResearchPanel() {
+export default function ResearchPanel({ focus = null }) {
   const [datasets, setDatasets] = useState([])
   const [dataset, setDataset] = useState('cmp')
   const [data, setData] = useState(null)
   const [key, setKey] = useState(null)
   const [error, setError] = useState(null)
   const [pending, setPending] = useState(null) // marker name to show once the other panel loads
+  const [pendingKey, setPendingKey] = useState(null) // marker key requested by the demo tour
+
+  useEffect(() => {
+    if (!focus) return
+    setDataset(focus.dataset)
+    setPendingKey(focus.key)
+  }, [focus])
 
   useEffect(() => {
     api.research().then((list) => setDatasets(list.filter((d) => d.loaded))).catch((e) => setError(e.message))
@@ -62,6 +69,12 @@ export default function ResearchPanel() {
       })
       .catch((e) => setError(e.message))
   }, [dataset])
+
+  useEffect(() => {
+    if (!data || !pendingKey || data.dataset !== focus?.dataset) return
+    if (data.analytes.some((a) => a.key === pendingKey)) setKey(pendingKey)
+    setPendingKey(null)
+  }, [data, pendingKey, focus])
 
   useEffect(() => {
     if (!data || !pending) return
@@ -166,6 +179,7 @@ export default function ResearchPanel() {
       <ResearchReview
         crew={data.crew}
         colors={CREW_COLORS}
+        focusCrew={focus?.crew}
         onSelectMarker={(name) => {
           const a = data.analytes.find((x) => x.name === name)
           if (a) setKey(a.key)

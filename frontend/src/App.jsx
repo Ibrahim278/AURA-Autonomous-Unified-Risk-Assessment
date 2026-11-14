@@ -217,7 +217,7 @@ export default function App() {
                 </div>
               </section>
 
-              <ResearchPanel />
+              <ResearchPanel focus={tourStep !== null ? TOUR_STEPS[tourStep]?.research : null} />
             </>
           )}
         </main>
