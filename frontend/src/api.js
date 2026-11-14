@@ -37,5 +37,6 @@ export const api = {
     request(`/api/crew/${id}/ask`, { method: 'POST', body: JSON.stringify(body) }),
   research: () => request('/api/research'),
   researchDataset: (ds) => request(`/api/research/${ds}`),
+  researchReview: (crew) => request(`/api/research/crew/${crew}/review`, { method: 'POST' }),
   reset: (body) => request('/api/mission/reset', { method: 'POST', body: JSON.stringify(body) }),
 }

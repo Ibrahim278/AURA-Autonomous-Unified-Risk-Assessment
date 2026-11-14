@@ -3,6 +3,7 @@ import {
   CartesianGrid, ComposedChart, Line, ReferenceArea, ResponsiveContainer, Tooltip, XAxis, YAxis,
 } from 'recharts'
 import { api } from '../api.js'
+import ResearchReview from './ResearchReview.jsx'
 
 const CREW_COLORS = { C001: '#a5c8ff', C002: '#c084fc', C003: '#f472b6', C004: '#2dd4bf' }
 const DATASET_LABELS = { cmp: 'Metabolic panel', cbc: 'Blood count' }
@@ -45,6 +46,7 @@ export default function ResearchPanel() {
   const [data, setData] = useState(null)
   const [key, setKey] = useState(null)
   const [error, setError] = useState(null)
+  const [pending, setPending] = useState(null) // marker name to show once the other panel loads
 
   useEffect(() => {
     api.research().then((list) => setDatasets(list.filter((d) => d.loaded))).catch((e) => setError(e.message))
@@ -55,11 +57,18 @@ export default function ResearchPanel() {
     api.researchDataset(dataset)
       .then((d) => {
         setData(d)
-        setKey(d.analytes[0]?.key ?? null)
+        setKey((k) => (d.analytes.some((a) => a.key === k) ? k : d.analytes[0]?.key ?? null))
         setError(null)
       })
       .catch((e) => setError(e.message))
   }, [dataset])
+
+  useEffect(() => {
+    if (!data || !pending) return
+    const a = data.analytes.find((x) => x.name === pending)
+    if (a) setKey(a.key)
+    setPending(null)
+  }, [data, pending])
 
   const analyte = data?.analytes.find((a) => a.key === key)
   const rows = useMemo(() => {
@@ -68,7 +77,7 @@ export default function ResearchPanel() {
       const row = { label: tp.label, phase: tp.phase }
       for (const crew of data.crew) {
         const p = analyte.series[crew]?.find((x) => x.timepoint === tp.label)
-        row[crew] = p?.value ?? null
+        row[crew] = p && !p.suspect ? p.value : null
         row[`${crew}_flag`] = p?.flag ?? null
       }
       return row
@@ -127,7 +136,7 @@ export default function ResearchPanel() {
         <ComposedChart data={rows} margin={{ top: 10, right: 20, bottom: 0, left: 0 }}>
           <CartesianGrid stroke="var(--grid)" strokeDasharray="3 3" />
           <XAxis dataKey="label" stroke="var(--muted)" tick={{ fontSize: 11 }} />
-          <YAxis domain={domain} stroke="var(--muted)" tick={{ fontSize: 11 }} allowDataOverflow
+          <YAxis domain={domain} stroke="var(--muted)" tick={{ fontSize: 11 }} allowDataOverflow tickFormatter={(v) => +v.toPrecision(3)}
             label={{ value: analyte.unit, angle: -90, position: 'insideLeft', fill: 'var(--muted)', fontSize: 11 }} />
           <ReferenceArea x1="L-3" x2="R+1" fill="var(--accent)" fillOpacity={0.1}
             label={{ value: 'spaceflight', fill: 'var(--accent)', fontSize: 10, position: 'insideTop' }} />
@@ -150,7 +159,23 @@ export default function ResearchPanel() {
       <p className="research-notice">
         {data.notice} Timepoints are days before launch (L−) and after return (R+). Crew IDs C001–C004 are
         the published de-identified codes, separate from AURA&apos;s synthetic demo crew.
+        {data.quality_issues.map((q) => (
+          <span key={q.crew + q.timepoint}> Excluded by AURA&apos;s quality check: {q.crew} at {q.timepoint}. {q.reason}</span>
+        ))}
       </p>
+      <ResearchReview
+        crew={data.crew}
+        colors={CREW_COLORS}
+        onSelectMarker={(name) => {
+          const a = data.analytes.find((x) => x.name === name)
+          if (a) setKey(a.key)
+          else {
+            setPending(name)
+            setDataset(dataset === 'cmp' ? 'cbc' : 'cmp')
+          }
+          document.getElementById('research')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+        }}
+      />
     </div>
   )
 }
