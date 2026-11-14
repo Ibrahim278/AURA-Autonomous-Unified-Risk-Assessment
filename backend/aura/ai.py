@@ -214,6 +214,16 @@ def offline_briefing(ctx: dict) -> Briefing:
     )
 
 
+def _describe(exc: Exception) -> str:
+    """Short, user-facing reason for an AI failure (the API's own message when there is one)."""
+    msg = getattr(exc, "message", None) or str(exc)
+    body = getattr(exc, "body", None)
+    if isinstance(body, dict):
+        msg = (body.get("error") or {}).get("message") or msg
+    msg = " ".join(str(msg).split())
+    return f"{type(exc).__name__}: {msg[:300]}"
+
+
 def _refused(response) -> bool:
     return getattr(response, "stop_reason", None) == "refusal"
 
@@ -248,9 +258,9 @@ def generate_briefing(store: MissionStore, crew_id: str, day: int | None = None)
         briefing.escalate = briefing.escalate or ctx["escalate"]
         return {"mode": "ai", "model": response.model, "briefing": briefing.model_dump(), "note": None}
     except Exception as exc:  # noqa: BLE001 - any failure falls back to the offline briefing
-        log.warning("AI briefing failed: %s", exc)
+        log.warning("AI briefing failed: %s", _describe(exc))
         return {"mode": "offline", "model": None, "briefing": offline_briefing(ctx).model_dump(),
-                "note": f"AI unavailable ({type(exc).__name__}). Showing the rule-based briefing."}
+                "note": f"AI unavailable ({_describe(exc)}). Showing the rule-based briefing."}
 
 
 def ask(store: MissionStore, crew_id: str, question: str, history: list[ChatTurn],
@@ -289,7 +299,7 @@ def ask(store: MissionStore, crew_id: str, question: str, history: list[ChatTurn
         text = "".join(b.text for b in response.content if b.type == "text").strip()
         return {"mode": "ai", "model": response.model, "answer": text}
     except Exception as exc:  # noqa: BLE001
-        log.warning("AI ask failed: %s", exc)
+        log.warning("AI ask failed: %s", _describe(exc))
         return {"mode": "offline", "model": None,
-                "answer": f"The AI assistant is unavailable right now ({type(exc).__name__}). "
+                "answer": f"The AI assistant is unavailable right now ({_describe(exc)}). "
                           "Use the indicator guidance, and contact the flight surgeon if anything is critical."}
