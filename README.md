@@ -47,6 +47,36 @@ Then open http://localhost:8000/docs for the interactive API.
 
 Run the tests with `pytest` from the `backend/` folder.
 
+To pick a different mission environment, set `AURA_ENVIRONMENT=iss|lunar_surface|mars_transit`
+before starting the server (or call `POST /api/mission/reset`).
+
+### API overview
+
+| Method | Path | What it returns |
+| --- | --- | --- |
+| GET | `/api/mission` | Mission info, current day, environment, data notice |
+| GET | `/api/indicators` | Indicator catalog: limits, explanations, how to measure, actions, references |
+| GET | `/api/hazards` | NASA's five hazards mapped to the indicators |
+| GET | `/api/crew` | Crew list with overall status (normal / warning / critical) |
+| GET | `/api/crew/{id}/status?day=` | Per-indicator assessment, reasons, actions and body-system rollup |
+| GET | `/api/crew/{id}/telemetry` | Time series with preflight baseline and limits, for charts |
+| GET | `/api/crew/{id}/alerts` | Timeline of alert-level changes |
+| POST | `/api/crew/{id}/checkins` | Manual measurement entry; returns the updated status |
+| POST | `/api/mission/reset` | Regenerate the synthetic mission (environment, days, seed) |
+
+### Demo crew (synthetic)
+
+| ID | Crew member | Scenario |
+| --- | --- | --- |
+| `aura-1` | Cmdr. Lena Ortiz | Nominal. Only expected in-flight changes. |
+| `aura-2` | Dr. Kenji Sato | Sleep declines (day 42 warning), then mood, exercise and resting HR (71 bpm: Earth-normal, but well above his baseline), then blood pressure. |
+| `aura-3` | Amara Diallo | Fever from viral reactivation, critical on day 60. |
+
+All three receive a solar particle event dose on day 22 (lunar surface / Mars transit).
+
+Regenerate the CSV/JSON export in `data/` with
+`python -m aura.simulator --out ../data` (from `backend/`).
+
 ## Data
 
 See [docs/DATA_SOURCES.md](docs/DATA_SOURCES.md) for what is real research data, what is
