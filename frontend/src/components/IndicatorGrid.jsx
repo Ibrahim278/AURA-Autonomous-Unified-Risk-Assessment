@@ -21,7 +21,7 @@ function Sparkline({ points, level }) {
 }
 
 export default function IndicatorGrid({
-  indicators, telemetry, filterSystem, onClearFilter, selected, onSelect, day,
+  indicators, telemetry, filterSystem, onClearFilter, selected, onSelect, day, onManage,
 }) {
   const shown = filterSystem ? indicators.filter((i) => i.body_system === filterSystem) : indicators
   const order = { critical: 0, warning: 1, normal: 2 }
@@ -31,7 +31,10 @@ export default function IndicatorGrid({
     <>
       <div className="panel-head">
         <h2>{filterSystem ? SYSTEM_LABEL[filterSystem] : 'Health indicators'}</h2>
-        {filterSystem && <button className="link" onClick={onClearFilter}>Show all</button>}
+        <span className="crew-actions">
+          {filterSystem && <button className="link" onClick={onClearFilter}>Show all</button>}
+          {onManage && <button className="link" onClick={onManage}>+ Add indicator</button>}
+        </span>
       </div>
       {sorted.length === 0 && <p className="muted">No indicators tracked for this region yet.</p>}
       <div className="grid">
@@ -45,7 +48,7 @@ export default function IndicatorGrid({
               onClick={() => onSelect(a.indicator)}
             >
               <div className="card-top">
-                <span className="card-name">{a.name}</span>
+                <span className="card-name">{a.name}{a.custom && <span className="tag custom-tag">custom</span>}</span>
                 <span className={`badge ${lvl.cls}`}>{lvl.icon} {lvl.label}</span>
               </div>
               <div className="card-value">{fmt(a.value, a.unit)}</div>

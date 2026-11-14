@@ -360,3 +360,20 @@ button:disabled { opacity: 0.6; cursor: default; }
   letter-spacing: 0.05em; color: #c4b5fd; border: 1px solid #6d28d9; background: rgba(109, 40, 217, 0.18); }
 .import-form h3 { margin-bottom: 6px; }
 .import-form input[type="file"] { flex: 1 1 220px; }
+
+/* ---------- Custom indicators ---------- */
+.indicator-manager h4 { margin: 4px 0 6px; font-size: 0.8rem; text-transform: uppercase; color: var(--muted); }
+.custom-list { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin: 8px 0; }
+.custom-list h4 { width: 100%; }
+.custom-list .tag { display: inline-flex; gap: 6px; align-items: center; }
+.presets { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin: 10px 0; }
+.ind-form { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 10px; }
+.ind-form label { display: grid; gap: 4px; font-size: 0.8rem; color: var(--muted); }
+.ind-form input, .ind-form select, .ind-form textarea { background: var(--bg2); color: var(--text); border: 1px solid var(--border);
+  border-radius: 8px; padding: 6px 8px; font: inherit; font-size: 0.88rem; width: 100%; min-width: 0; }
+.ind-form input[type="checkbox"] { width: auto; }
+.ind-form .wide, .ind-form .hazard-pick { grid-column: 1 / -1; }
+.hazard-pick { border: 1px solid var(--border); border-radius: 8px; padding: 6px 10px; display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 0.82rem; }
+.hazard-pick legend { color: var(--muted); font-size: 0.8rem; }
+.hazard-pick label { display: inline-flex; gap: 4px; align-items: center; color: var(--text); }
+.custom-tag { margin-left: 6px; font-size: 0.62rem; vertical-align: middle; }

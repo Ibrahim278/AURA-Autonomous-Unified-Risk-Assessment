@@ -3,7 +3,7 @@ import { api } from '../api.js'
 
 const blank = (scenario = 'nominal') => ({ name: '', role: 'Mission Specialist', age: 35, scenario, baseline: {} })
 
-function ImportForm({ roles, full, onImported, onCancel }) {
+function ImportForm({ roles, full, onImported, onCancel, customKeys = [] }) {
   const [name, setName] = useState('')
   const [role, setRole] = useState('Mission Specialist')
   const [age, setAge] = useState(35)
@@ -30,7 +30,7 @@ function ImportForm({ roles, full, onImported, onCancel }) {
       <h3>⬆ Import your own data</h3>
       <p className="muted small">
         A CSV with a <code>day</code> column and one column per indicator (heart_rate, systolic_bp, diastolic_bp,
-        spo2, glucose, body_temp, sleep_hours, mood, exercise_minutes, radiation_dose). Days −7 to −1 are
+        spo2, glucose, body_temp, sleep_hours, mood, exercise_minutes, radiation_dose{customKeys.length ? `, ${customKeys.join(', ')}` : ''}). Days −7 to −1 are
         preflight and build your personal baseline; days 1, 2, 3… are mission days. Blank cells are fine.{' '}
         <a href={api.importTemplateUrl} download>Download the template</a>.
       </p>
@@ -55,7 +55,7 @@ function ImportForm({ roles, full, onImported, onCancel }) {
   )
 }
 
-export default function CrewEditor({ crew, onClose, onSaved, startImport = false }) {
+export default function CrewEditor({ crew, onClose, onSaved, startImport = false, customKeys = [] }) {
   const [importing, setImporting] = useState(startImport)
   const [notice, setNotice] = useState(null)
   const [opts, setOpts] = useState(null)
@@ -117,6 +117,7 @@ export default function CrewEditor({ crew, onClose, onSaved, startImport = false
         {opts && importing && (
           <ImportForm
             roles={opts.roles}
+            customKeys={customKeys}
             full={crew.length >= 6}
             onCancel={() => setImporting(false)}
             onImported={async (r) => {

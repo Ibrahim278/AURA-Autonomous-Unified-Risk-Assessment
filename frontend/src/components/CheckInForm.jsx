@@ -47,7 +47,7 @@ export default function CheckInForm({ crewId, catalog, disabled, onSaved }) {
       </div>
       <fieldset disabled={disabled || busy}>
         <div className="fields">
-          {FIELDS.map(([key, step]) => {
+          {[...FIELDS, ...Object.values(catalog).filter((i) => i.custom).map((i) => [i.key, 10 ** -i.decimals])].map(([key, step]) => {
             const ind = catalog[key]
             if (!ind) return null
             return (

@@ -34,6 +34,7 @@ already being abnormal *for that person*.
 | ⏪ | **Mission replay** to see what AURA showed on any day, plus ISS, lunar surface and Mars transit environments |
 | 🧪 | **Real crew data.** Actual Inspiration4 bloodwork from NASA OSDR (metabolic panel and blood count), charted per crew member against lab ranges, with an **AI review** of each person's changes versus their own preflight baseline |
 | 👩‍🚀 | **Editable crew.** Add or edit up to 6 members: name, role, age, personal baselines and a health scenario (5 to choose from). The AI isn't told the scenario, so it has to find the pattern |
+| ➕ | **Custom indicators.** Add any measurement (body weight, HRV, steps, water intake, or your own) with its unit, typical range and warning/critical limits. It gets baselines, alerts, charts, check-ins, CSV import and AI coverage like the built-in ten |
 | ⬆ | **Import your own data** from a CSV (one row per day) and become a crew member: alerts, tasks and the AI briefing all run on your readings |
 | ▶ | **Guided demo tour** that walks through the mission story, real NASA data and your own data in 11 steps |
 
@@ -116,7 +117,12 @@ For the presentation script, see [docs/DEMO_SCRIPT.md](docs/DEMO_SCRIPT.md).
 - **⬆ Import** (crew sidebar): upload your own CSV. Days −7 to −1 build your baseline and days
   1, 2, 3… are mission days. Start from [`data/import_template.csv`](data/import_template.csv);
   the format is in [docs/DATA_SOURCES.md](docs/DATA_SOURCES.md#your-own-data-csv-import).
-- **Check-in** panel: log today's readings by hand at any time.
+- **+ Add indicator** (Health indicators panel): track a new measurement. Start from a preset
+  (body weight, heart rate variability, daily steps, water intake) or define your own.
+  Definitions are saved in `data/custom_indicators.json`, so they survive a restart.
+- **Check-in** panel: log today's readings by hand at any time, including custom indicators.
+
+![Add an indicator](docs/screenshots/add_indicator.png)
 
 Edited crews and imported data live in memory, so restarting the back end returns to the demo crew.
 
@@ -128,6 +134,7 @@ frontend/  React 19 + Vite + Recharts dashboard  ──/api──►  backend/  
                                                               ├─ alerts.py        baseline-deviation alert engine
                                                               ├─ simulator.py     seeded synthetic telemetry + health scenarios
                                                               ├─ importer.py      CSV import of your own data
+                                                              ├─ custom.py        user-defined indicators
                                                               ├─ research.py      NASA OSDR Inspiration4 labs + quality check
                                                               ├─ store.py         in-memory mission store + check-ins
                                                               ├─ gamification.py  tasks, streaks, points, badges
@@ -147,6 +154,9 @@ data/osdr/  NASA OSDR files (unchanged)        data/import_template.csv  example
 | POST | `/api/crew/import` | Add a crew member from your own CSV data |
 | GET | `/api/crew/import/template` | Example CSV for the import |
 | GET | `/api/indicators` | Indicator catalog: limits, explanations, actions, references |
+| POST | `/api/indicators` | Add a custom indicator (name, unit, ranges, limits, body system, hazards) |
+| DELETE | `/api/indicators/{key}` | Remove a custom indicator and its readings |
+| GET | `/api/indicators/options` | Choices for the Add indicator form, and the saved custom definitions |
 | GET | `/api/hazards` | NASA's five hazards mapped to indicators |
 | GET | `/api/crew` | Crew with overall status |
 | GET | `/api/crew/{id}/status?day=` | Per-indicator assessment and body-system rollup |
@@ -182,6 +192,6 @@ Export the dataset with `python -m aura.simulator --out ../data` (from `backend/
 cd backend && python -m pytest
 ```
 
-64 tests cover the alert engine, the simulator scenarios, every API endpoint, gamification,
-the OSDR parser and quality check, the CSV importer, crew editing, and the AI layer (with a
+71 tests cover the alert engine, the simulator scenarios, every API endpoint, gamification,
+the OSDR parser and quality check, the CSV importer, crew editing, custom indicators, and the AI layer (with a
 mocked Claude API).
