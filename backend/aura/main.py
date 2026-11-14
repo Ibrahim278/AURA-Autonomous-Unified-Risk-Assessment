@@ -21,7 +21,7 @@ from fastapi.responses import PlainTextResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
-from . import __version__, ai, gamification, importer, research
+from . import __version__, ai, custom, gamification, importer, research
 from .indicators import INDICATORS, Hazard
 from .simulator import (DEFAULT_CREW_SPECS, DEFAULTS, EDITABLE_BASELINES, ENVIRONMENTS, SCENARIOS,
                         generate, imported_records, make_member)
@@ -53,6 +53,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+custom.load_saved()
 store = MissionStore.from_config(**_config())
 
 
@@ -367,3 +368,36 @@ def import_crew(body: CrewImport):
             "readings": len(readings),
             "indicators": sorted({k for k, _, _ in readings}),
             "last_day": max(d for _, d, _ in readings)}
+
+
+# ---------------------------------------------------------------- custom indicators
+@app.get("/api/indicators/options", tags=["reference"])
+def indicator_options():
+    """Choices for the 'Add indicator' form."""
+    from .indicators import BodySystem, Direction
+    return {"body_systems": [b.value for b in BodySystem], "hazards": [h.value for h in Hazard],
+            "directions": [d.value for d in Direction], "max_custom": custom.MAX_CUSTOM,
+            "custom": {k: v.model_dump(mode="json") for k, v in custom.specs().items()}}
+
+
+@app.post("/api/indicators", tags=["reference"], status_code=201)
+def add_indicator(spec: custom.CustomIndicatorSpec):
+    """Add (or redefine) a custom indicator. Synthetic crew get synthetic readings for it;
+    imported members and check-ins can log it straight away."""
+    try:
+        ind = custom.register(spec)
+    except ValueError as exc:
+        raise HTTPException(422, str(exc)) from exc
+    store.add_indicator(ind.key)
+    return ind.to_dict()
+
+
+@app.delete("/api/indicators/{key}", tags=["reference"])
+def delete_indicator(key: str):
+    """Remove a custom indicator and its readings. Built-in indicators can't be removed."""
+    if key not in custom.specs():
+        raise HTTPException(404 if key not in INDICATORS else 422,
+                            f"'{key}' is not a custom indicator")
+    store.remove_indicator(key)
+    custom.unregister(key)
+    return {"deleted": key}

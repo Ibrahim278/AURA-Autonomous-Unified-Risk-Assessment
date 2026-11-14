@@ -24,7 +24,7 @@ from typing import Callable
 
 import numpy as np
 
-from .indicators import INDICATORS
+from .indicators import BUILTIN_KEYS, INDICATORS
 
 PREFLIGHT_DAYS = 7  # baseline data collection days before launch: -7 .. -1
 
@@ -301,7 +301,8 @@ def generate(
                 for k, v in src.items():
                     offsets[k] = offsets.get(k, 0.0) + v
 
-            for key, ind in INDICATORS.items():
+            for key in BUILTIN_KEYS:
+                ind = INDICATORS[key]
                 mean, sd, lo, hi = DEFAULTS[key]
                 mean = member.baseline_means.get(key, mean)
                 if key == "radiation_dose":
@@ -324,6 +325,10 @@ def generate(
                     )
                 )
 
+    for member in crew:
+        if member.imported is None:
+            records.extend(custom_records(member.id, days, seed, start))
+
     return MissionDataset(
         mission_name=mission_name,
         environment=environment,
@@ -334,6 +339,21 @@ def generate(
         crew=crew,
         records=records,
     )
+
+
+def custom_records(crew_id: str, days: int, seed: int, start: date,
+                   keys: list[str] | None = None) -> list[TelemetryRecord]:
+    """Synthetic readings for custom indicators (separate random stream per member and key)."""
+    from .custom import synthetic_series  # local import: custom.py imports this module
+
+    day_list = [*range(-PREFLIGHT_DAYS, 0), *range(1, days + 1)]
+    out = []
+    for key in keys if keys is not None else [k for k in INDICATORS if k not in BUILTIN_KEYS]:
+        for day, value in zip(day_list, synthetic_series(key, crew_id, day_list, seed)):
+            out.append(TelemetryRecord(crew_id=crew_id, indicator=key, day=day,
+                                       phase="preflight" if day < 1 else "inflight",
+                                       timestamp=_timestamp(start, day), value=value))
+    return out
 
 
 def imported_records(member: CrewMember, start: date) -> list[TelemetryRecord]:
