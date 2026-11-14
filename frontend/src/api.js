@@ -47,5 +47,6 @@ export const api = {
   addIndicator: (body) => request('/api/indicators', { method: 'POST', body: JSON.stringify(body) }),
   deleteIndicator: (key) => request(`/api/indicators/${key}`, { method: 'DELETE' }),
   assistant: (body) => request('/api/assistant', { method: 'POST', body: JSON.stringify(body) }),
+  nextDay: () => request('/api/mission/next-day', { method: 'POST' }),
   reset: (body) => request('/api/mission/reset', { method: 'POST', body: JSON.stringify(body) }),
 }

@@ -6,7 +6,7 @@ const FIELDS = [
   ['glucose', 1], ['body_temp', 0.1], ['sleep_hours', 0.1], ['exercise_minutes', 5],
 ]
 
-export default function CheckInForm({ crewId, catalog, disabled, onSaved }) {
+export default function CheckInForm({ crewId, catalog, disabled, onSaved, day, onNextDay }) {
   const [values, setValues] = useState({})
   const [mood, setMood] = useState(7)
   const [useMood, setUseMood] = useState(false)
@@ -42,8 +42,23 @@ export default function CheckInForm({ crewId, catalog, disabled, onSaved }) {
   return (
     <form className="checkin" onSubmit={submit}>
       <div className="panel-head">
-        <h2>Daily check-in</h2>
-        {disabled && <span className="muted">Return to live to log readings</span>}
+        <h2>Daily check-in{day ? ` · day ${day}` : ''}</h2>
+        {disabled
+          ? <span className="muted">Return to live to log readings</span>
+          : onNextDay && (
+            <button type="button" className="chip next-day" disabled={busy} title="Advance the mission one day. Synthetic crew get new readings; log yours here."
+              onClick={async () => {
+                setBusy(true)
+                try {
+                  const m = await onNextDay()
+                  setMsg({ type: 'ok', text: `Mission day ${m.current_day} has started. Log today's readings.` })
+                } catch (err) {
+                  setMsg({ type: 'error', text: err.message })
+                } finally {
+                  setBusy(false)
+                }
+              }}>▶ Next day</button>
+          )}
       </div>
       <fieldset disabled={disabled || busy}>
         <div className="fields">

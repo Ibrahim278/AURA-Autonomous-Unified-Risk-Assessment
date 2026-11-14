@@ -134,6 +134,8 @@ For the presentation script, see [docs/DEMO_SCRIPT.md](docs/DEMO_SCRIPT.md). To 
   (body weight, heart rate variability, daily steps, water intake) or define your own.
   Definitions are saved in `data/custom_indicators.json`, so they survive a restart.
 - **Check-in** panel: log today's readings by hand at any time, including custom indicators.
+  Click **▶ Next day** to start the next mission day (61, 62, …) and keep logging day by day;
+  the synthetic crew get new readings automatically, and resetting from the header returns to day 60.
 
 ![Add an indicator](docs/screenshots/add_indicator.png)
 
@@ -163,6 +165,7 @@ data/osdr/  NASA OSDR files (unchanged)        data/import_template.csv  example
 | Method | Path | Purpose |
 | --- | --- | --- |
 | GET | `/api/mission` | Mission info, current day, environment, data notice |
+| POST | `/api/mission/next-day` | Advance the mission one day; synthetic crew get that day's readings |
 | POST | `/api/mission/reset` | Regenerate the mission (`environment`, `days`, `seed`); keeps the crew |
 | GET | `/api/crew-options` | Scenarios, editable baselines and the default crew |
 | PUT | `/api/mission/crew` | Replace the crew (name, role, age, scenario, baselines) and regenerate |
@@ -209,6 +212,6 @@ Export the dataset with `python -m aura.simulator --out ../data` (from `backend/
 cd backend && python -m pytest
 ```
 
-80 tests cover the alert engine, the simulator scenarios, every API endpoint, gamification,
+81 tests cover the alert engine, the simulator scenarios, every API endpoint, gamification,
 the OSDR parser and quality check, the CSV importer, crew editing, custom indicators, the forecast, Ask AURA, and the AI layer (with a
 mocked Claude API).

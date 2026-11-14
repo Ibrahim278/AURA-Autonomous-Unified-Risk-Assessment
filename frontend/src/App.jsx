@@ -236,6 +236,13 @@ export default function App() {
                     catalog={catalog}
                     disabled={day !== null}
                     onSaved={refreshAll}
+                    day={mission?.current_day}
+                    onNextDay={async () => {
+                      const m = await api.nextDay()
+                      setDay(null)
+                      await refreshAll()
+                      return m
+                    }}
                   />
                 </div>
                 <div className="panel">

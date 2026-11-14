@@ -125,3 +125,19 @@ def test_shorter_mission_still_tells_the_scenario_story():
     from aura.store import MissionStore
     s = MissionStore(generate(days=30))
     assert s.status("aura-3")["overall"] == "critical"
+
+
+def test_next_day_extends_mission_without_changing_history():
+    from aura.simulator import generate
+    main.store.load(generate())
+    before = client.get("/api/crew/aura-2/telemetry?indicators=heart_rate").json()["series"]["heart_rate"]["points"]
+    m = client.post("/api/mission/next-day").json()
+    assert m["current_day"] == 61
+    after = client.get("/api/crew/aura-2/telemetry?indicators=heart_rate").json()["series"]["heart_rate"]["points"]
+    assert after[:-1] == before and after[-1]["day"] == 61
+    # The fever persists past the planned end, and a check-in lands on the new day.
+    assert client.get("/api/crew/aura-3/status").json()["overall"] == "critical"
+    st = client.post("/api/crew/aura-1/checkins", json={"values": {"mood": 3}}).json()
+    assert st["day"] == 61
+    assert client.get("/api/crew/aura-1/tasks").json()["day"] == 61
+    main.store.load(generate())

@@ -121,6 +121,29 @@ class MissionStore:
         events.sort(key=lambda e: (e["day"], e["indicator"]))
         return events
 
+    # ------------------------------------------------------------------ time
+    def advance_day(self) -> int:
+        """Move the mission to the next day. Synthetic crew get that day's synthetic readings;
+        crew with imported data get nothing new (they log it with a check-in)."""
+        from datetime import date
+
+        from .simulator import next_day_records
+
+        with self._lock:
+            day = self.current_day + 1
+            ds = self.dataset
+            start = date.fromisoformat(ds.start_date)
+            new = []
+            for member in ds.crew:
+                if member.imported is None:
+                    new += next_day_records(member, day, ds.days, ds.environment, ds.seed, start)
+            ds.records = [*ds.records, *new]
+            for r in new:
+                insort(self._inflight[(r.crew_id, r.indicator)], Reading(r.day, r.value, r.source, r.timestamp),
+                       key=lambda x: x.day)
+            self.current_day = day
+        return day
+
     # ------------------------------------------------------------------ custom indicators
     def add_indicator(self, key: str) -> None:
         """Give every synthetic crew member synthetic readings for a newly added indicator."""
