@@ -28,7 +28,7 @@ log = logging.getLogger("aura.assistant")
 
 ActionType = Literal["open_indicator", "open_checkin", "open_briefing", "open_crew_editor",
                      "open_import", "add_indicator", "open_research", "start_tour", "select_crew",
-                     "message_ground", "open_radiation"]
+                     "message_ground", "open_radiation", "open_symptoms"]
 
 APP_GUIDE = """\
 AURA dashboard guide (use these exact names when telling the user where to click):
@@ -42,6 +42,11 @@ It shows the real signal delay for the environment (ISS ~0.5 s, Moon ~1.3 s, Mar
 one way) with a countdown; a SIMULATED ground reply comes back after the round trip. A demo clock runs 60x \
 faster. When the delay is minutes, AURA's own guidance is the crew's first line of support. The red escalate \
 line on the status banner has "Message ground now →", which drafts an urgent message.
+- Symptom log panel (below the indicator cards): pick symptoms by body area, rate each 1-10, click "Log and \
+triage". Rule-based triage: red flags (chest pain, breathing difficulty, sudden vision loss, fainting, confusion, \
+severe flank pain) or severity 9+ = critical, contact the flight surgeon now; vision change (possible SANS), \
+chills, late nausea, severity 7+ or a symptom on 3 of the last 5 days = warning; early fluid-shift symptoms = \
+self-care. It links to the indicators worth checking.
 - Radiation dose budget panel (below the indicator cards): career dose against NASA's 600 mSv limit \
 (earlier missions plus this one), dose rate, days left at this rate, the last 30 days against the 250 limit, \
 and a cumulative chart projected to the planned mission end. Prior career dose is set per person in ✎ Edit.
@@ -184,6 +189,11 @@ FAQ: list[tuple[str, str, list[str], list[tuple[str, str]]]] = [
     (r"edit|crew member|add (a )?(person|member)|scenario|rename", "The crew editor lets you change who is on the mission.",
      ["Click ✎ Edit in the Crew box.", "Change names, roles, ages, baselines or the health scenario.",
       "Click Save and regenerate."], [("open_crew_editor", "Edit the crew")]),
+    (r"symptom",
+     "Log how you feel in the Symptom log. AURA triages it straight away with fixed rules.",
+     ["Scroll to 🩺 Symptom log below the indicator cards.", "Pick your symptoms and rate each 1 to 10.",
+      "Click Log and triage, then follow the actions. Red-flag symptoms mean contact the flight surgeon now."],
+     [("open_symptoms", "Open the symptom log")]),
     (r"check.?in|log|enter|record|measure", "Log today's readings in the Daily check-in panel.",
      ["Go back to Live if you are replaying a past day.", "Type the values you measured.",
       "Click Log check-in. The status updates straight away."], [("open_checkin", "Open check-in")]),
@@ -207,8 +217,24 @@ FAQ: list[tuple[str, str, list[str], list[tuple[str, str]]]] = [
 ]
 
 
+RED_FLAG_RE = (r"chest (pain|pressure|tight)|can'?t breathe|short(ness)? of breath|difficulty breathing|"
+               r"faint|pass(ed)? out|lost (my )?vision|vision loss|can'?t see|confus|slurred|seizure|"
+               r"severe (pain|headache)|worst headache")
+
+
 def offline_reply(question: str, ctx: dict) -> AssistantReply:
     q = question.lower()
+    if re.search(RED_FLAG_RE, q):
+        return AssistantReply(
+            answer="Contact the flight surgeon now. What you describe is a red-flag symptom, and it needs a "
+                   "medical review straight away, whatever your readings show.",
+            steps=["Stop what you're doing and stay secured; ask a crewmate to stay with you.",
+                   "Take your vitals (heart rate, blood pressure, SpO2) if you can.",
+                   "Log it in the Symptom log so the triage and your data go to ground.",
+                   "Message ground as urgent."],
+            actions=[AssistantAction(type="message_ground", label="Message ground"),
+                     AssistantAction(type="open_symptoms", label="Log the symptom")],
+            escalate=True, topic="health")
     person = ctx.get("person")
     escalate = bool(person and person.get("escalate"))
     for pattern, answer, steps, actions in FAQ:

@@ -68,7 +68,9 @@ reasons for it, the 7-day trend, recent readings, an alert history, any notes th
 "forecast": straight-line trend projections of indicators that would cross their baseline edge or a \
 limit within two weeks if nothing changes. Use the forecast to suggest prevention, and call it a trend, \
 not a prediction. "radiation_budget" is the long-term dose picture against NASA's 600 mSv career limit and \
-the 30-day limit; mention it when its level is not normal.
+the 30-day limit; mention it when its level is not normal. "symptoms" is what the astronaut reported \
+feeling, with AURA's rule-based triage; connect symptoms to the matching indicators (for example chills \
+with body temperature) and never diagnose.
 
 Rules:
 1. The alert levels come from AURA's rule engine and are authoritative. Never upgrade, downgrade \
@@ -190,8 +192,18 @@ def build_context(store: MissionStore, crew_id: str, day: int | None = None) -> 
         "alert_history": [e for e in store.alert_timeline(crew_id) if e["day"] <= day][-12:],
         "forecast": _forecast_summary(store, crew_id, day),
         "radiation_budget": _radiation_summary(store, crew_id, day),
+        "symptoms": _symptom_summary(store, crew_id, day),
         "notes": [n for n in store.notes.get(crew_id, []) if n["day"] <= day][-5:],
     }
+
+
+def _symptom_summary(store: MissionStore, crew_id: str, day: int) -> dict:
+    from .symptoms import report
+
+    r = report(store.symptoms[crew_id], day)
+    recent = [{"day": e["day"], "symptoms": [f'{x["name"]} {x["severity"]}/10' for x in e["symptoms"]],
+               "note": e["note"]} for e in r["log"] if e["day"] > day - 7]
+    return {"today_triage": {k: r["triage"][k] for k in ("level", "reasons")}, "last_7_days": recent}
 
 
 def _radiation_summary(store: MissionStore, crew_id: str, day: int) -> dict:
