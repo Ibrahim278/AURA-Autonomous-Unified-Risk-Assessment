@@ -7,7 +7,7 @@ restores the demo crew automatically if it was edited.
 
 | Time | On screen | Say |
 | --- | --- | --- |
-| 0:00 | Header → **▶ Demo tour**, step 1 | "On a Mars mission, help is 20 minutes away by radio. Astronauts have to notice health changes themselves. AURA compares every reading with *their own* preflight baseline and gives a clear Normal, Warning or Critical status." |
+| 0:00 | Header → **▶ Demo tour**, step 1 | "On a Mars mission, help is 20 minutes away by radio. Astronauts have to notice health changes themselves. AURA compares every reading with *their own* preflight baseline and gives a clear Normal, Warning or Critical status. AURA: your crew's health, even when Earth is 20 minutes away." |
 | 0:20 | Step 2 (Kenji, day 30) | "Kenji, our flight engineer on a lunar base. A month in, everything is green." |
 | 0:35 | Step 3 (day 42, sleep chart) | "Day 42: sleep drops to 5.7 hours against his 7.2 baseline. AURA warns on the *sustained* drop and gives concrete actions." |
 | 0:50 | Step 4 (day 48, forecast) | "Here's the clever part: his heart rate is still normal, but AURA's forecast projects the trend and says it will leave his baseline in about a day, with an honest 95% range, and it notices mood falling in step with it." |

@@ -5,12 +5,15 @@
 | | |
 | --- | --- |
 | **Project** | AURA: Autonomous Unified Risk Assessment |
+| **Tagline** | Your crew's health, even when Earth is 20 minutes away. |
 | **Challenge** | Create Health Monitoring Software for Astronauts on Space Missions |
 | **Team** | NeuralAI |
 | **Project lead** | Ibrahim Irfan |
 | **Team members** | Ibrahim Irfan, Melvyn Avoa |
 
 # AURA: Autonomous Unified Risk Assessment
+
+### *Your crew's health, even when Earth is 20 minutes away.*
 
 **Health monitoring that lets astronauts on long-duration missions assess their own health,
 see changes early, and know exactly when to act or call the ground.**

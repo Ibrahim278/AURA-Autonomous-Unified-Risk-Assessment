@@ -16,6 +16,7 @@ export default function Header({ mission, onReset, onTour, view, onView }) {
         <div>
           <div className="brand-name">AURA</div>
           <div className="brand-sub">Autonomous Unified Risk Assessment</div>
+          <div className="brand-tag">Your crew&apos;s health, even when Earth is 20 minutes away.</div>
         </div>
       </div>
       {mission && (
