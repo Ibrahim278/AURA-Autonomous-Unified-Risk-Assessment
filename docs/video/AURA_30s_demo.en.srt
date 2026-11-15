@@ -1,0 +1,36 @@
+1
+00:00:00,400 --> 00:00:03,451
+On the way to Mars, help from Earth is twenty minutes away.
+
+2
+00:00:03,751 --> 00:00:06,763
+Meet AURA. It learns every astronaut's own baseline,
+
+3
+00:00:06,763 --> 00:00:10,876
+and gives a clear Normal, Warning, or Critical status, with the reason.
+
+4
+00:00:11,176 --> 00:00:14,589
+It spots trouble days early, and turns it into a plan for today.
+
+5
+00:00:14,889 --> 00:00:17,711
+Messages to ground carry the real signal delay,
+
+6
+00:00:17,711 --> 00:00:20,052
+and a live flight surgeon answers back.
+
+7
+00:00:20,352 --> 00:00:22,581
+Ask AURA by voice, even offline.
+
+8
+00:00:22,581 --> 00:00:25,856
+It's built on real NASA Inspiration4 crew data.
+
+9
+00:00:26,156 --> 00:00:29,420
+AURA. Your crew's health, even when Earth is twenty minutes away.
+

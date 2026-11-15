@@ -12,7 +12,10 @@
   "team": {
     "name": "NeuralAI",
     "lead": "Ibrahim Irfan",
-    "members": ["Ibrahim Irfan", "Melvyn Avoa"]
+    "members": [
+      "Ibrahim Irfan",
+      "Melvyn Avoa"
+    ]
   },
   "links": {
     "live_demo": "https://www.aura-neuralai.com",
@@ -22,13 +25,32 @@
     "technical_docs": "docs/TECHNICAL.md",
     "data_sources": "docs/DATA_SOURCES.md",
     "demo_script": "docs/DEMO_SCRIPT.md",
-    "ui_guide": "docs/AURA_UI_Guide.docx"
+    "ui_guide": "docs/AURA_UI_Guide.docx",
+    "demo_video": "docs/video/AURA_30s_demo.mp4"
   },
   "stack": {
-    "backend": ["Python 3.13", "FastAPI", "Pydantic v2", "NumPy", "faster-whisper (Whisper base.en)", "Anthropic Claude API"],
-    "frontend": ["React 19", "Vite", "Recharts"],
-    "testing": ["pytest (193 tests)", "Playwright + axe (manual browser checks)"],
-    "hosting": ["Docker", "Render (back end)", "Vercel (front end)"]
+    "backend": [
+      "Python 3.13",
+      "FastAPI",
+      "Pydantic v2",
+      "NumPy",
+      "faster-whisper (Whisper base.en)",
+      "Anthropic Claude API"
+    ],
+    "frontend": [
+      "React 19",
+      "Vite",
+      "Recharts"
+    ],
+    "testing": [
+      "pytest (193 tests)",
+      "Playwright + axe (manual browser checks)"
+    ],
+    "hosting": [
+      "Docker",
+      "Render (back end)",
+      "Vercel (front end)"
+    ]
   },
   "features": [
     "Personal preflight baselines and an adaptive in-flight baseline",
@@ -46,9 +68,21 @@
     "Dark and light themes, phone layout, WCAG 2 AA audited"
   ],
   "nasa_data": [
-    {"id": "OSD-575", "url": "https://osdr.nasa.gov/bio/repo/data/studies/OSD-575", "use": "Inspiration4 metabolic panel, immune cytokines, cardiovascular proteins, serum 200-plex"},
-    {"id": "OSD-569", "url": "https://osdr.nasa.gov/bio/repo/data/studies/OSD-569", "use": "Inspiration4 complete blood count"},
-    {"id": "OSD-656", "url": "https://osdr.nasa.gov/bio/repo/data/studies/OSD-656", "use": "Inspiration4 urine immune proteins"}
+    {
+      "id": "OSD-575",
+      "url": "https://osdr.nasa.gov/bio/repo/data/studies/OSD-575",
+      "use": "Inspiration4 metabolic panel, immune cytokines, cardiovascular proteins, serum 200-plex"
+    },
+    {
+      "id": "OSD-569",
+      "url": "https://osdr.nasa.gov/bio/repo/data/studies/OSD-569",
+      "use": "Inspiration4 complete blood count"
+    },
+    {
+      "id": "OSD-656",
+      "url": "https://osdr.nasa.gov/bio/repo/data/studies/OSD-656",
+      "use": "Inspiration4 urine immune proteins"
+    }
   ],
   "synthetic_data": "The demo crew's telemetry is synthetic (seeded simulator) and labelled as such.",
   "disclaimer": "Hackathon prototype. Thresholds are research-informed prototype rules, not clinically validated flight-medicine limits."
