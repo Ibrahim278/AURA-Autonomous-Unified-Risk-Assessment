@@ -623,3 +623,5 @@ button:disabled { opacity: 0.6; cursor: default; }
 .crew-board .rank { color: var(--muted); font-weight: 700; }
 .crew-board .who { display: flex; flex-direction: column; } .crew-board small { color: var(--muted); font-size: 0.66rem; }
 .crew-board .pts { font-variant-numeric: tabular-nums; }
+.brand-tag { font-size: 0.68rem; color: var(--accent); font-style: italic; margin-top: 1px; }
+@media (max-width: 720px) { .brand-tag { display: none; } }

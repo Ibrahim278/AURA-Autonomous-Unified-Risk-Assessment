@@ -1,5 +1,7 @@
 # AURA technical documentation
 
+*Your crew's health, even when Earth is 20 minutes away.*
+
 **AURA: Autonomous Unified Risk Assessment.** Astronaut health monitoring for long missions far
 from Earth. NASA Space Apps Challenge 2026, team NeuralAI (Ibrahim Irfan, lead; Melvyn Avoa).
 
