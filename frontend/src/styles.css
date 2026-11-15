@@ -554,3 +554,19 @@ button:disabled { opacity: 0.6; cursor: default; }
 .tl-filters { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
 .tl-filters .seg button { padding: 4px 10px; font-size: 0.75rem; }
 .tl-filters select { background: var(--bg2); color: var(--text); border: 1px solid var(--border); border-radius: 8px; padding: 4px 8px; font: inherit; font-size: 0.75rem; }
+
+/* ---------- countermeasure plan ---------- */
+.plan h2 { margin: 0; }
+.plan-summary { margin: 0 0 10px; font-size: 0.9rem; }
+.plan-list { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 8px; }
+.plan-block { display: grid; grid-template-columns: 58px 1fr; gap: 8px; padding: 8px 10px; border-radius: 10px; border: 1px solid var(--border); background: var(--bg2); }
+.plan-block.changed { border-color: color-mix(in srgb, var(--warning) 60%, var(--border)); }
+.plan-block.done { opacity: 0.55; }
+.plan-block.done .plan-title strong { text-decoration: line-through; }
+.plan-time { font-variant-numeric: tabular-nums; color: var(--accent); font-weight: 700; font-size: 0.85rem; }
+.plan-body { display: flex; flex-direction: column; gap: 3px; font-size: 0.82rem; cursor: default; }
+.plan-title { display: flex; align-items: center; gap: 5px; flex-wrap: wrap; }
+.plan-detail { color: var(--text); }
+.plan-why { color: var(--muted); font-size: 0.76rem; }
+.plan-why .link { font-size: 0.76rem; }
+.adj { font-size: 0.62rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--warning); border: 1px solid var(--warning); border-radius: 999px; padding: 0 6px; }

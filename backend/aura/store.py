@@ -34,6 +34,7 @@ class MissionStore:
             self._inflight: dict[tuple[str, str], list[Reading]] = defaultdict(list)
             self.notes: dict[str, list[dict]] = defaultdict(list)
             self.task_completions: dict[str, dict[int, set[str]]] = {}
+            self.plan_done: dict[tuple[str, int], set[str]] = {}
             from .symptoms import seed_demo
 
             self.symptoms: dict[str, list[dict]] = defaultdict(list, seed_demo(dataset.crew, dataset.days))

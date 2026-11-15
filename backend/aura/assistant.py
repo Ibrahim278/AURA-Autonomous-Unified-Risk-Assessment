@@ -28,7 +28,7 @@ log = logging.getLogger("aura.assistant")
 
 ActionType = Literal["open_indicator", "open_checkin", "open_briefing", "open_crew_editor",
                      "open_import", "add_indicator", "open_research", "start_tour", "select_crew",
-                     "message_ground", "open_radiation", "open_symptoms", "open_ground"]
+                     "message_ground", "open_radiation", "open_symptoms", "open_ground", "open_plan"]
 
 APP_GUIDE = """\
 AURA dashboard guide (use these exact names when telling the user where to click):
@@ -42,6 +42,10 @@ It shows the real signal delay for the environment (ISS ~0.5 s, Moon ~1.3 s, Mar
 one way) with a countdown; a SIMULATED ground reply comes back after the round trip. A demo clock runs 60x \
 faster. When the delay is minutes, AURA's own guidance is the crew's first line of support. The red escalate \
 line on the status banner has "Message ground now →", which drafts an urgent message.
+- Today's countermeasure plan panel (below the indicator cards): a timed daily schedule (bright light, \
+vitals, aerobic and resistive exercise, post-meal cycle, radiation limits, family call, wind-down, sleep \
+window) adapted to the person's flags; adjusted blocks say why and link to the indicator. Fever or a \
+red-flag symptom suspends exercise. Tick blocks off on the live day.
 - Symptom log panel (below the indicator cards): pick symptoms by body area, rate each 1-10, click "Log and \
 triage". Rule-based triage: red flags (chest pain, breathing difficulty, sudden vision loss, fainting, confusion, \
 severe flank pain) or severity 9+ = critical, contact the flight surgeon now; vision change (possible SANS), \
@@ -198,6 +202,11 @@ FAQ: list[tuple[str, str, list[str], list[tuple[str, str]]]] = [
      ["Click 🛰 Ground in the header to see every crew member sorted by priority.",
       "Click 🖨 Crew report for the whole crew, or 🖨 Report on one person's card or status banner.",
       "In the report tab, click Print / Save as PDF."], [("open_ground", "Open the Ground view")]),
+    (r"plan|schedule|countermeasure|workout|what should i do today",
+     "Today's countermeasure plan turns your flags into a timed schedule for the day.",
+     ["Scroll to 🗓 Today's countermeasure plan below the indicator cards.",
+      "Blocks marked 'adjusted' changed because of a flag; the 'Why' line links to the indicator.",
+      "Tick each block off as you do it."], [("open_plan", "Open today's plan")]),
     (r"symptom",
      "Log how you feel in the Symptom log. AURA triages it straight away with fixed rules.",
      ["Scroll to 🩺 Symptom log below the indicator cards.", "Pick your symptoms and rate each 1 to 10.",
