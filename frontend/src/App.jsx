@@ -293,6 +293,7 @@ export default function App() {
                 <div className="panel">
                   <AlertTimeline
                     alerts={alerts}
+                    catalog={catalog}
                     upToDay={shownDay}
                     onSelect={(key, d) => {
                       setSelected(key)
