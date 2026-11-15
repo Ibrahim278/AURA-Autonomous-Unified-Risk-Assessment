@@ -34,9 +34,17 @@ export default function Landing({ mission, crew, onNavigate, onOpenCrew, onTour,
             <button className="chip big" onClick={() => onNavigate('status')}>Open the dashboard →</button>
             <button className="chip big" onClick={onAsk}>✦ Ask AURA</button>
           </div>
+          <ul className="hero-checks">
+            <li>Personal preflight baselines</li>
+            <li>Works with no link to Earth</li>
+            <li>Real NASA Inspiration4 data</li>
+          </ul>
         </div>
         <div className="hero-status">
-          <h2>Mission at a glance</h2>
+          <div className="hero-status-head">
+            <h2>Mission at a glance</h2>
+            {mission && <span className="status-pill pill"><span className="status-dot" />Day {mission.current_day} of {mission.days}</span>}
+          </div>
           {mission && (
             <ul className="glance">
               <li><span>Mission</span><strong>{mission.mission_name}</strong></li>
@@ -69,6 +77,7 @@ export default function Landing({ mission, crew, onNavigate, onOpenCrew, onTour,
       {GROUPS.map((g) => (
         <section key={g.id} className="feature-group">
           <div className="group-head">
+            <p className="group-eyebrow">Features</p>
             <h2>{g.id}</h2>
             <span className="muted">{g.blurb}</span>
           </div>
@@ -87,6 +96,7 @@ export default function Landing({ mission, crew, onNavigate, onOpenCrew, onTour,
 
       <section className="feature-group">
         <div className="group-head">
+          <p className="group-eyebrow">Bring your own</p>
           <h2>Your data</h2>
           <span className="muted">Make the mission your own.</span>
         </div>
