@@ -539,3 +539,18 @@ button:disabled { opacity: 0.6; cursor: default; }
 .related li { display: flex; gap: 8px; align-items: center; font-size: 0.82rem; }
 .related .chip { color: var(--text); }
 .forecast-related { font-size: 0.7rem; color: #c4b5fd; }
+
+/* ---------- check-in plausibility ---------- */
+.plaus { margin-top: 10px; padding: 10px 12px; border-radius: 10px; font-size: 0.82rem; border: 1px solid; }
+.plaus.warn { border-color: var(--warning); background: color-mix(in srgb, var(--warning) 10%, transparent); }
+.plaus.err { border-color: var(--critical); background: color-mix(in srgb, var(--critical) 10%, transparent); }
+.plaus ul { margin: 6px 0; padding-left: 18px; display: flex; flex-direction: column; gap: 4px; }
+.plaus .chip { margin-left: 8px; color: var(--text); }
+.plaus-actions { display: flex; gap: 8px; justify-content: flex-end; }
+.plaus-actions .primary { padding: 6px 14px; }
+
+/* ---------- alert timeline filters ---------- */
+.timeline .panel-head h2 { margin: 0; }
+.tl-filters { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
+.tl-filters .seg button { padding: 4px 10px; font-size: 0.75rem; }
+.tl-filters select { background: var(--bg2); color: var(--text); border: 1px solid var(--border); border-radius: 8px; padding: 4px 8px; font: inherit; font-size: 0.75rem; }
