@@ -16,14 +16,14 @@ import os
 
 from datetime import date
 
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.responses import HTMLResponse, PlainTextResponse
 from fastapi.middleware.cors import CORSMiddleware
 from typing import Literal
 
 from pydantic import BaseModel, Field
 
-from . import __version__, ai, assistant, checks, comms, planner, voice, wellbeing, custom, radiation, symptoms, ground, forecast, gamification, importer, research
+from . import __version__, ai, assistant, checks, comms, planner, voice, wellbeing, custom, radiation, symptoms, ground, forecast, gamification, importer, research, speech
 from .indicators import INDICATORS, Hazard
 from .simulator import (DEFAULT_CREW_SPECS, DEFAULTS, EDITABLE_BASELINES, ENVIRONMENTS, SCENARIOS,
                         generate, imported_records, make_member)
@@ -432,6 +432,37 @@ def send_message(crew_id: str, body: GroundMessage):
     outbox.send(crew_id, member.name, body.text, body.priority, store.current_day, link,
                 status if body.attach_status else None)
     return {"link": link, "mode": outbox.mode, "messages": outbox.thread(crew_id)}
+
+
+# ---------------------------------------------------------------- on-device speech (Whisper)
+MAX_AUDIO_BYTES = 10 * 1024 * 1024
+
+
+@app.get("/api/speech/status", tags=["speech"])
+def speech_status():
+    """Is on-device speech recognition available? Calling this also starts loading the model."""
+    speech.warm_up()
+    return speech.status()
+
+
+@app.post("/api/speech/transcribe", tags=["speech"])
+async def speech_transcribe(request: Request):
+    """Send a recorded clip (raw body, e.g. audio/webm from the browser) and get the words back.
+    Runs Whisper inside AURA: no cloud service, works with no link to Earth."""
+    audio = await request.body()
+    if not audio:
+        raise HTTPException(422, "No audio received.")
+    if len(audio) > MAX_AUDIO_BYTES:
+        raise HTTPException(413, "Recording too long. Keep questions under about a minute.")
+    ctype = request.headers.get("content-type", "")
+    suffix = ".mp4" if "mp4" in ctype else ".ogg" if "ogg" in ctype else ".wav" if "wav" in ctype else ".webm"
+    try:
+        from starlette.concurrency import run_in_threadpool
+        return await run_in_threadpool(speech.transcribe, audio, suffix)
+    except RuntimeError as exc:
+        raise HTTPException(503, str(exc)) from exc
+    except Exception as exc:  # undecodable audio
+        raise HTTPException(422, f"Could not read that recording ({type(exc).__name__}).") from exc
 
 
 # ---------------------------------------------------------------- live ground (Flight surgeon console)
