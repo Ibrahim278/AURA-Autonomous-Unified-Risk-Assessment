@@ -395,6 +395,17 @@ protect sleep, shared meal). It is a prototype composite, not a psychological as
 - **Crew board:** ranks by points, highlights "you", and sets a shared crew goal: everyone logs
   their routine today.
 
+### 7.8a On-device speech for Ask AURA (`speech.py`)
+
+Spoken questions are recorded in the browser (MediaRecorder) and sent to AURA's own server, where
+OpenAI's open-source **Whisper** model (`base.en`, via faster-whisper on the CPU, int8) turns them
+into text. No cloud speech service is involved, so it works with no link to Earth and in every
+browser. The browser stops recording after about 1.5 s of silence (30 s cap). Audio is decoded
+with PyAV to 16 kHz mono; a short vocabulary prompt helps with words like SpO2 and paracetamol.
+The model loads once, in the background, when Ask AURA is first opened. If faster-whisper is not
+installed, the model can't load, or `AURA_SPEECH=off`, the front end falls back to the browser's
+Web Speech API. The Docker image bakes the model in at build time.
+
 ### 7.8 Voice check-in (`voice.py`)
 
 The browser turns speech into text with the Web Speech API (Chrome and Safari). People can also
@@ -593,6 +604,8 @@ day; leave it out for "live" (the current day).
 | POST | `/crew/{id}/briefing` | Daily briefing |
 | POST | `/crew/{id}/ask` | Ask the flight surgeon |
 | POST | `/assistant` | Ask AURA (answer, steps, actions) |
+| GET | `/speech/status` | On-device speech: `available`, `state` (idle/loading/ready/error), model. Starts loading the model |
+| POST | `/speech/transcribe` | Raw audio body (webm/opus, mp4, ogg, wav) → `{text, seconds, audio_seconds}`; 503 if unavailable, 413 over 10 MB |
 | GET / POST | `/memory` | Ask AURA's saved notes |
 | DELETE | `/memory/{note_id}` | Forget a note |
 | GET | `/research` | Datasets and whether each file is present |

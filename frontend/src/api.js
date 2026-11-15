@@ -59,6 +59,8 @@ export const api = {
   comms: (day) => request(`/api/comms${day ? `?day=${day}` : ''}`),
   messages: (id) => request(`/api/crew/${id}/messages`),
   sendMessage: (id, body) => request(`/api/crew/${id}/messages`, { method: 'POST', body: JSON.stringify(body) }),
+  speechStatus: () => request('/api/speech/status'),
+  transcribe: (blob) => request('/api/speech/transcribe', { method: 'POST', headers: { 'Content-Type': blob.type || 'audio/webm' }, body: blob }),
   commsMode: () => request('/api/comms/mode'),
   setCommsMode: (mode) => request('/api/comms/mode', { method: 'PUT', body: JSON.stringify({ mode }) }),
   groundInbox: () => request('/api/ground/inbox'),

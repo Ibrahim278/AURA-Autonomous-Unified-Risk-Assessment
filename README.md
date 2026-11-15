@@ -54,7 +54,7 @@ already being abnormal *for that person*.
 | 🗓 | **Countermeasure planner.** A timed plan for the day (exercise, sleep, measurements, radiation shielding, social time) that adjusts to the current alerts and explains every change |
 | 👥 | **Crew wellbeing view.** A 0-100 wellbeing score per person and for the crew from mood, sleep, behavioural symptoms and exercise, with 30-day trends and team-level suggestions |
 | 🔎 | **Timeline filters** by level, body system and day range |
-| 💬 | **Ask AURA**: a chat button in the bottom-right corner on every screen. Type or **speak** (🎙, browser speech recognition; it sends when you stop talking) and AURA **talks back**, reading spoken questions' answers aloud (🔊 toggle, plus 🔊 Read aloud on any answer). Ask anything (health, "how do I…", the NASA data) and get an answer, numbered steps and one-click buttons that take you to the right place. It knows which crew member, day and indicator you're viewing, **remembers** facts you tell it ("remember I get headaches after exercise"), and can act: open panels, jump to a day, draft a message to ground or pre-fill a symptom |
+| 💬 | **Ask AURA**: a chat button in the bottom-right corner on every screen. Type or **speak** (🎙, **on-device speech recognition**: OpenAI's open-source Whisper model runs inside AURA, so voice works with no link to Earth and questions never leave the habitat; it sends when you pause, and falls back to the browser's speech recognition if the model isn't available) and AURA **talks back**, reading spoken questions' answers aloud (🔊 toggle, plus 🔊 Read aloud on any answer). Ask anything (health, "how do I…", the NASA data) and get an answer, numbered steps and one-click buttons that take you to the right place. It knows which crew member, day and indicator you're viewing, **remembers** facts you tell it ("remember I get headaches after exercise"), and can act: open panels, jump to a day, draft a message to ground or pre-fill a symptom |
 | 🎮 | **Gamified routine.** Daily tasks, streaks, points, levels and 11 badges reward measuring regularly and following up on warnings, plus **weekly challenges** (+50 each), a **crew board** and a shared crew goal |
 | ⏪ | **Mission replay** to see what AURA showed on any day, plus ISS, lunar surface and Mars transit environments |
 | 🧪 | **Real crew data.** Actual Inspiration4 bloodwork from NASA OSDR (metabolic panel, blood count, **71 immune cytokines**, **9 cardiovascular and inflammation proteins**, and the **Alamar 200-plex protein panels in serum and urine**), charted per crew member against lab ranges, with an **AI review** of each person's changes versus their own preflight baseline |
@@ -228,8 +228,9 @@ built around that:
 | AI | **Anthropic Claude API** (`anthropic` Python SDK 2.8) | Daily briefing, Ask AURA assistant, review of the real crew bloodwork |
 | Front end | **React** 19.3 (JavaScript/JSX), **Vite** 8.3 | Single-page app with hash-routed pages and the dev server (proxies `/api` to the back end) |
 | Design | Plain CSS with theme tokens, Plus Jakarta Sans and JetBrains Mono (Google Fonts) | Dark space theme with a light alternative |
+| Speech | **faster-whisper** 1.2 (Whisper `base.en`, CPU, int8) | On-device speech-to-text for Ask AURA; no cloud speech service |
 | Charts | **Recharts** 3.10 | Trend charts, sparklines, forecast projections, research charts |
-| Testing | **pytest** 9.2, **httpx** | 181 back-end tests, including a mocked Claude API |
+| Testing | **pytest** 9.2, **httpx** | 187 back-end tests, including a mocked Claude API |
 | Data | NASA OSDR (CSV), JSON, in-memory store | Real Inspiration4 labs; mission data kept in memory for zero-setup demos |
 
 No database or cloud services are needed: clone, install, and run two terminals. To put it online as a single web service, see [Deploy a live demo](#deploy-a-live-demo).
@@ -251,6 +252,7 @@ frontend/  React 19 + Vite + Recharts dashboard  ──/api──►  backend/  
                                                               ├─ importer.py      CSV import of your own data
                                                               ├─ custom.py        user-defined indicators
                                                               ├─ assistant.py     Ask AURA chat (answer, steps, actions)
+                                                              ├─ speech.py        on-device speech-to-text (Whisper)
                                                               ├─ research.py      NASA OSDR Inspiration4 labs + quality check
                                                               ├─ store.py         in-memory mission store + check-ins
                                                               ├─ gamification.py  tasks, streaks, points, badges, challenges, crew board
@@ -308,6 +310,8 @@ data/osdr/  NASA OSDR files (unchanged)        data/import_template.csv  example
 | GET | `/api/ai/status` | Whether Claude is available |
 | POST | `/api/crew/{id}/briefing` | AI (or rule-based) daily briefing |
 | POST | `/api/crew/{id}/ask` | Ask the AI flight surgeon a question |
+| GET | `/api/speech/status` | Is on-device speech available (also starts loading the model) |
+| POST | `/api/speech/transcribe` | Raw browser recording (webm/opus, Safari mp4) in, text out, using Whisper inside AURA |
 | POST | `/api/assistant` | Ask AURA: any question, with the current view; returns answer, steps and actions |
 | GET | `/api/research` | Real research datasets and whether each is loaded |
 | GET | `/api/research/{cmp\|cbc\|immune\|cardio\|alamar\|urine}` | Real Inspiration4 crew bloodwork from NASA OSDR |
@@ -336,6 +340,9 @@ In line with the NASA Space Apps guidance on AI use, here is where AI was and wa
 - AURA calls the **Anthropic Claude API** for three features: the daily briefing, the
   **Ask AURA** assistant, and the review of the real Inspiration4 bloodwork. The model is set in
   `backend/aura/ai.py` and can be changed with `AURA_AI_MODEL`.
+- Spoken questions are turned into text by **Whisper** (OpenAI's open-source speech model) running
+  on AURA's own server, not a cloud service. The model downloads once (about 140 MB) on first use;
+  set `AURA_WHISPER_MODEL` (default `base.en`) or `AURA_SPEECH=off` to change or disable it.
 - The AI **never sets an alert level**. Normal, Warning and Critical always come from AURA's
   transparent rule engine (`alerts.py`), and the back end forces an escalation whenever any
   reading is critical, whatever the AI says. The forecast is plain statistics, not AI. Symptom
@@ -371,7 +378,7 @@ In line with the NASA Space Apps guidance on AI use, here is where AI was and wa
 cd backend && python -m pytest
 ```
 
-181 tests cover the alert engine, the simulator scenarios, every API endpoint, gamification,
+187 tests cover the alert engine, the simulator scenarios, every API endpoint, gamification,
 the OSDR parser and quality check, the CSV importer, crew editing, custom indicators, the forecast
 (confidence band and related trends), symptom triage, ground messaging and signal delay, the radiation
 budget, the ground view and reports, plausibility checks, the planner, the adaptive baseline, crew wellbeing,

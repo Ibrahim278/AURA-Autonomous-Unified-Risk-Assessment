@@ -25,6 +25,10 @@ export default function AssistantWidget({ crewId, member, day, live, selected, s
   const [error, setError] = useState(null)
   const [listening, setListening] = useState(false)
   const recRef = useRef(null)
+  const [transcribing, setTranscribing] = useState(false)
+  // On-device speech (Whisper running inside AURA). Falls back to the browser's recognition.
+  const [speechServer, setSpeechServer] = useState(null)
+  const canRecord = typeof window !== 'undefined' && !!window.MediaRecorder && !!navigator.mediaDevices?.getUserMedia
   const canSpeak = typeof window !== 'undefined' && 'speechSynthesis' in window
   const [voiceReplies, setVoiceReplies] = useState(() => {
     try { return localStorage.getItem('aura-voice-replies') !== 'off' } catch { return true }
@@ -36,7 +40,7 @@ export default function AssistantWidget({ crewId, member, day, live, selected, s
 
   useEffect(() => {
     end.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
-  }, [chat, busy])
+  }, [chat, busy, transcribing])
 
   useEffect(() => {
     if (open) input.current?.focus()
@@ -50,6 +54,13 @@ export default function AssistantWidget({ crewId, member, day, live, selected, s
   useEffect(() => {
     if (open) api.memory(crewId).then(setMemory).catch(() => {})
   }, [open, crewId])
+
+  // Asking for the status also starts loading the model, so it's ready by the first question.
+  useEffect(() => {
+    if (open && !speechServer) api.speechStatus().then(setSpeechServer).catch(() => setSpeechServer({ available: false }))
+  }, [open, speechServer])
+  const onDevice = canRecord && !!speechServer?.available
+  const canListen = onDevice || !!Recognition
 
   const act = async (a) => {
     if (a.type !== 'remember') { onAction(a); return }
@@ -99,10 +110,68 @@ export default function AssistantWidget({ crewId, member, day, live, selected, s
   }
   useEffect(() => { if (!open) stopSpeaking() }, [open]) // eslint-disable-line react-hooks/exhaustive-deps
 
+  // On-device: record, stop after a pause in speech, then Whisper (inside AURA) turns it into text.
+  const recordOnDevice = async () => {
+    let stream
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+    } catch {
+      setError('Microphone blocked. Allow it in the browser, or type your question.')
+      return
+    }
+    const rec = new MediaRecorder(stream)
+    const chunks = []
+    const ctx = new (window.AudioContext || window.webkitAudioContext)()
+    const analyser = ctx.createAnalyser()
+    ctx.createMediaStreamSource(stream).connect(analyser)
+    const buf = new Float32Array(analyser.fftSize)
+    let heard = false
+    let quietSince = Date.now()
+    const started = Date.now()
+    const timer = setInterval(() => {
+      analyser.getFloatTimeDomainData(buf)
+      const rms = Math.sqrt(buf.reduce((a, x) => a + x * x, 0) / buf.length)
+      if (rms > 0.02) { heard = true; quietSince = Date.now() }
+      const quiet = Date.now() - quietSince
+      if ((heard && quiet > 1500) || (!heard && quiet > 6000) || Date.now() - started > 30000) rec.state === 'recording' && rec.stop()
+    }, 100)
+    rec.ondataavailable = (e) => e.data.size && chunks.push(e.data)
+    rec.onstop = async () => {
+      clearInterval(timer)
+      stream.getTracks().forEach((t) => t.stop())
+      ctx.close().catch(() => {})
+      setListening(false)
+      recRef.current = null
+      if (!heard) return
+      setTranscribing(true)
+      try {
+        const r = await api.transcribe(new Blob(chunks, { type: rec.mimeType || 'audio/webm' }))
+        if (r.text) send(r.text, { spoken: true })
+        else setError("I didn't catch that. Try again, or type your question.")
+      } catch (e) {
+        if (Recognition) {
+          setSpeechServer({ available: false })
+          setError(`On-device speech failed (${e.message}). Switched to the browser's speech recognition: tap 🎙 again.`)
+        } else {
+          setError(`On-device speech failed (${e.message}). You can type your question instead.`)
+        }
+      } finally {
+        setTranscribing(false)
+      }
+    }
+    recRef.current = rec
+    setError(null)
+    setQuestion('')
+    setListening(true)
+    rec.start()
+  }
+
   // Speak a question: words appear in the box as you talk, and it sends when you stop.
   const listen = () => {
-    if (!Recognition) return
     if (listening) { recRef.current?.stop(); return }
+    if (transcribing) return
+    if (onDevice) { stopSpeaking(); recordOnDevice(); return }
+    if (!Recognition) return
     stopSpeaking()
     const rec = new Recognition()
     rec.lang = 'en-US'
@@ -131,7 +200,7 @@ export default function AssistantWidget({ crewId, member, day, live, selected, s
     setListening(true)
     rec.start()
   }
-  useEffect(() => () => recRef.current?.abort(), [])
+  useEffect(() => () => { const r = recRef.current; if (r?.abort) r.abort(); else if (r?.state === 'recording') r.stop() }, [])
 
   const send = async (text, { spoken = false } = {}) => {
     const q = (text ?? question).trim()
@@ -238,6 +307,7 @@ export default function AssistantWidget({ crewId, member, day, live, selected, s
                 {m.mode !== 'ai' && <div className="muted tiny">{m.note}</div>}
               </div>
             ))}
+            {transcribing && <div className="bubble user typing">🎙 Transcribing on board…</div>}
             {busy && <div className="bubble assistant typing">…</div>}
             <div ref={end} />
           </div>
@@ -245,15 +315,20 @@ export default function AssistantWidget({ crewId, member, day, live, selected, s
           {error && <div className="toast error">{error}</div>}
           <form className="chat-input" onSubmit={(e) => { e.preventDefault(); send() }}>
             <input ref={input} value={question} onChange={(e) => setQuestion(e.target.value)}
-              placeholder={listening ? 'Listening… speak your question' : 'Ask anything, or tap 🎙 to speak'} maxLength={2000} aria-label="Your question" />
-            {Recognition && (
-              <button type="button" className={`chip mic ask-mic ${listening ? 'on' : ''}`} onClick={listen}
+              placeholder={listening ? 'Listening… speak your question' : transcribing ? 'Transcribing on board…' : canListen ? 'Ask anything, or tap 🎙 to speak' : 'Ask anything'} maxLength={2000} aria-label="Your question" />
+            {canListen && (
+              <button type="button" className={`chip mic ask-mic ${listening ? 'on' : ''}`} onClick={listen} disabled={transcribing}
                 aria-label={listening ? 'Stop listening' : 'Speak your question'} title={listening ? 'Stop listening' : 'Speak your question'}>
                 {listening ? '■' : '🎙'}
               </button>
             )}
             <button className="primary" disabled={busy || !question.trim()}>Send</button>
           </form>
+          {canListen && (
+            <div className="muted tiny speech-engine" title={onDevice ? `Whisper ${speechServer.model} runs inside AURA: works with no link to Earth` : "Uses your browser's speech service"}>
+              🎙 {onDevice ? `On-device speech (Whisper${speechServer.state === 'loading' ? ', loading…' : ''})` : 'Browser speech recognition'}
+            </div>
+          )}
           <div className="muted tiny assistant-foot">Not a substitute for the flight surgeon. Alert levels come from AURA&apos;s rule engine.</div>
         </div>
       )}

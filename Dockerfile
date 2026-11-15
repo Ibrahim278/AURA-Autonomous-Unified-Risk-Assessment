@@ -10,6 +10,8 @@ FROM python:3.13-slim
 WORKDIR /app
 COPY backend/requirements.txt backend/requirements.txt
 RUN pip install --no-cache-dir -r backend/requirements.txt
+# Bake the Whisper speech model into the image so voice works without downloading at runtime.
+RUN python -c "from faster_whisper import WhisperModel; WhisperModel('base.en', device='cpu', compute_type='int8')" || echo "speech model not baked; it downloads on first use"
 COPY backend/ backend/
 COPY data/ data/
 COPY --from=web /app/frontend/dist frontend/dist

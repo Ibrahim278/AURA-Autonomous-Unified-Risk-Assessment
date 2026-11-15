@@ -925,3 +925,4 @@ button:focus-visible, select:focus-visible, a:focus-visible, input[type='range']
 }
 .console textarea, .console-author input { box-sizing: border-box; background: var(--panel); color: var(--text); border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px; font: inherit; font-size: 0.9rem; resize: vertical; }
 .console textarea:focus, .console-author input:focus { outline: 2px solid var(--accent); border-color: transparent; }
+.speech-engine { text-align: center; margin: 0 0 2px; }
