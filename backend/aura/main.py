@@ -106,6 +106,8 @@ class CrewImport(BaseModel):
     role: str = Field("Mission Specialist", min_length=1, max_length=40)
     age: int = Field(40, ge=18, le=80)
     csv: str = Field(..., min_length=1, max_length=2_000_000, description="CSV text (see /api/crew/import/template)")
+    launch_date: date | None = Field(None, description="For files with a date column: the date that becomes "
+                                                       "mission day 1 (default: the mission start date)")
 
 
 class SymptomItem(BaseModel):
@@ -512,13 +514,17 @@ def research_crew_review(crew: str):
 
 @app.get("/api/research/{dataset}", tags=["research"])
 def research_dataset(dataset: str):
-    """One dataset (cmp or cbc): every analyte per crew member and timepoint, with lab ranges."""
-    if dataset not in research.DATASETS:
-        raise HTTPException(404, f"Unknown dataset '{dataset}'. Use one of {sorted(research.DATASETS)}")
-    data = research.load(dataset)
-    if data is None:
-        raise HTTPException(404, f"{research.DATASETS[dataset]['file']} is not in data/osdr/")
-    return data
+    """One dataset (cmp, cbc, immune, cardio, alamar, urine, or a file added to data/osdr/): every
+    analyte per crew member and timepoint, with lab ranges where the lab gives them."""
+    known = research.registry()
+    if dataset not in known:
+        raise HTTPException(404, f"Unknown dataset '{dataset}'. Use one of {sorted(known)}")
+    try:
+        return research.load_or_raise(dataset)
+    except FileNotFoundError:
+        raise HTTPException(404, f"{known[dataset]['file']} is not in data/osdr/") from None
+    except research.ResearchFileError as exc:
+        raise HTTPException(422, str(exc)) from None
 
 
 # ---------------------------------------------------------------- import your own data
@@ -535,7 +541,8 @@ def import_crew(body: CrewImport):
     if len(store.crew) >= 6:
         raise HTTPException(422, "The crew is full (6 members). Remove someone in the crew editor first.")
     try:
-        readings, warnings = importer.parse_csv(body.csv, store.dataset.days)
+        readings, warnings = importer.parse_csv(
+            body.csv, store.dataset.days, launch=body.launch_date or date.fromisoformat(store.dataset.start_date))
     except importer.ImportError_ as exc:
         raise HTTPException(422, str(exc)) from exc
     n = 1

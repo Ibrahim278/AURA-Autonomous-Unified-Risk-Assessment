@@ -43,7 +43,7 @@ def test_missing_values_become_none(tmp_path: Path):
 
 def test_research_endpoints():
     listing = client.get("/api/research").json()
-    assert {x["dataset"] for x in listing} == {"cmp", "cbc", "immune", "cardio"}
+    assert {x["dataset"] for x in listing} == {"cmp", "cbc", "immune", "cardio", "alamar", "urine"}
     assert all(x["loaded"] for x in listing)
     r = client.get("/api/research/cmp")
     assert r.status_code == 200 and r.json()["source"] == "research"
@@ -75,7 +75,7 @@ def test_parses_multiplex_cytokines_exactly_as_published():
     d = research.load("immune")
     assert d["crew"] == ["C001", "C002", "C003", "C004"] and d["has_ranges"] is False
     assert d["analytes"][0]["key"] == "il_6" and d["analytes"][0]["unit"] == "pg/mL"
-    with (research.DATA_DIR / research.DATASETS["immune"]["file"]).open(encoding="utf-8-sig") as f:
+    with (research.DATA_DIR / research.registry()["immune"]["file"]).open(encoding="utf-8-sig") as f:
         row = next(r for r in csv.DictReader(f) if r["Sample Name"] == "C002_serum_R+1")
     il6 = {p["timepoint"]: p for p in d["analytes"][0]["series"]["C002"]}
     assert il6["R+1"]["value"] == float(row["il_6_concentration_picogram_per_milliliter"])
