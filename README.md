@@ -35,7 +35,7 @@ already being abnormal *for that person*.
 | | Feature |
 | --- | --- |
 | 🩺 | **10 indicators** (heart rate, blood pressure, SpO2, glucose, temperature, sleep, mood, exercise, radiation), each mapped to NASA's hazards, with plain-language "why it matters" and "how to measure" notes |
-| 📈 | **Personal baselines.** Each astronaut is compared with their own 7-day preflight baseline, so a sustained shift is caught even when it's still Earth-normal |
+| 📈 | **Personal baselines.** Each astronaut is compared with their own 7-day preflight baseline, so a sustained shift is caught even when it's still Earth-normal. An optional **adaptive in-flight baseline** blends in the last weeks of flight (capped at 1 SD of drift) so expected adaptation stops raising alerts |
 | 🚦 | **Three transparent levels.** 🟢 Normal, 🟡 Warning, 🔴 Critical, with the reason and the next actions every time |
 | 🧍 | **Clickable body figure** colored by each body system's worst indicator |
 | ✦ | **AI flight surgeon** (Claude) that writes a 30-second daily briefing grounded in the astronaut's data |
@@ -44,8 +44,13 @@ already being abnormal *for that person*.
 | 📡 | **Message ground with a real signal delay.** ISS about 0.5 s, the Moon 1.3 s, Mars transit growing to about 12.5 minutes each way. A countdown shows the message travelling, the status packet goes with it, and a simulated flight-surgeon reply arrives after the round trip. On Mars, AURA's own guidance is the crew's first line of support |
 | ☢ | **Radiation dose budget.** Career dose (earlier missions plus this one) against NASA's 600 mSv limit, the 30-day limit, the current rate, days left at that rate, and a projection to the end of the mission |
 | 🛰 | **Ground view for the flight surgeon.** The whole crew on one screen, sorted by priority (the worst of telemetry, symptoms and radiation), with messages shown only once their signal arrives, plus **printable health reports** (save as PDF) for one person or the whole crew |
-| 💬 | **Ask AURA**: a chat button in the bottom-right corner on every screen. Ask anything (health, "how do I…", the NASA data) and get an answer, numbered steps and one-click buttons that take you to the right place. It knows which crew member, day and indicator you're viewing |
-| 🎮 | **Gamified routine.** Daily tasks, streaks, points, levels and badges reward measuring regularly and following up on warnings |
+| ✅ | **Plausibility checks on check-ins.** Impossible values are blocked with a hint ("looks like °F, did you mean 37.0 °C?"); unusual ones (4+ SD from baseline, a sudden jump, systolic not above diastolic) ask you to confirm before saving |
+| 🎙 | **Voice check-in.** Say "heart rate 62, blood pressure 118 over 76, slept six and a half hours, mild headache" and the form fills in (Web Speech API in the browser, transparent rules on the server). Nothing is saved until you press Log |
+| 🗓 | **Countermeasure planner.** A timed plan for the day (exercise, sleep, measurements, radiation shielding, social time) that adjusts to the current alerts and explains every change |
+| 👥 | **Crew wellbeing view.** A 0-100 wellbeing score per person and for the crew from mood, sleep, behavioural symptoms and exercise, with 30-day trends and team-level suggestions |
+| 🔎 | **Timeline filters** by level, body system and day range |
+| 💬 | **Ask AURA**: a chat button in the bottom-right corner on every screen. Ask anything (health, "how do I…", the NASA data) and get an answer, numbered steps and one-click buttons that take you to the right place. It knows which crew member, day and indicator you're viewing, **remembers** facts you tell it ("remember I get headaches after exercise"), and can act: open panels, jump to a day, draft a message to ground or pre-fill a symptom |
+| 🎮 | **Gamified routine.** Daily tasks, streaks, points, levels and 11 badges reward measuring regularly and following up on warnings, plus **weekly challenges** (+50 each), a **crew board** and a shared crew goal |
 | ⏪ | **Mission replay** to see what AURA showed on any day, plus ISS, lunar surface and Mars transit environments |
 | 🧪 | **Real crew data.** Actual Inspiration4 bloodwork from NASA OSDR (metabolic panel and blood count), charted per crew member against lab ranges, with an **AI review** of each person's changes versus their own preflight baseline |
 | 👩‍🚀 | **Editable crew.** Add or edit up to 6 members: name, role, age, personal baselines and a health scenario (5 to choose from). The AI isn't told the scenario, so it has to find the pattern |
@@ -179,7 +184,7 @@ built around that:
 | AI | **Anthropic Claude API** (`anthropic` Python SDK 2.8) | Daily briefing, Ask AURA assistant, review of the real crew bloodwork |
 | Front end | **React** 19.3 (JavaScript/JSX), **Vite** 8.3 | Single-page dashboard and dev server (proxies `/api` to the back end) |
 | Charts | **Recharts** 3.10 | Trend charts, sparklines, forecast projections, research charts |
-| Testing | **pytest** 9.2, **httpx** | 107 back-end tests, including a mocked Claude API |
+| Testing | **pytest** 9.2, **httpx** | 131 back-end tests, including a mocked Claude API |
 | Data | NASA OSDR (CSV), JSON, in-memory store | Real Inspiration4 labs; mission data kept in memory for zero-setup demos |
 
 No database or cloud services are needed: clone, install, and run two terminals.
@@ -201,7 +206,11 @@ frontend/  React 19 + Vite + Recharts dashboard  ──/api──►  backend/  
                                                               ├─ assistant.py     Ask AURA chat (answer, steps, actions)
                                                               ├─ research.py      NASA OSDR Inspiration4 labs + quality check
                                                               ├─ store.py         in-memory mission store + check-ins
-                                                              ├─ gamification.py  tasks, streaks, points, badges
+                                                              ├─ gamification.py  tasks, streaks, points, badges, challenges, crew board
+                                                              ├─ checks.py        plausibility checks and unit hints for check-ins
+                                                              ├─ planner.py       daily countermeasure plan
+                                                              ├─ wellbeing.py     crew wellbeing score and trends
+                                                              ├─ voice.py         spoken check-in parser
                                                               └─ ai.py            Claude briefing, Q&A and research review,
                                                                                   each with a rule-based fallback
 data/osdr/  NASA OSDR files (unchanged)        data/import_template.csv  example import
@@ -235,8 +244,15 @@ data/osdr/  NASA OSDR files (unchanged)        data/import_template.csv  example
 | GET | `/api/ground?day=` | Flight-surgeon overview of the whole crew, sorted by priority |
 | GET | `/api/report?day=`, `/api/crew/{id}/report?day=` | Printable HTML health report (whole crew or one person) |
 | GET | `/api/crew/{id}/alerts` | Timeline of alert-level changes |
+| POST | `/api/crew/{id}/checkins/check` | Plausibility check before saving: errors with unit hints, warnings to confirm |
+| POST | `/api/checkins/parse` | Turn a spoken or typed sentence into check-in values and symptoms |
+| GET | `/api/crew/{id}/plan?day=` | Today's countermeasure plan |
+| POST | `/api/crew/{id}/plan/{block}/toggle` | Tick a plan block done |
+| GET / PUT | `/api/mission/baseline-mode` | Preflight or adaptive in-flight baseline |
+| GET | `/api/wellbeing?day=` | Crew wellbeing scores, trends and suggestions |
+| GET / POST | `/api/memory`, DELETE `/api/memory/{id}` | Ask AURA's saved notes |
 | POST | `/api/crew/{id}/checkins` | Log manual measurements; returns the updated status |
-| GET | `/api/crew/{id}/tasks` | Today's tasks, streaks, level and badges |
+| GET | `/api/crew/{id}/tasks` | Today's tasks, streaks, level, badges, weekly challenges and crew board |
 | POST | `/api/crew/{id}/tasks/{task}/complete` | Tick off a wellness task |
 | GET | `/api/ai/status` | Whether Claude is available |
 | POST | `/api/crew/{id}/briefing` | AI (or rule-based) daily briefing |
@@ -303,7 +319,8 @@ In line with the NASA Space Apps guidance on AI use, here is where AI was and wa
 cd backend && python -m pytest
 ```
 
-107 tests cover the alert engine, the simulator scenarios, every API endpoint, gamification,
+131 tests cover the alert engine, the simulator scenarios, every API endpoint, gamification,
 the OSDR parser and quality check, the CSV importer, crew editing, custom indicators, the forecast
 (confidence band and related trends), symptom triage, ground messaging and signal delay, the radiation
-budget, the ground view and reports, Ask AURA, and the AI layer (with a mocked Claude API).
+budget, the ground view and reports, plausibility checks, the planner, the adaptive baseline, crew wellbeing,
+voice parsing, weekly challenges and the crew board, Ask AURA (memory and actions), and the AI layer (with a mocked Claude API).
