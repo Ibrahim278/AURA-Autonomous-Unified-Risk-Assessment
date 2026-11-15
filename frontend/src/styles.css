@@ -570,3 +570,5 @@ button:disabled { opacity: 0.6; cursor: default; }
 .plan-why { color: var(--muted); font-size: 0.76rem; }
 .plan-why .link { font-size: 0.76rem; }
 .adj { font-size: 0.62rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--warning); border: 1px solid var(--warning); border-radius: 999px; padding: 0 6px; }
+.baseline-mode { display: flex; align-items: center; gap: 8px; margin: -4px 0 10px; flex-wrap: wrap; }
+.baseline-mode .seg button { padding: 4px 10px; font-size: 0.75rem; }

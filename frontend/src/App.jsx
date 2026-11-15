@@ -111,13 +111,15 @@ export default function App() {
         // The tour follows the demo crew's scripted scenarios, so restore them if the crew was edited.
         const demoReady = crew.some((c) => c.id === 'aura-2' && c.scenario === 'behavioural_cardio') &&
           crew.some((c) => c.id === 'aura-3' && c.scenario === 'immune_fever')
+        const adaptive = mission?.baseline_mode === 'adaptive'
+        if (adaptive) await api.setBaselineMode('preflight') // the tour's numbers use preflight baselines
         if (!demoReady) {
           const o = await api.crewOptions()
           await api.setCrew({ crew: o.default_crew })
-          await refreshAll()
         }
+        if (!demoReady || adaptive) await refreshAll()
         goToStep(0)
-      }, [crew, refreshAll, goToStep])
+      }, [crew, mission, refreshAll, goToStep])
 
   const scrollTo = (sel) => setTimeout(() => {
     document.querySelector(sel)?.scrollIntoView({ behavior: 'smooth', block: 'center' })
@@ -245,6 +247,8 @@ export default function App() {
                     onSelect={setSelected}
                     day={shownDay}
                     onManage={() => setManagingIndicators(true)}
+                    baselineMode={mission?.baseline_mode}
+                    onBaselineMode={async (mode) => { await api.setBaselineMode(mode); await refreshAll() }}
                   />
                 </div>
               </section>

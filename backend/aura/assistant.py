@@ -69,7 +69,10 @@ limit within 14 days. The trend chart in an indicator's detail view shows the 7-
 - Ask AURA: this chat (bottom-right button), available on every screen.
 - Body status: clickable body figure coloured by each body system's worst indicator; click a region to \
 filter the indicator cards.
-- Health indicators panel: one card per indicator; click a card for the detail view (trend chart with \
+- Health indicators panel: "Compare with: Preflight baseline / Adaptive in-flight" switch. Adaptive learns \
+the person's in-flight normal from days d-28 to d-8 (outliers left out) but moves at most 1 preflight SD, so \
+expected adaptation (e.g. slightly warmer core temperature in flight) isn't flagged while slow drifts still are. \
+One card per indicator; click a card for the detail view (trend chart with \
 personal baseline band and limits, why it matters, how to measure, actions, references). "+ Add indicator" \
 (top right of that panel) creates a custom indicator (presets: body weight, heart rate variability, daily \
 steps, water intake).

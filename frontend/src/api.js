@@ -60,6 +60,7 @@ export const api = {
   sendMessage: (id, body) => request(`/api/crew/${id}/messages`, { method: 'POST', body: JSON.stringify(body) }),
   ground: (day) => request(`/api/ground${day ? `?day=${day}` : ''}`),
   reportUrl: (id, day) => `${BASE}${id ? `/api/crew/${id}/report` : '/api/report'}${day ? `?day=${day}` : ''}`,
+  setBaselineMode: (mode) => request('/api/mission/baseline-mode', { method: 'PUT', body: JSON.stringify({ mode }) }),
   nextDay: () => request('/api/mission/next-day', { method: 'POST' }),
   reset: (body) => request('/api/mission/reset', { method: 'POST', body: JSON.stringify(body) }),
 }
