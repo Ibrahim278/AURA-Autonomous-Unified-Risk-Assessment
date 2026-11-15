@@ -36,3 +36,24 @@ def test_ai_context_includes_forecast():
     main.store.load(generate())
     ctx = ai.build_context(main.store, "aura-2", 48)
     assert any(f["indicator"] == "heart_rate" for f in ctx["forecast"])
+
+
+def test_confidence_band_and_crossing_range():
+    s = MissionStore(generate())
+    f = forecast.forecast(s, "aura-2", 48)
+    proj = f["series"]["heart_rate"]
+    assert all(p["lo"] <= p["value"] <= p["hi"] for p in proj)
+    widths = [p["hi"] - p["lo"] for p in proj]
+    assert widths[-1] > widths[0]  # less certain further ahead
+    hr = next(r for r in f["risks"] if r["indicator"] == "heart_rate")
+    lo, hi = hr["crossing"]["range"]
+    assert lo is not None and lo <= hr["crossing"]["in_days"] and (hi is None or hi >= hr["crossing"]["in_days"])
+
+
+def test_related_trends_follow_the_story():
+    s = MissionStore(generate())
+    rel = forecast.forecast(s, "aura-3", 60)["related"]
+    # Fever: heart rate climbs with body temperature.
+    top = rel["heart_rate"][0]
+    assert top["indicator"] == "body_temp" and top["r"] > 0.8 and top["together"] == "same direction"
+    assert forecast.forecast(s, "aura-1", 60)["related"] == {}  # nominal crew: no spurious links

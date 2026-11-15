@@ -1,7 +1,7 @@
 import { HAZARD_LABEL, LEVEL, TREND_LABEL, fmt } from '../levels.js'
 import TrendChart from './TrendChart.jsx'
 
-export default function IndicatorDetail({ assessment: a, info, series, day, onClose, projection }) {
+export default function IndicatorDetail({ assessment: a, info, series, day, onClose, projection, related = [], onSelect }) {
   const lvl = LEVEL[a.level]
   return (
     <section className={`panel detail ${lvl.cls}`}>
@@ -20,6 +20,20 @@ export default function IndicatorDetail({ assessment: a, info, series, day, onCl
             {a.z_score != null && <div><span className="muted">Deviation</span><strong>{a.z_score > 0 ? '+' : ''}{a.z_score} SD</strong></div>}
           </div>
           <TrendChart series={series} day={day} projection={projection} />
+          {related.length > 0 && (
+            <div className="related">
+              <h3>Moving together</h3>
+              <p className="muted small">Over the last 14 days these trends moved with {a.name.toLowerCase()}. It's a pattern to check, not proof one causes the other.</p>
+              <ul>
+                {related.map((r) => (
+                  <li key={r.indicator}>
+                    <button className="chip" onClick={() => onSelect(r.indicator)}>{r.name} →</button>
+                    <span className="muted">{r.together} · r = {r.r}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
         </div>
         <div className="detail-text">
           <h3>Why this status?</h3>

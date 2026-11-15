@@ -469,8 +469,8 @@ button:disabled { opacity: 0.6; cursor: default; }
 .dose-bar .warn-mark { background: var(--warning); }
 .dose-bar .proj-mark { background: #e9d5ff; box-shadow: 0 0 6px #c084fc; }
 .dose-legend { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 0.72rem; color: var(--muted); margin-top: 6px; }
-.sw { display: inline-block; width: 10px; height: 10px; border-radius: 2px; vertical-align: -1px; }
-.sw.prior { background: #64748b; } .sw.mission { background: #a78bfa; } .sw.proj { background: #e9d5ff; }
+.dose-legend .sw { display: inline-block; width: 10px; height: 10px; border-radius: 2px; vertical-align: -1px; border: 0; }
+.dose-legend .sw.prior { background: #64748b; } .dose-legend .sw.mission { background: #a78bfa; } .dose-legend .sw.proj { background: #e9d5ff; }
 .rad-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin: 14px 0 8px; }
 .rad-stats div { background: var(--bg2); border: 1px solid var(--border); border-radius: 8px; padding: 8px; display: flex; flex-direction: column; }
 .rad-stats strong { font-size: 1.1rem; } .rad-stats small { color: var(--muted); font-weight: 400; }
@@ -532,3 +532,10 @@ button:disabled { opacity: 0.6; cursor: default; }
 .g-dot { color: var(--lvl); font-size: 0.7rem; text-transform: uppercase; font-weight: 700; }
 .ground-card footer { display: flex; gap: 8px; margin-top: auto; padding-top: 8px; }
 .ground-card footer .chip { color: var(--text); text-decoration: none; cursor: pointer; }
+.sw.pband { background: color-mix(in srgb, #c4b5fd 30%, transparent); }
+.forecast-range { color: var(--muted); font-size: 0.7rem; }
+.related { margin-top: 10px; }
+.related ul { list-style: none; padding: 0; margin: 6px 0 0; display: flex; flex-direction: column; gap: 6px; }
+.related li { display: flex; gap: 8px; align-items: center; font-size: 0.82rem; }
+.related .chip { color: var(--text); }
+.forecast-related { font-size: 0.7rem; color: #c4b5fd; }
