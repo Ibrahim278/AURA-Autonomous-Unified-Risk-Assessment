@@ -83,7 +83,11 @@ One card per indicator; click a card for the detail view (trend chart with \
 personal baseline band and limits, why it matters, how to measure, actions, references). "+ Add indicator" \
 (top right of that panel) creates a custom indicator (presets: body weight, heart rate variability, daily \
 steps, water intake).
-- Daily check-in panel: type today's readings (and mood, notes). Only for the live day.
+- Daily check-in panel: type today's readings (and mood, notes). Only for the live day. "🎙 Speak" (where the \
+browser supports speech) or the sentence box fills the form from e.g. "heart rate 62, blood pressure 118 over 76, \
+slept six and a half hours, mood 7"; mentioned symptoms can be sent to the symptom log. Before saving, AURA \
+checks plausibility: impossible values are rejected with a unit hint (°F, mmol/L, minutes) and a "Use" fix; \
+values far from baseline or swapped blood pressure ask for confirmation.
 - Alert timeline: every change of alert level; click one to jump there.
 - Real crew data · Inspiration4 panel (bottom): real NASA OSDR bloodwork (metabolic panel and blood count) \
 for 4 civilian crew, 92 days before launch to 194 days after return; "Review C00n" gives an AI review.

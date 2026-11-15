@@ -6,7 +6,7 @@ const FIELDS = [
   ['glucose', 1], ['body_temp', 0.1], ['sleep_hours', 0.1], ['exercise_minutes', 5],
 ]
 
-export default function CheckInForm({ crewId, catalog, disabled, onSaved, day, onNextDay }) {
+export default function CheckInForm({ crewId, catalog, disabled, onSaved, day, onNextDay, onSymptoms }) {
   const [values, setValues] = useState({})
   const [mood, setMood] = useState(7)
   const [useMood, setUseMood] = useState(false)
@@ -14,6 +14,40 @@ export default function CheckInForm({ crewId, catalog, disabled, onSaved, day, o
   const [msg, setMsg] = useState(null)
   const [busy, setBusy] = useState(false)
   const [review, setReview] = useState(null) // plausibility check result awaiting the astronaut
+  const [voiceText, setVoiceText] = useState('')
+  const [heard, setHeard] = useState(null)
+  const [listening, setListening] = useState(false)
+  const Recognition = typeof window !== 'undefined' && (window.SpeechRecognition || window.webkitSpeechRecognition)
+
+  const fillFrom = async (text) => {
+    if (!text.trim()) return
+    try {
+      const r = await api.parseVoice(text)
+      setHeard(r)
+      const { mood: m, ...rest } = r.values
+      setValues((v) => ({ ...v, ...Object.fromEntries(Object.entries(rest).map(([k, x]) => [k, String(x)])) }))
+      if (m != null) { setMood(Math.round(m)); setUseMood(true) }
+    } catch (err) {
+      setMsg({ type: 'error', text: err.message })
+    }
+  }
+
+  const listen = () => {
+    if (!Recognition) return
+    const rec = new Recognition()
+    rec.lang = 'en-US'
+    rec.interimResults = false
+    rec.onresult = (e) => {
+      const text = Array.from(e.results).map((x) => x[0].transcript).join(' ')
+      setVoiceText(text)
+      fillFrom(text)
+    }
+    rec.onerror = (e) => setMsg({ type: 'error', text: `Voice input: ${e.error}. You can type the sentence instead.` })
+    rec.onend = () => setListening(false)
+    setListening(true)
+    setHeard(null)
+    rec.start()
+  }
 
   const save = async (payload) => {
     setBusy(true)
@@ -74,6 +108,30 @@ export default function CheckInForm({ crewId, catalog, disabled, onSaved, day, o
           )}
       </div>
       <fieldset disabled={disabled || busy}>
+        <div className="voice">
+          {Recognition && (
+            <button type="button" className={`chip mic ${listening ? 'on' : ''}`} onClick={listen} disabled={listening}
+              title="Speak your readings, e.g. 'heart rate 62, blood pressure 118 over 76, slept 7 hours'">
+              {listening ? '● Listening…' : '🎙 Speak'}
+            </button>
+          )}
+          <input value={voiceText} onChange={(e) => setVoiceText(e.target.value)} aria-label="Say or type your readings"
+            onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); fillFrom(voiceText) } }}
+            placeholder={Recognition ? 'or type: heart rate 62, BP 118 over 76, slept 7 h, mood 8' : 'Type: heart rate 62, BP 118 over 76, slept 7 h, mood 8'} />
+          <button type="button" className="chip" onClick={() => fillFrom(voiceText)} disabled={!voiceText.trim()}>Fill form</button>
+        </div>
+        {heard && (
+          <div className="heard">
+            {heard.understood
+              ? <>Filled {Object.keys(heard.values).length} reading(s) below. Check them, then Log check-in.</>
+              : <>I couldn't find readings in that. Try “heart rate 62, blood pressure 118 over 76”.</>}
+            {heard.symptoms.length > 0 && (
+              <span> Symptoms mentioned: {heard.symptoms.map((x) => x.name).join(', ')}.{' '}
+                <button type="button" className="link" onClick={() => onSymptoms?.(heard.symptoms.map((x) => x.key))}>Add to symptom log →</button>
+              </span>
+            )}
+          </div>
+        )}
         <div className="fields">
           {[...FIELDS, ...Object.values(catalog).filter((i) => i.custom).map((i) => [i.key, 10 ** -i.decimals])].map(([key, step]) => {
             const ind = catalog[key]

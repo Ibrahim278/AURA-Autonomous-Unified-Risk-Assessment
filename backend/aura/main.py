@@ -23,7 +23,7 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
-from . import __version__, ai, assistant, checks, comms, planner, wellbeing, custom, radiation, symptoms, ground, forecast, gamification, importer, research
+from . import __version__, ai, assistant, checks, comms, planner, voice, wellbeing, custom, radiation, symptoms, ground, forecast, gamification, importer, research
 from .indicators import INDICATORS, Hazard
 from .simulator import (DEFAULT_CREW_SPECS, DEFAULTS, EDITABLE_BASELINES, ENVIRONMENTS, SCENARIOS,
                         generate, imported_records, make_member)
@@ -363,6 +363,16 @@ def crew_alerts(crew_id: str, from_day: int = 1):
     """Feed of alert-level changes over the mission."""
     _crew_or_404(crew_id)
     return store.alert_timeline(crew_id, from_day)
+
+
+class VoiceText(BaseModel):
+    text: str = Field(..., min_length=1, max_length=1000)
+
+
+@app.post("/api/checkins/parse", tags=["crew"])
+def parse_voice_checkin(body: VoiceText):
+    """Turn a spoken or typed sentence into check-in values and suggested symptoms. Saves nothing."""
+    return voice.parse(body.text)
 
 
 @app.post("/api/crew/{crew_id}/checkins/check", tags=["crew"])
