@@ -43,7 +43,8 @@ PAGES: dict[str, tuple[str, str]] = {
     "timeline": ("Alert history", r"timeline|alert history|history|past alerts"),
     "routine": ("Routine and rewards", r"routine|tasks?|badges?|points|challenges?|leaderboard|crew board|streaks?"),
     "team": ("Team wellbeing", r"team|wellbeing|well-being|crew mood"),
-    "ground": ("Ground view", r"ground view|flight surgeon (view|console)|console"),
+    "ground": ("Ground view", r"ground view|ground|flight surgeon view|crew priority|reports?"),
+    "console": ("Flight surgeon console", r"(?:flight surgeon |ground |live )?console|live ground|ground side|live operator"),
     "research": ("Real NASA data", r"research|(?:real )?nasa data|real data|inspiration ?4|osdr|bloodwork|cytokines?"),
 }
 
@@ -54,7 +55,8 @@ demo tour), status (Health status: status banner, AI flight surgeon and early-wa
 indicator cards and detail), checkin (Check-in and symptoms: daily check-in with voice, symptom log), plan \
 (Daily plan), radiation (Radiation dose budget), comms (Message ground), timeline (Alert history), routine \
 (Routine and rewards: tasks, streaks, weekly challenges, crew board, badges), team (Team wellbeing), ground \
-(Ground view, the flight-surgeon console), research (Real NASA data, Inspiration4). The crew picker and \
+(Ground view: whole crew by priority, reports), console (Flight surgeon console: a person on a second \
+device plays the ground live and types real replies), research (Real NASA data, Inspiration4). The crew picker and \
 mission replay stay in the left sidebar on every page. The status banner shows on every crew page.
 AURA guide by feature (use these exact names when telling the user where to click):
 - Crew box (left sidebar): click a crew member to view them. "✎ Edit" opens the crew editor (add/remove \
@@ -148,7 +150,8 @@ up to mission_day, to replay that day), log_symptom (a symptom key from symptom_
 symptom log), draft_ground_message (the full text of a short message to the flight surgeon, which the user \
 reviews before sending), remember (a short note, at most 200 characters, to save to AURA's memory), \
 open_page (a page id from the guide: home, status, checkin, plan, radiation, comms, timeline, routine, team, \
-ground, research). Prefer open_page when the user asks to go somewhere. Other types take no target.
+ground, console, research). When the user asks to go somewhere, AURA takes them there automatically \
+with your first action, so put the open_page action first and keep the answer to one short sentence. Prefer open_page when the user asks to go somewhere. Other types take no target.
 7. Memory: "memory" lists notes the user asked AURA to remember (preferences, history, context). Use them \
 when relevant. When the user asks you to remember something, offer a remember action with a concise note; \
 it is only saved if they click it.
@@ -207,6 +210,24 @@ def build_assistant_context(store: MissionStore, crew_id: str | None, day: int |
         ctx["viewing"] = {"crew_id": crew_id, "day": snap["mission"]["day"], "selected_indicator": indicator}
         ctx["person"] = snap
     return ctx
+
+
+# --------------------------------------------------------------------------- auto navigation
+# Actions that only move the view. When the user asks to go somewhere, the first of these runs by itself
+# (no button click). Anything that changes data (remember, draft a message, log a symptom) never auto-runs.
+NAV_ACTIONS = {"open_page", "open_ground", "open_team", "open_research", "open_radiation", "open_plan",
+               "message_ground", "open_symptoms", "open_checkin", "open_briefing", "open_indicator",
+               "select_crew", "go_to_day"}
+NAV_INTENT = re.compile(r"\b(?:take me|bring me|go (?:to|back|home)|open|show me|show the|navigate|switch to|"
+                        r"jump to|pull up|bring up|let me see|where(?:'s| is)|replay day)\b")
+
+
+def auto_action(question: str, reply: AssistantReply) -> int | None:
+    """Index of the action to run automatically, or None if the user should choose."""
+    q = question.lower().strip()
+    if not NAV_INTENT.search(q) or re.match(r"(?:how|why|what|can|could|should)\b", q):
+        return None
+    return next((i for i, a in enumerate(reply.actions) if a.type in NAV_ACTIONS), None)
 
 
 # --------------------------------------------------------------------------- validation
@@ -374,10 +395,14 @@ def ask_assistant(store: MissionStore, question: str, history: list[ChatTurn], c
                   day: int | None = None, indicator: str | None = None, page: str | None = None) -> dict:
     ctx = build_assistant_context(store, crew_id, day, indicator)
     ctx["current_page"] = page if page in PAGES else None
+    def done(mode, model, reply, note):
+        reply = _clean(reply, ctx)
+        return {"mode": mode, "model": model, "reply": reply.model_dump(), "note": note,
+                "auto_action": auto_action(question, reply)}
+
     status = ai_status()
     if not status["enabled"]:
-        return {"mode": "offline", "model": None, "reply": _clean(offline_reply(question, ctx), ctx).model_dump(),
-                "note": "Rule-based answers (no Claude login)."}
+        return done("offline", None, offline_reply(question, ctx), "Rule-based answers (no Claude login).")
     messages = [{"role": t.role, "content": t.content} for t in history[-10:]]
     messages.append({"role": "user", "content": "<aura_context>\n" + json.dumps(ctx, separators=(",", ":"))
                      + "\n</aura_context>\n\nQuestion: " + question})
@@ -398,8 +423,7 @@ def ask_assistant(store: MissionStore, question: str, history: list[ChatTurn], c
                                    steps=[], actions=[], escalate=False, topic="off_topic")
         else:
             reply = response.parsed_output
-        return {"mode": "ai", "model": response.model, "reply": _clean(reply, ctx).model_dump(), "note": None}
+        return done("ai", response.model, reply, None)
     except Exception as exc:  # noqa: BLE001
         log.warning("Assistant failed: %s", _describe(exc))
-        return {"mode": "offline", "model": None, "reply": _clean(offline_reply(question, ctx), ctx).model_dump(),
-                "note": f"AI unavailable ({_describe(exc)}). Rule-based answer."}
+        return done("offline", None, offline_reply(question, ctx), f"AI unavailable ({_describe(exc)}). Rule-based answer.")

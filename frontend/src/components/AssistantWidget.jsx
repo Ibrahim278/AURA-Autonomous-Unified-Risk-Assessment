@@ -213,7 +213,13 @@ export default function AssistantWidget({ crewId, member, day, live, selected, s
     setError(null)
     try {
       const r = await api.assistant({ question: q, history, crew_id: crewId, day: live ? null : day, indicator: selected, page })
-      setChat((c) => [...c, { role: 'assistant', reply: r.reply, mode: r.mode, note: r.note }])
+      const auto = r.auto_action ?? null
+      setChat((c) => [...c, { role: 'assistant', reply: r.reply, mode: r.mode, note: r.note, auto }])
+      // "Take me to Ground view": go there straight away instead of showing a button.
+      if (auto !== null && r.reply.actions[auto]) {
+        onAction(r.reply.actions[auto])
+        if (window.innerWidth < 700) setOpen(false) // on a phone, get the chat out of the way
+      }
       // Asked by voice, answered by voice (unless voice replies are switched off).
       if (spoken && voiceReplies) speak(r.reply, chat.length + 1)
     } catch (e) {
@@ -292,9 +298,15 @@ export default function AssistantWidget({ crewId, member, day, live, selected, s
                 {m.reply.steps.length > 0 && (
                   <ol className="assistant-steps">{m.reply.steps.map((s, j) => <li key={j}>{s}</li>)}</ol>
                 )}
-                {m.reply.actions.length > 0 && (
+                {m.auto != null && m.reply.actions[m.auto] && (
+                  <div className="assistant-auto">
+                    ✓ Opened: {m.reply.actions[m.auto].label.replace(/^(Open|Go to|Show) /, '')}
+                    <button className="link" onClick={() => act(m.reply.actions[m.auto])}>Go back there</button>
+                  </div>
+                )}
+                {m.reply.actions.some((_, j) => j !== m.auto) && (
                   <div className="assistant-actions">
-                    {m.reply.actions.map((a, j) => (
+                    {m.reply.actions.map((a, j) => j === m.auto ? null : (
                       <button key={j} className="chip action" onClick={() => act(a)}>{a.label} →</button>
                     ))}
                   </div>

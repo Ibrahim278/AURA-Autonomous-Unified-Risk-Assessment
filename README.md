@@ -61,7 +61,7 @@ already being abnormal *for that person*.
 | 👩‍🚀 | **Editable crew.** Add or edit any number of members: name, role, age, personal baselines and a health scenario (5 to choose from). The AI isn't told the scenario, so it has to find the pattern |
 | ➕ | **Custom indicators.** Add any measurement (body weight, HRV, steps, water intake, or your own) with its unit, typical range and warning/critical limits. It gets baselines, alerts, charts, check-ins, CSV import and AI coverage like the built-in ten |
 | ⬆ | **Import your own data** from a CSV (one row per day) and become a crew member: alerts, tasks and the AI briefing all run on your readings |
-| 🏠 | **Landing page and feature pages.** AURA opens on a home page with the story, a live crew snapshot and a menu of every feature; each feature has its own linked page, and Ask AURA can take you to any page ("take me to radiation") |
+| 🏠 | **Landing page and feature pages.** AURA opens on a home page with the story, a live crew snapshot and a menu of every feature; each feature has its own linked page, and Ask AURA takes you to any page by itself when you ask ("take me to Ground view", by typing or by voice) |
 | 🌌 | **Space-style interface.** A dark theme by default with a ☀ Light switch in the header (remembered per browser), a glass header with the page menu, and layouts that work on phones. Every page passes an automated WCAG 2 AA accessibility check in both themes |
 | ▶ | **Guided demo tour** that walks through the mission story, real NASA data, the new symptom, ground and radiation features, planner, team wellbeing, voice check-in, cytokines and your own data in 19 steps |
 
@@ -230,7 +230,7 @@ built around that:
 | Design | Plain CSS with theme tokens, Plus Jakarta Sans and JetBrains Mono (Google Fonts) | Dark space theme with a light alternative |
 | Speech | **faster-whisper** 1.2 (Whisper `base.en`, CPU, int8) | On-device speech-to-text for Ask AURA; no cloud speech service |
 | Charts | **Recharts** 3.10 | Trend charts, sparklines, forecast projections, research charts |
-| Testing | **pytest** 9.2, **httpx** | 187 back-end tests, including a mocked Claude API |
+| Testing | **pytest** 9.2, **httpx** | 193 back-end tests, including a mocked Claude API |
 | Data | NASA OSDR (CSV), JSON, in-memory store | Real Inspiration4 labs; mission data kept in memory for zero-setup demos |
 
 No database or cloud services are needed: clone, install, and run two terminals. To put it online as a single web service, see [Deploy a live demo](#deploy-a-live-demo).
@@ -378,7 +378,7 @@ In line with the NASA Space Apps guidance on AI use, here is where AI was and wa
 cd backend && python -m pytest
 ```
 
-187 tests cover the alert engine, the simulator scenarios, every API endpoint, gamification,
+193 tests cover the alert engine, the simulator scenarios, every API endpoint, gamification,
 the OSDR parser and quality check, the CSV importer, crew editing, custom indicators, the forecast
 (confidence band and related trends), symptom triage, ground messaging and signal delay, the radiation
 budget, the ground view and reports, plausibility checks, the planner, the adaptive baseline, crew wellbeing,

@@ -112,3 +112,25 @@ def test_open_page_navigation_offline_and_validation():
                          actions=[AssistantAction(type="open_page", label="Nope", target="settings"),
                                   AssistantAction(type="open_page", label="Plan", target="plan")])
     assert [a.target for a in _clean(bad, ctx).actions] == ["plan"]
+
+
+@pytest.mark.parametrize("q,page", [
+    ("Take me to Ground View", "ground"),
+    ("go to the radiation budget", "radiation"),
+    ("open the console", "console"),
+    ("switch to team", "team"),
+    ("show me the real NASA data", "research"),
+])
+def test_navigation_requests_run_automatically(q, page):
+    r = ask(q)
+    a = r["reply"]["actions"][r["auto_action"]]
+    assert a["type"] == "open_page" and a["target"] == page
+
+
+def test_other_questions_keep_buttons():
+    r = ask("How do I import my own data?")
+    assert r["reply"]["actions"] and r["auto_action"] is None
+    # data-changing actions never auto-run, even with a "go" verb
+    reply = assistant.AssistantReply(answer="x", steps=[], escalate=False, topic="app_help",
+                                     actions=[assistant.AssistantAction(type="remember", label="Save", target="note")])
+    assert assistant.auto_action("open my notes and remember this", reply) is None
