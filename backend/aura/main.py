@@ -23,7 +23,7 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
-from . import __version__, ai, assistant, comms, custom, forecast, gamification, importer, research
+from . import __version__, ai, assistant, comms, custom, radiation, forecast, gamification, importer, research
 from .indicators import INDICATORS, Hazard
 from .simulator import (DEFAULT_CREW_SPECS, DEFAULTS, EDITABLE_BASELINES, ENVIRONMENTS, SCENARIOS,
                         generate, imported_records, make_member)
@@ -94,6 +94,7 @@ class CrewSpec(BaseModel):
     scenario: str = Field("nominal", description=f"One of {sorted(SCENARIOS)}")
     baseline: dict[str, float] = Field(default_factory=dict,
                                        description=f"Optional personal means for {list(EDITABLE_BASELINES)}")
+    prior_dose_mSv: float = Field(0, ge=0, le=2000, description="Career radiation dose from earlier missions")
 
 
 class CrewUpdate(BaseModel):
@@ -192,10 +193,11 @@ def set_crew(body: CrewUpdate):
         try:
             if old is not None and old.imported is not None:
                 # Imported members keep their uploaded data; only the profile changes.
-                m = make_member(cid, spec.name.strip(), spec.role.strip(), spec.age)
+                m = make_member(cid, spec.name.strip(), spec.role.strip(), spec.age, prior_dose_mSv=spec.prior_dose_mSv)
                 m.scenario, m.scenario_description, m.imported = "imported", old.scenario_description, old.imported
             else:
-                m = make_member(cid, spec.name.strip(), spec.role.strip(), spec.age, spec.scenario, spec.baseline)
+                m = make_member(cid, spec.name.strip(), spec.role.strip(), spec.age, spec.scenario, spec.baseline,
+                                spec.prior_dose_mSv)
         except ValueError as exc:
             raise HTTPException(422, f"{spec.name}: {exc}") from exc
         members.append(m)
@@ -276,6 +278,13 @@ def crew_forecast(crew_id: str, day: int | None = Query(None, ge=1)):
     """Early warning: indicators whose trend will cross a baseline edge or limit within 14 days."""
     _crew_or_404(crew_id)
     return forecast.forecast(store, crew_id, day)
+
+
+@app.get("/api/crew/{crew_id}/radiation", tags=["crew"])
+def crew_radiation(crew_id: str, day: int | None = Query(None, ge=1)):
+    """Radiation dose budget: career (600 mSv), 30-day and 1-year use, rate and projection."""
+    _crew_or_404(crew_id)
+    return radiation.budget(store, crew_id, day)
 
 
 @app.get("/api/crew/{crew_id}/alerts", tags=["crew"])

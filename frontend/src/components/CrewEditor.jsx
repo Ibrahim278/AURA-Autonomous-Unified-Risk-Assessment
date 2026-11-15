@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { api } from '../api.js'
 
-const blank = (scenario = 'nominal') => ({ name: '', role: 'Mission Specialist', age: 35, scenario, baseline: {} })
+const blank = (scenario = 'nominal') => ({ name: '', role: 'Mission Specialist', age: 35, scenario, baseline: {}, prior_dose_mSv: 0 })
 
 function ImportForm({ roles, full, onImported, onCancel, customKeys = [] }) {
   const [name, setName] = useState('')
@@ -60,8 +60,9 @@ export default function CrewEditor({ crew, onClose, onSaved, startImport = false
   const [notice, setNotice] = useState(null)
   const [opts, setOpts] = useState(null)
   const [rows, setRows] = useState(() =>
-    crew.map(({ id, name, role, age, scenario, baseline, data_source, scenario_description }) =>
-      ({ id, name, role, age, scenario, baseline: { ...baseline }, imported: data_source === 'imported', note: scenario_description })))
+    crew.map(({ id, name, role, age, scenario, baseline, data_source, scenario_description, prior_dose_mSv }) =>
+      ({ id, name, role, age, scenario, baseline: { ...baseline }, imported: data_source === 'imported', note: scenario_description,
+        prior_dose_mSv: prior_dose_mSv ?? 0 })))
   const [open, setOpen] = useState(null) // index whose baselines are expanded
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState(null)
@@ -85,7 +86,7 @@ export default function CrewEditor({ crew, onClose, onSaved, startImport = false
     setError(null)
     try {
       const saved = await api.setCrew({
-        crew: list.map(({ imported, note, ...r }) => ({ ...r, age: Number(r.age), scenario: imported ? 'nominal' : r.scenario })),
+        crew: list.map(({ imported, note, ...r }) => ({ ...r, age: Number(r.age), prior_dose_mSv: Number(r.prior_dose_mSv) || 0, scenario: imported ? 'nominal' : r.scenario })),
       })
       await onSaved(saved)
       onClose()
@@ -126,7 +127,7 @@ export default function CrewEditor({ crew, onClose, onSaved, startImport = false
               setNotice(`Added ${r.member.name}: ${r.readings} readings up to mission day ${r.last_day}.${w}`)
               const m = r.member
               setRows((rs) => [...rs, { id: m.id, name: m.name, role: m.role, age: m.age, scenario: m.scenario,
-                baseline: {}, imported: true, note: m.scenario_description }])
+                baseline: {}, imported: true, note: m.scenario_description, prior_dose_mSv: m.prior_dose_mSv ?? 0 }])
               setImporting(false)
               if (!r.warnings.length) onClose()
             }}
@@ -142,6 +143,10 @@ export default function CrewEditor({ crew, onClose, onSaved, startImport = false
               </select>
               <input aria-label="Age" type="number" min={18} max={80} value={r.age} className="age"
                 onChange={(e) => update(i, { age: e.target.value })} />
+              <label className="prior-dose" title="Radiation dose from earlier missions, counted against the 600 mSv career limit">
+                ☢ <input aria-label="Prior career dose (mSv)" type="number" min={0} max={2000} step={5} value={r.prior_dose_mSv}
+                  onChange={(e) => update(i, { prior_dose_mSv: e.target.value })} /> mSv before
+              </label>
               {r.imported ? (
                 <span className="source-tag imported">your data</span>
               ) : (

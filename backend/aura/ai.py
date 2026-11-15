@@ -67,7 +67,8 @@ value, their personal preflight baseline, the alert level (normal, warning or cr
 reasons for it, the 7-day trend, recent readings, an alert history, any notes they logged, and a \
 "forecast": straight-line trend projections of indicators that would cross their baseline edge or a \
 limit within two weeks if nothing changes. Use the forecast to suggest prevention, and call it a trend, \
-not a prediction.
+not a prediction. "radiation_budget" is the long-term dose picture against NASA's 600 mSv career limit and \
+the 30-day limit; mention it when its level is not normal.
 
 Rules:
 1. The alert levels come from AURA's rule engine and are authoritative. Never upgrade, downgrade \
@@ -188,8 +189,18 @@ def build_context(store: MissionStore, crew_id: str, day: int | None = None) -> 
         "indicators": indicators,
         "alert_history": [e for e in store.alert_timeline(crew_id) if e["day"] <= day][-12:],
         "forecast": _forecast_summary(store, crew_id, day),
+        "radiation_budget": _radiation_summary(store, crew_id, day),
         "notes": [n for n in store.notes.get(crew_id, []) if n["day"] <= day][-5:],
     }
+
+
+def _radiation_summary(store: MissionStore, crew_id: str, day: int) -> dict:
+    from .radiation import budget
+
+    b = budget(store, crew_id, day)
+    keys = ("level", "reasons", "career_mSv", "career_used_pct", "rate_mSv_day", "days_to_limit",
+            "projected_end_mSv", "window_30d_mSv")
+    return {k: b[k] for k in keys}
 
 
 def _forecast_summary(store: MissionStore, crew_id: str, day: int) -> list[dict]:

@@ -25,6 +25,7 @@ export const api = {
   status: (id, day) => request(`/api/crew/${id}/status${day ? `?day=${day}` : ''}`),
   telemetry: (id) => request(`/api/crew/${id}/telemetry`),
   forecast: (id, day) => request(`/api/crew/${id}/forecast${day ? `?day=${day}` : ''}`),
+  radiation: (id, day) => request(`/api/crew/${id}/radiation${day ? `?day=${day}` : ''}`),
   alerts: (id) => request(`/api/crew/${id}/alerts`),
   checkin: (id, body) =>
     request(`/api/crew/${id}/checkins`, { method: 'POST', body: JSON.stringify(body) }),

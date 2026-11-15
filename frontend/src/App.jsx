@@ -15,6 +15,7 @@ import CrewEditor from './components/CrewEditor.jsx'
 import IndicatorManager from './components/IndicatorManager.jsx'
 import AssistantWidget from './components/AssistantWidget.jsx'
 import CommsPanel from './components/CommsPanel.jsx'
+import RadiationPanel from './components/RadiationPanel.jsx'
 import ResearchPanel from './components/ResearchPanel.jsx'
 import DemoTour, { TOUR_STEPS } from './components/DemoTour.jsx'
 
@@ -29,6 +30,7 @@ export default function App() {
   const [alerts, setAlerts] = useState([])
   const [routine, setRoutine] = useState(null)
   const [forecast, setForecast] = useState(null)
+  const [radiation, setRadiation] = useState(null)
   const [askSignal, setAskSignal] = useState(0)
   const [groundDraft, setGroundDraft] = useState(null)
   const [system, setSystem] = useState(null)
@@ -55,14 +57,16 @@ export default function App() {
   const loadCrew = useCallback(async () => {
     if (!crewId) return
     try {
-      const [s, t, a, r, f] = await Promise.all([
+      const [s, t, a, r, f, rad] = await Promise.all([
         api.status(crewId, day),
         api.telemetry(crewId),
         api.alerts(crewId),
         api.tasks(crewId),
         api.forecast(crewId, day),
+        api.radiation(crewId, day),
       ])
       setForecast(f)
+      setRadiation(rad)
       setStatus(s)
       setTelemetry(t)
       setAlerts(a)
@@ -125,6 +129,7 @@ export default function App() {
       case 'open_research': scrollTo('#research'); break
       case 'start_tour': startTour(); break
       case 'message_ground': scrollTo('#comms'); break
+      case 'open_radiation': scrollTo('#radiation'); break
       default: break
     }
   }
@@ -240,6 +245,8 @@ export default function App() {
                   onClose={() => setSelected(null)}
                 />
               )}
+
+              <RadiationPanel budget={radiation} onOpenIndicator={(k) => { setSystem(null); setSelected(k); scrollTo('.detail') }} />
 
               <section className="bottom">
                 <div className="panel" id="checkin">
