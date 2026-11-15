@@ -57,9 +57,9 @@ reference ranges. They are **not** clinically validated flight-medicine limits.
 
 ```
 ┌──────────────────────────── Browser (React 19 + Vite + Recharts) ───────────────────────────┐
-│  Crew view: banner, body figure, indicator grid, charts, forecast, check-in (typed/voice),  │
-│  symptom log, plan, radiation, comms, routine, AI briefing, real NASA data                  │
-│  Team view (wellbeing) · Ground view (flight surgeon) · Ask AURA chat · guided demo tour    │
+│  Home + 12 hash-routed pages: status, check-in/symptoms, plan, radiation, message ground,   │
+│  alerts, routine, team, ground view, flight surgeon console (live ground), NASA data        │
+│  Ask AURA chat (voice in, voice out, auto-navigation) · guided demo tour · dark/light theme │
 └───────────────────────────────────────────┬─────────────────────────────────────────────────┘
                                             │  fetch /api/*  (Vite dev proxy → :8000)
 ┌───────────────────────────────────────────▼─────────────────────────────────────────────────┐
@@ -72,7 +72,8 @@ reference ranges. They are **not** clinically validated flight-medicine limits.
 │  custom.py (user-defined indicators)                                                        │
 │                                                                                             │
 │  Rule engines:  alerts · forecast · checks · symptoms · radiation · planner · wellbeing     │
-│                 gamification · comms · ground · voice                                       │
+│                 gamification · comms (simulated or live ground) · ground · voice            │
+│  Speech:        speech.py → Whisper (faster-whisper, on the CPU, no cloud)                  │
 │  Real data:     research.py  ← data/osdr/*.csv (NASA OSDR, Inspiration4)                     │
 │  AI:            ai.py (briefing, Q&A, research review) · assistant.py (Ask AURA)             │
 │                 → Claude API with structured output, or a deterministic offline fallback    │
@@ -90,7 +91,8 @@ reference ranges. They are **not** clinically validated flight-medicine limits.
 
 **State.** One `MissionStore` per process holds everything: crew, readings, baselines, check-ins,
 symptom logs, completed tasks, plan ticks, the comms outbox and Ask AURA memory. A
-`threading.Lock` guards reloads. Restarting the back end regenerates the mission from
+`threading.Lock` guards reloads. The comms outbox also holds the ground mode (`simulated` or
+`live`). Restarting the back end regenerates the mission from
 `AURA_SEED`. Custom indicator *definitions* are the one thing persisted, to
 `data/custom_indicators.json`.
 
@@ -101,7 +103,7 @@ symptom logs, completed tasks, plan ticks, the comms outbox and Ask AURA memory.
 ```
 backend/
   aura/
-    main.py          FastAPI app: routes, request models, wiring (≈630 lines)
+    main.py          FastAPI app: routes, request models, wiring (≈750 lines)
     indicators.py    Catalog of the 10 built-in indicators: limits, hazards, body system, refs
     alerts.py        Baseline + alert engine (levels, reasons, actions, trend, rollup)
     store.py         In-memory MissionStore; preflight and adaptive baselines
@@ -109,7 +111,7 @@ backend/
     forecast.py      Trend projection, 95% band, crossing range, related trends
     checks.py        Check-in plausibility checks and unit hints
     symptoms.py      Symptom catalog (17) and rule-based triage
-    comms.py         Signal-delay model and crew↔ground outbox
+    comms.py         Signal-delay model, crew↔ground outbox, live ground console (inbox, seen, reply)
     radiation.py     Career / 30-day / 1-year dose budget
     planner.py       Daily countermeasure plan
     wellbeing.py     Crew wellbeing score and trends
@@ -120,20 +122,24 @@ backend/
     custom.py        User-defined indicators
     research.py      NASA OSDR Inspiration4 lab parser and quality checks
     ai.py            Claude: daily briefing, Q&A, research review (+ offline fallbacks)
-    assistant.py     Ask AURA chat: answer, steps, validated actions, memory
-  tests/             pytest suite (134 tests)
-  requirements.txt   fastapi, uvicorn, pydantic, numpy, anthropic; pytest, httpx
+    assistant.py     Ask AURA chat: answer, steps, validated actions, memory, auto-navigation
+    speech.py        On-device speech-to-text for Ask AURA (Whisper via faster-whisper)
+  tests/             pytest suite (193 tests)
+  requirements.txt   fastapi, uvicorn, pydantic, numpy, anthropic, faster-whisper; pytest, httpx
   .env.example       ANTHROPIC_API_KEY placeholder
 frontend/
-  src/App.jsx        Top-level state, data loading, action routing
+  index.html         Fonts (Plus Jakarta Sans, JetBrains Mono) and the pre-paint theme script
+  src/App.jsx        Top-level state, data loading, hash routing, action routing
+  src/pages.js       Page list, menu groups, related links, PAGE_OF_TARGET
   src/api.js         Thin fetch wrapper, one method per endpoint
   src/levels.js      Level → label, icon, CSS class
-  src/components/    25 components (see §10)
-  src/styles.css     All styles (dark theme, CSS variables)
+  src/components/    28 components (see §10)
+  src/styles.css     All styles: dark space theme on :root, light overrides under [data-theme='light']
   vite.config.js     Dev server on :5173, proxies /api to :8000
 data/
   osdr/              4 NASA OSDR files, unchanged
   import_template.csv, synthetic_telemetry.csv, mission.json (exported demo data)
+Dockerfile, render.yaml  One-container hosted demo (builds the front end, bakes in the speech model)
 docs/                README companions: this file, DATA_SOURCES, DEMO_SCRIPT, TEST_CASES, screenshots
 ```
 
@@ -148,14 +154,22 @@ docs/                README companions: this file, DATA_SOURCES, DEMO_SCRIPT, TE
 cd backend
 python -m venv .venv && source .venv/bin/activate      # with conda: run `conda deactivate` first
 python -m pip install -r requirements.txt
-python -m pytest -q                                    # 134 passed
+python -m pytest -q                                    # 193 passed
 python -m uvicorn aura.main:app --reload --port 8000   # API docs at http://localhost:8000/docs
 
 # Front end (terminal 2)
 cd frontend
 npm install
 npm run dev                                            # http://localhost:5173
+                                                       # add `-- --host` to open it from a second device
 ```
+
+**First voice question.** The Whisper model (about 140 MB) downloads the first time Ask AURA is
+opened; `GET /api/speech/status` shows `loading`, then `ready`.
+
+**Hosted demo.** `docker build -t aura . && docker run -p 8000:8000 aura` serves the built front end
+and the API from one container on :8000. `render.yaml` deploys the same image to Render; set
+`ANTHROPIC_API_KEY` there to turn the AI on.
 
 **Turn on the AI (optional).** Either run `ant auth login` (the Anthropic CLI profile is picked
 up automatically), or put `ANTHROPIC_API_KEY=...` in `backend/.env`. Without credentials, every
@@ -171,6 +185,8 @@ AI feature uses its offline fallback, and `GET /api/ai/status` says so.
 | `AURA_CORS_ORIGINS` | Vite dev server | Comma-separated allowed origins |
 | `AURA_AI_MODEL` | `claude-opus-5-5` | Claude model for the AI features |
 | `ANTHROPIC_API_KEY` | none | API key (or use `ant auth login`) |
+| `AURA_WHISPER_MODEL` | `base.en` | Whisper model for on-device speech (`tiny.en` is lighter, `small.en` more accurate) |
+| `AURA_SPEECH` | `on` | `off` disables on-device speech; the front end falls back to browser speech |
 | `AURA_API_URL` | `http://localhost:8000` | Front end only: where Vite proxies `/api` |
 
 **Export the demo data:**
@@ -339,9 +355,21 @@ over the mission, at 8.317 light-minutes per AU (up to about 12.5 min one way).
 `2 × delay + 300 s` handling time (`GROUND_HANDLING_S`). A demo clock (`DEMO_SPEED = 60`) makes a
 12-minute wait take 12 seconds on screen, but the true delay is always shown.
 
-The ground reply is **simulated**: it is rule-based text built from the crew member's AURA
-status, and it is labelled as simulated. Replies are hidden until they "arrive". The ground view
-also sees crew messages only after their signal arrives.
+Who answers depends on the **ground mode** (`GET/PUT /api/comms/mode`):
+
+- **Simulated** (default): a rule-based reply built from the crew member's AURA status, labelled
+  as simulated, queued for `2 × delay + 300 s`.
+- **Live**: no reply is queued. A person on the **Flight surgeon console** (a second laptop or
+  phone) answers. `Outbox.inbox()` lists only messages whose signal has reached Earth, plus a count
+  still in transit. `mark_seen()` records `seen_at` when the console shows a message.
+  `reply()` creates a `from_ground` message (`simulated: False`) that arrives after one more
+  one-way delay. Answering or marking a message before it has reached Earth raises `ValueError`
+  (HTTP 409).
+
+Replies are hidden from the crew until they "arrive". The crew's **delivery status** ticks through
+Sent → Delivered to Earth → Seen by flight surgeon → Reply received. A live "seen" receipt also
+travels back, so the crew sees it at `seen_at + one-way delay`. The ground view sees crew messages
+only after their signal arrives.
 
 ### 7.4 Radiation dose budget (`radiation.py`)
 
@@ -395,21 +423,10 @@ protect sleep, shared meal). It is a prototype composite, not a psychological as
 - **Crew board:** ranks by points, highlights "you", and sets a shared crew goal: everyone logs
   their routine today.
 
-### 7.8a On-device speech for Ask AURA (`speech.py`)
-
-Spoken questions are recorded in the browser (MediaRecorder) and sent to AURA's own server, where
-OpenAI's open-source **Whisper** model (`base.en`, via faster-whisper on the CPU, int8) turns them
-into text. No cloud speech service is involved, so it works with no link to Earth and in every
-browser. The browser stops recording after about 1.5 s of silence (30 s cap). Audio is decoded
-with PyAV to 16 kHz mono; a short vocabulary prompt helps with words like SpO2 and paracetamol.
-The model loads once, in the background, when Ask AURA is first opened. If faster-whisper is not
-installed, the model can't load, or `AURA_SPEECH=off`, the front end falls back to the browser's
-Web Speech API. The Docker image bakes the model in at build time.
-
 ### 7.8 Voice check-in (`voice.py`)
 
 The browser turns speech into text with the Web Speech API (Chrome and Safari). People can also
-type the sentence. `parse(text)`:
+type the sentence. (Ask AURA uses the on-device model instead, see §7.12.) `parse(text)`:
 
 1. `words_to_numbers()` turns "sixty two point five" into 62.5 and "a hundred and eighteen" into
    118.
@@ -469,6 +486,21 @@ return).
   gives the preflight mean, the R+1 value, the % change, the latest value, out-of-range
   timepoints and all values.
 
+### 7.12 On-device speech for Ask AURA (`speech.py`)
+
+Spoken questions are recorded in the browser (MediaRecorder) and sent to AURA's own server, where
+OpenAI's open-source **Whisper** model (`base.en`, via faster-whisper on the CPU, int8) turns them
+into text. No cloud speech service is involved, so it works with no link to Earth and in every
+browser. The browser stops recording after about 1.5 s of silence (30 s cap). Audio is decoded
+with PyAV to 16 kHz mono; a short vocabulary prompt helps with words like SpO2 and paracetamol.
+The model loads once, in the background, when Ask AURA is first opened. If faster-whisper is not
+installed, the model can't load, or `AURA_SPEECH=off`, the front end falls back to the browser's
+Web Speech API. The Docker image bakes the model in at build time.
+
+Ask AURA reads answers aloud with the browser's `speechSynthesis` (the answer, then "Step N." for
+each step). Questions asked by voice are answered by voice unless the 🔊 toggle is off
+(`localStorage` key `aura-voice-replies`).
+
 ---
 
 ## 8. AI layer
@@ -515,10 +547,18 @@ return).
   memory notes.
 - **Actions:** the model can only choose from a fixed set of action types, which `_clean()`
   validates. Targets must exist, so the model can't invent a target. The action types cover
-  opening an indicator, check-in, symptoms, radiation, plan, team, ground or the crew editor;
+  opening any page (`open_page`, including the console), an indicator, check-in, symptoms, radiation,
+plan, team, ground or the crew editor;
   jumping to a day; drafting a message to ground; pre-filling a symptom; and remembering a note.
 - **Memory:** "remember that…" saves a note (`GET/POST/DELETE /api/memory`). Notes are included
   in later context and survive a mission reset.
+- **Auto-navigation:** when the question asks to go somewhere ("take me to Ground view", "open the
+  console", "show me Amara"), `auto_action()` returns the index of the first view-only action
+  (`NAV_ACTIONS`: open a page, indicator, crew member, day…). The front end runs it at once and
+  shows "✓ Opened: …" instead of a button. "How/why/what…" questions never auto-run, and actions that
+  change data (remember, draft a message, log a symptom) always need a click. The response carries
+  it as `auto_action` next to `reply`, so the AI's output schema is unchanged.
+- **Voice:** questions can be spoken (on-device Whisper, §7.12) and answers read aloud.
 - **Offline order:** red-flag words come first (escalate), then "remember…", then "show me day
   N", then the FAQ patterns.
 
@@ -627,7 +667,8 @@ curl -s -X POST localhost:8000/api/checkins/parse -H 'content-type: application/
 
 ## 10. Front end
 
-**Stack:** React 19, Vite 8, Recharts 3. There is no router and no state library. `App.jsx`
+**Stack:** React 19, Vite 8, Recharts 3. There is no router library (a small hash router in `App.jsx`)
+and no state library. `App.jsx`
 holds the state and passes props and callbacks down.
 
 **Data flow.** `App.jsx` loads the mission, catalog and crew on start. When the selected crew
@@ -640,15 +681,26 @@ tour or a button, to UI state: open a panel, scroll, select a day or indicator, 
 menu of feature cards). Every feature has its own page, reached from the menu bar or the cards, with a URL
 hash route so the browser's back button works: `#/home`, `#/status` (banner, AI briefing and forecast, body
 figure, indicators, detail), `#/checkin` (check-in and symptom log), `#/plan`, `#/radiation`, `#/comms`,
-`#/timeline`, `#/routine`, `#/team`, `#/ground`, `#/research`. `pages.js` defines the pages, their menu
+`#/timeline`, `#/routine`, `#/team`, `#/ground`, `#/console`, `#/research`. `pages.js` defines the pages, their menu
 groups and their `related` links (shown at the bottom of each page), and `PAGE_OF_TARGET`, which tells the
 demo tour and Ask AURA which page holds an element. The crew picker and mission replay stay in the sidebar,
 and the status banner is shown on every crew page. Ask AURA's `open_page` action (validated against the page
-list) moves the user between pages; offline it understands "take me to radiation" or "show me Amara".
+list) moves the user between pages, and runs by itself when the user asks to go somewhere (§8.4).
+
+**Look and layout.** A dark space theme by default (navy `#020617` background, cyan accent, glass
+header), with a light theme under `:root[data-theme='light']`. The ☀ Light / ☾ Dark button stores the
+choice in `localStorage` (`aura-theme-v2`), and an inline script in `index.html` applies it before the
+first paint. Content sits in a centred 1280 px column under a full-width sticky header (brand and
+mission controls, then the centred page menu). The home page is one centred column: badge, title,
+gradient tagline, buttons, a check row, then the mission card as a console window. Page titles and
+section headings are centred. On phones the header is static and the layout stacks. Both themes
+pass an axe WCAG 2 AA audit on every page.
 
 | Component | Role |
 | --- | --- |
-| `Header`, `CrewList`, `DayScrubber` | Mission, environment, view switch, crew picker, replay slider |
+| `Header`, `NavBar` | Glass header: brand, mission, environment, day, demo tour, reset, theme switch; centred page menu |
+| `Landing` | Centred home page: hero, mission at a glance, feature cards by group |
+| `CrewList`, `DayScrubber` | Crew picker and mission replay slider (sidebar) |
 | `StatusBanner` | Overall level, reasons, Message ground and Report buttons |
 | `BodyFigure` | Clickable body coloured per body system |
 | `IndicatorGrid`, `IndicatorDetail`, `TrendChart` | Cards, detail with related trends, chart with baseline band, limits and 95% projection band |
@@ -658,14 +710,15 @@ list) moves the user between pages; offline it understands "take me to radiation
 | `SymptomLog` | Chips by body area, severity sliders, triage |
 | `PlanPanel` | Today's plan with reasons and ticks |
 | `RadiationPanel` | Dose budget chart and projection |
-| `CommsPanel` | Signal delay, countdown, thread |
+| `CommsPanel` | Signal delay, countdown, thread, delivery status (Sent → Delivered → Seen → Reply), live/simulated pill |
+| `GroundConsole` | Flight surgeon console: simulated/live switch, inbox polled every 2 s, seen receipts, replies |
 | `MissionRoutine` | Tasks, streaks, challenges, crew board, badges |
 | `AIPanel` | AI briefing and Q&A |
 | `TeamView` | Wellbeing scores and trends |
 | `GroundView` | Flight-surgeon overview |
 | `ResearchPanel`, `ResearchReview` | Real Inspiration4 data (4 panels) and the AI review |
 | `CrewEditor`, `IndicatorManager` | Edit crew, add or remove custom indicators, CSV import |
-| `AssistantWidget` | Floating Ask AURA chat with memory panel |
+| `AssistantWidget` | Floating Ask AURA chat: memory panel, 🎙 voice input (Whisper, browser fallback), spoken answers, auto-navigation |
 | `DemoTour` | 19-step guided tour |
 
 **Notes for contributors**
@@ -673,40 +726,50 @@ list) moves the user between pages; offline it understands "take me to radiation
 - `api.js` has one method per endpoint. Errors throw an `Error` with the server's `detail`.
 - Recharts 3 freezes chart data. Copy objects before changing them, or you'll get "Cannot
   assign to read only property".
-- The chat history is kept in `localStorage` (`aura-chat-v1`). Everything else is server state.
-- `npm run build` writes `frontend/dist/`. Serve it with any static host that proxies `/api`.
+- Browser storage holds only per-viewer conveniences: chat history (`aura-chat-v1`), theme
+  (`aura-theme-v2`), voice replies (`aura-voice-replies`) and the console's signature
+  (`aura-console-author`). Everything else is server state.
+- `npm run build` writes `frontend/dist/`. FastAPI serves it in the Docker image, or use any static
+  host that proxies `/api`.
 
 ---
 
 ## 11. Testing
 
 ```bash
-cd backend && python -m pytest -q      # 134 passed in about 5 s
+cd backend && python -m pytest -q      # 193 passed in about 11 s
 ```
 
 | File | Tests | Covers |
 | --- | --- | --- |
+| `test_custom_data.py` | 35 | Real-world CSV formats, unit conversions, dates to mission days, messy-file errors, sample imports |
+| `test_api.py` | 15 | End-to-end endpoints, validation errors, replay |
+| `test_assistant.py` | 14 | Action validation, offline FAQ, red-flag escalation, memory, auto-navigation |
 | `test_alerts.py` | 11 | Every alert rule, precedence, edge cases |
-| `test_api.py` | 14 | End-to-end endpoints, validation errors, replay |
+| `test_import.py` | 11 | Both CSV layouts, validation |
 | `test_ai.py` | 10 | Briefing, Q&A and review with a **mocked Claude API**; offline fallbacks |
-| `test_research.py` | 10 | OSDR parsing, units, CBC and assay-limit checks, cytokines, endpoints |
+| `test_research.py` | 10 | OSDR parsing, units, CBC and assay-limit checks, endpoints |
+| `test_research_new_data.py` | 8 | Added OSDR panels (serum proteins, urine), dropped-in files, unreadable files |
 | `test_gamification.py` | 8 | Tasks, streaks, badges, challenges, crew board |
 | `test_symptoms.py` | 8 | Triage rules, persistence, red flags |
-| `test_assistant.py` | 7 | Action validation, offline FAQ, red-flag escalation, memory |
+| `test_comms.py` | 7 | Delay model, outbox timing, live ground console (inbox, seen, reply, mode API) |
+| `test_custom.py` | 7 | Custom indicator lifecycle |
+| `test_speech.py` | 6 | Transcribe endpoint with a stand-in model, real webm/mp4 decoding, fallbacks |
 | `test_forecast.py` | 6 | Crossings, 95% band, related trends |
 | `test_radiation.py` | 6 | Budget, warnings, projection |
-| `test_import.py` | 6 | Both CSV layouts, validation |
 | `test_simulator.py` | 6 | Determinism, scenarios |
-| `test_comms.py` | 5 | Delay model, outbox timing |
 | `test_ground.py` | 5 | Priority sorting, report escaping |
 | `test_planner.py` | 5 | Plan adaptations and reasons |
 | `test_adaptive.py` | 4 | Adaptive baseline window and clamp |
 | `test_checks.py` | 4 | Errors, unit hints, warnings |
-| `test_custom.py` | 4 | Custom indicator lifecycle |
 | `test_voice.py` | 4 | Number words, patterns, symptoms |
 | `test_wellbeing.py` | 3 | Score, bands, suggestions |
 
-That's 126 test functions; parametrised cases bring the total to 134. Tests never call the real
+193 tests in total, counting parametrised cases. Tests never call the real Claude API or download the
+speech model. The front end was checked in a real browser with Playwright: the 19-step tour, an axe
+audit of every page in both themes, phone width, the message status, voice input and talk-back, and a
+two-browser run of the live ground console. Manual end-to-end steps are in
+[TEST_CASES.md](TEST_CASES.md).
 API. Manual end-to-end steps are in [TEST_CASES.md](TEST_CASES.md) (sections A–K).
 
 ---
@@ -719,7 +782,10 @@ API. Manual end-to-end steps are in [TEST_CASES.md](TEST_CASES.md) (sections A�
   reproduces documented directions of change, not real people.
 - **Inspiration4 is small and short:** 4 people, 3 days in orbit, and no control group. Cytokines
   vary a lot between people and days.
-- **Simulated ground link.** Ground replies are rule-based placeholders.
+- **No real ground link.** Ground replies are either rule-based placeholders or typed by a person on
+  the Flight surgeon console. The delay is real; the radio link is not.
+- **Speech.** The Whisper model is English-only (`base.en`) and needs a few hundred MB of memory. On a
+  very small server, set `AURA_WHISPER_MODEL=tiny.en` or `AURA_SPEECH=off`.
 - **No authentication and no persistence.** Anyone who can reach the server can read and write.
   Data resets on restart. Swapping `MissionStore` for SQLite and adding sign-in are the natural
   next steps.
@@ -738,6 +804,8 @@ API. Manual end-to-end steps are in [TEST_CASES.md](TEST_CASES.md) (sections A�
 | A health scenario | Write `_scenario_x(day, days) -> {indicator: offset}` in `simulator.py` and register it in `SCENARIOS` |
 | An OSDR dataset | Put the TRANSFORMED CSV in `data/osdr/`, add a `DATASETS` entry in `research.py` (`ranges: False` if it has no lab range), optionally add `ANALYTE_INFO` text, and add a label in `ResearchPanel.jsx` |
 | A symptom | Add a `Symptom` to `CATALOG` in `symptoms.py` with its flags and related indicators |
-| An Ask AURA action | Add the type to `AssistantAction` and `_clean()` in `assistant.py`, describe it in `APP_GUIDE`, and handle it in `App.jsx` `handleAction()` |
+| An Ask AURA action | Add the type to `AssistantAction` and `_clean()` in `assistant.py`, describe it in `APP_GUIDE`, and handle it in `App.jsx` `handleAction()`. If it only moves the view, add it to `NAV_ACTIONS` so it can auto-run |
+| A page | Add it to `PAGES` in `pages.js` and `NavBar.jsx`, render it in `App.jsx`, and add it to `PAGES` in `assistant.py` so Ask AURA can open it |
+| A language for voice | Set `AURA_WHISPER_MODEL` to a multilingual model (e.g. `base`) and drop `language="en"` in `speech.py` |
 | A badge or challenge | Add a `_badge(...)` in `mission_tasks()` or an entry in `weekly_challenges()` in `gamification.py` |
 | Persistence | Implement the `MissionStore` query methods over SQLite; routes don't need to change |
