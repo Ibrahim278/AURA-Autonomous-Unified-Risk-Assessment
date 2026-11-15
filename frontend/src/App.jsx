@@ -14,6 +14,7 @@ import MissionRoutine from './components/MissionRoutine.jsx'
 import CrewEditor from './components/CrewEditor.jsx'
 import IndicatorManager from './components/IndicatorManager.jsx'
 import AssistantWidget from './components/AssistantWidget.jsx'
+import CommsPanel from './components/CommsPanel.jsx'
 import ResearchPanel from './components/ResearchPanel.jsx'
 import DemoTour, { TOUR_STEPS } from './components/DemoTour.jsx'
 
@@ -29,6 +30,7 @@ export default function App() {
   const [routine, setRoutine] = useState(null)
   const [forecast, setForecast] = useState(null)
   const [askSignal, setAskSignal] = useState(0)
+  const [groundDraft, setGroundDraft] = useState(null)
   const [system, setSystem] = useState(null)
   const [selected, setSelected] = useState(null)
   const [error, setError] = useState(null)
@@ -122,6 +124,7 @@ export default function App() {
       case 'add_indicator': setManagingIndicators(true); break
       case 'open_research': scrollTo('#research'); break
       case 'start_tour': startTour(); break
+      case 'message_ground': scrollTo('#comms'); break
       default: break
     }
   }
@@ -166,6 +169,11 @@ export default function App() {
               onChange={(d) => setDay(d >= mission.current_day ? null : d)}
             />
           )}
+          {member && (
+            <div className="panel-lite">
+              <CommsPanel key={`${crewId}-${mission?.environment}-${mission?.current_day}`} crewId={crewId} member={member} live={day === null} prefill={groundDraft} />
+            </div>
+          )}
           <div className="panel-lite">
             <MissionRoutine
               crewId={crewId}
@@ -183,7 +191,11 @@ export default function App() {
           {error && <div className="toast error">{error}</div>}
           {status && member && (
             <>
-              <StatusBanner member={member} status={status} live={day === null} />
+              <StatusBanner member={member} status={status} live={day === null} onMessageGround={() => {
+                const flagged = status.indicators.filter((i) => i.level === 'critical').map((i) => `${i.name} ${i.value} ${i.unit}`)
+                setGroundDraft({ urgent: true, text: `AURA flagged critical readings: ${flagged.join(', ')}. Requesting flight surgeon review.`, n: Date.now() })
+                scrollTo('#comms')
+              }} />
               <AIPanel
                 key={`${crewId}-${shownDay}`}
                 crewId={crewId}

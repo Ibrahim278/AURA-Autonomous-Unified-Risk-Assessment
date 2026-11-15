@@ -430,3 +430,28 @@ button:disabled { opacity: 0.6; cursor: default; }
 .assistant-fab.pulse { animation: fabpulse 1.4s ease-in-out infinite; }
 @keyframes fabpulse { 50% { box-shadow: 0 0 0 8px #8b5cf655, 0 0 40px #8b5cf6aa; transform: scale(1.05); } }
 .chip.next-day { cursor: pointer; border-color: var(--accent); color: var(--accent); font-weight: 600; }
+
+/* ---------- ground comms ---------- */
+.comms .panel-head { display: flex; justify-content: space-between; align-items: center; }
+.comms h2 { margin: 0; }
+.pill-warn { border-color: var(--warning); color: var(--warning); font-size: 0.7rem; padding: 3px 9px; }
+.pill-ok { border-color: var(--normal); color: var(--normal); font-size: 0.7rem; padding: 3px 9px; }
+.link-delay { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 10px; margin: 10px 0 6px; font-size: 0.9rem; }
+.link-delay p { grid-column: 1 / -1; margin: 2px 0 0; font-size: 0.75rem; }
+.msg-log { list-style: none; margin: 8px 0; padding: 0; display: flex; flex-direction: column; gap: 8px; max-height: 320px; overflow-y: auto; }
+.msg { padding: 8px 10px; border-radius: 10px; font-size: 0.8rem; border: 1px solid var(--border); }
+.msg.to-ground { background: color-mix(in srgb, #0ea5e9 12%, transparent); margin-left: 14px; }
+.msg.from-ground { background: var(--panel2); margin-right: 14px; }
+.msg-head { font-weight: 700; font-size: 0.75rem; display: flex; gap: 6px; align-items: center; margin-bottom: 3px; }
+.msg-text { white-space: pre-line; }
+.msg .packet, .msg .delivered, .msg .sim { font-size: 0.7rem; margin-top: 4px; }
+.transit { margin-top: 6px; font-size: 0.7rem; }
+.transit-bar { height: 4px; border-radius: 4px; background: var(--border); overflow: hidden; margin-bottom: 3px; }
+.transit-bar span { display: block; height: 100%; background: linear-gradient(90deg, #0ea5e9, #8b5cf6); transition: width 0.9s linear; }
+.comms textarea { width: 100%; box-sizing: border-box; background: var(--bg); color: var(--text); border: 1px solid var(--border); border-radius: 8px; padding: 8px; font: inherit; font-size: 0.85rem; resize: vertical; }
+.comms fieldset { border: 0; padding: 0; margin: 0; }
+.comms-opts { display: flex; gap: 10px; align-items: center; font-size: 0.75rem; margin-top: 6px; flex-wrap: wrap; }
+.comms-opts .primary { margin-left: auto; padding: 6px 14px; }
+.escalate { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.escalate .chip { color: var(--text); }
+.comms .pill { white-space: nowrap; }

@@ -6,7 +6,7 @@ const MESSAGE = {
   critical: 'A critical condition has been detected. Follow the actions and contact the flight surgeon now.',
 }
 
-export default function StatusBanner({ member, status, live }) {
+export default function StatusBanner({ member, status, live, onMessageGround }) {
   const lvl = LEVEL[status.overall]
   return (
     <section className={`banner ${lvl.cls}`} role={status.escalate ? 'alert' : 'status'}>
@@ -25,7 +25,10 @@ export default function StatusBanner({ member, status, live }) {
         <span className="count lvl-critical">{status.counts.critical} critical</span>
       </div>
       {status.escalate && (
-        <div className="escalate">📡 Escalate to flight surgeon: critical readings need ground review.</div>
+        <div className="escalate">
+          <span>📡 Escalate to flight surgeon: critical readings need ground review.</span>
+          {live && onMessageGround && <button className="chip" onClick={onMessageGround}>Message ground now →</button>}
+        </div>
       )}
     </section>
   )

@@ -19,9 +19,11 @@ from datetime import date
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.responses import PlainTextResponse
 from fastapi.middleware.cors import CORSMiddleware
+from typing import Literal
+
 from pydantic import BaseModel, Field
 
-from . import __version__, ai, assistant, custom, forecast, gamification, importer, research
+from . import __version__, ai, assistant, comms, custom, forecast, gamification, importer, research
 from .indicators import INDICATORS, Hazard
 from .simulator import (DEFAULT_CREW_SPECS, DEFAULTS, EDITABLE_BASELINES, ENVIRONMENTS, SCENARIOS,
                         generate, imported_records, make_member)
@@ -55,6 +57,7 @@ app.add_middleware(
 
 custom.load_saved()
 store = MissionStore.from_config(**_config())
+outbox = comms.Outbox()
 
 
 def _crew_or_404(crew_id: str):
@@ -104,6 +107,12 @@ class CrewImport(BaseModel):
     csv: str = Field(..., min_length=1, max_length=2_000_000, description="CSV text (see /api/crew/import/template)")
 
 
+class GroundMessage(BaseModel):
+    text: str = Field(..., min_length=1, max_length=2000)
+    priority: Literal["routine", "urgent"] = "routine"
+    attach_status: bool = Field(True, description="Attach today's AURA status packet")
+
+
 class ResetRequest(BaseModel):
     environment: str = Field("lunar_surface", description=f"One of {sorted(ENVIRONMENTS)}")
     days: int = Field(60, ge=10, le=365)
@@ -133,6 +142,7 @@ def reset(req: ResetRequest):
         raise HTTPException(422, f"environment must be one of {sorted(ENVIRONMENTS)}")
     store.load(generate(days=req.days, environment=req.environment, seed=req.seed,
                         crew=list(store.dataset.crew)))
+    outbox.clear()
     return mission()
 
 
@@ -284,6 +294,36 @@ def crew_checkin(crew_id: str, body: CheckIn):
     except (ValueError, UnknownCrewError) as exc:
         raise HTTPException(422, str(exc)) from exc
     return store.status(crew_id, day)
+
+
+# ---------------------------------------------------------------- ground comms
+@app.get("/api/comms", tags=["comms"])
+def comms_link(day: int | None = Query(None, ge=1)):
+    """Signal delay to Earth for this environment and mission day."""
+    return _link(day)
+
+
+def _link(day: int | None = None) -> dict:
+    return comms.link_status(store.dataset.environment, day or store.current_day, store.dataset.days)
+
+
+@app.get("/api/crew/{crew_id}/messages", tags=["comms"])
+def crew_messages(crew_id: str):
+    """Messages to and from ground. Replies show as pending until their signal arrives."""
+    _crew_or_404(crew_id)
+    return {"link": _link(), "messages": outbox.thread(crew_id)}
+
+
+@app.post("/api/crew/{crew_id}/messages", tags=["comms"], status_code=201)
+def send_message(crew_id: str, body: GroundMessage):
+    """Send a message to ground. It arrives after the one-way delay; a SIMULATED flight-surgeon
+    reply comes back after the round trip (shortened by the demo clock)."""
+    member = _crew_or_404(crew_id)
+    status = store.status(crew_id)
+    link = _link()
+    outbox.send(crew_id, member.name, body.text, body.priority, store.current_day, link,
+                status if body.attach_status else None)
+    return {"link": link, "messages": outbox.thread(crew_id)}
 
 
 # ---------------------------------------------------------------- AI flight surgeon
