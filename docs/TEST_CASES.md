@@ -15,7 +15,7 @@ base". This regenerates the mission and clears check-ins. Restarting the back en
 
 | # | Do | Expected |
 | --- | --- | --- |
-| A1 | `cd backend && python -m pytest` | `107 passed` and no failures |
+| A1 | `cd backend && python -m pytest` | `131 passed` and no failures |
 | A2 | `cd frontend && npm run build` | `✓ built in …` and no errors |
 
 ## B. Back end smoke tests (terminal)
@@ -28,7 +28,7 @@ Run these while the back end is up. `curl` is built into macOS.
 | B2 | `curl localhost:8000/api/crew` | 3 crew: Ortiz **normal**, Sato **warning**, Diallo **critical** |
 | B3 | `curl localhost:8000/api/crew/aura-3/status` | `body_temp` 39.4 is **critical**, and `"escalate": true` |
 | B4 | `curl "localhost:8000/api/crew/aura-2/forecast?day=48"` | `risks` starts with `heart_rate`, crossing in ~1 day |
-| B5 | `curl -X POST localhost:8000/api/crew/aura-1/checkins -H 'content-type: application/json' -d '{"values":{"heart_rate":900}}'` | Rejected: `heart_rate=900.0 is outside the plausible range 30 to 200` |
+| B5 | `curl -X POST localhost:8000/api/crew/aura-1/checkins -H 'content-type: application/json' -d '{"values":{"heart_rate":900}}'` | Rejected: `Resting heart rate 900 bpm is outside the plausible range 30 to 200.` |
 | B6 | `curl localhost:8000/api/research/cmp` | Crew `C001`–`C004` and 19 analytes |
 | B7 | `curl localhost:8000/api/ai/status` | `"enabled": true` if you're logged in with `ant auth login`, else `false` |
 | B8 | Open http://localhost:8000/docs | The interactive API docs list every endpoint |
@@ -51,7 +51,7 @@ Run these while the back end is up. `curl` is built into macOS.
 | # | Do | Expected |
 | --- | --- | --- |
 | D1 | Select **Ortiz** (Live), enter Body temperature **39.5**, click **Log check-in** | "Saved for day 60. Overall status: critical." Ortiz's banner turns red and her card shows a "manual" tag |
-| D2 | Enter Heart rate **900** and log | Error: outside the plausible range 30 to 200. Nothing is saved |
+| D2 | Enter Heart rate **900** and log | Error: "Resting heart rate 900 bpm is outside the plausible range 30 to 200." Nothing is saved |
 | D3 | Drag replay to a past day | The check-in form is disabled ("Return to live to log readings") |
 | D4 | Back on Live, log blood pressure, temperature, glucose and mood | **Mission routine** ticks "Morning vitals", "Fasting glucose" and "Mood check-in", and points go up |
 | D5 | Tick a wellness task (e.g. "Hydrate") | It's checked and +10 points |
@@ -126,6 +126,21 @@ Run these while the back end is up. `curl` is built into macOS.
 | J12 | **🖨 Crew report** (or **🖨 Report** on a card or the status banner) | A printable report opens in a new tab; **Print / Save as PDF** works |
 | J13 | Sato, replay day 48, open the heart-rate forecast row | Chart shows a shaded 95% range around the dashed projection; "Moving together: Mood (self-report) · opposite directions" |
 | J14 | Diallo, Live, open **Resting heart rate** | "Moving together" lists **Body temperature** first (same direction, r ≈ 0.95) |
+
+## K. Check-in checks, planner, team, memory, voice and challenges
+
+| # | Do this | Expect |
+| --- | --- | --- |
+| K1 | Check-in: Body temperature **98.6** and log | Blocked with "looks like °F … did you mean 37.0 °C?" and a **Use 37.0** button |
+| K2 | Check-in: Heart rate **95** for Ortiz and log | Amber "Please confirm" (far from baseline); **Save anyway** logs it |
+| K3 | Alert timeline: filter **Critical** only, then a body system | Only matching rows; the count updates |
+| K4 | Open **Today's plan** for Sato on day 48 | Some blocks marked "adjusted" with a "Why:" line; ticking a block keeps it ticked |
+| K5 | Indicator grid: switch baseline to **In-flight** | Some long-running warnings return to normal; indicator detail says "in-flight baseline" |
+| K6 | Header: **Team** | Crew score ring, three member cards with drivers, mood and sleep charts, suggestions |
+| K7 | Ask AURA: "remember I get headaches after exercise", then open 🧠 | The note is listed and can be deleted; later answers can use it |
+| K8 | Ask AURA: "show me day 30" | Replay jumps to day 30 |
+| K9 | Check-in: 🎙 type or say "pulse sixty two, slept six and a half hours, mild headache" | Heart rate 62 and sleep 6.5 filled; Headache offered for the symptom log |
+| K10 | Mission routine | Week challenges with progress bars; 👥 Crew board shows ranks, "(you)" and the crew goal; 11 badges |
 
 ## I. Edge cases worth a look
 
