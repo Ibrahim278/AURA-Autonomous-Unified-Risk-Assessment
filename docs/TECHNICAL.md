@@ -649,7 +649,7 @@ list) moves the user between pages; offline it understands "take me to radiation
 | `ResearchPanel`, `ResearchReview` | Real Inspiration4 data (4 panels) and the AI review |
 | `CrewEditor`, `IndicatorManager` | Edit crew, add or remove custom indicators, CSV import |
 | `AssistantWidget` | Floating Ask AURA chat with memory panel |
-| `DemoTour` | 17-step guided tour |
+| `DemoTour` | 19-step guided tour |
 
 **Notes for contributors**
 

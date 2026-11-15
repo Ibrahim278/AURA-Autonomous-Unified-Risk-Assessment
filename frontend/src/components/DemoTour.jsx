@@ -31,13 +31,18 @@ export const TOUR_STEPS = [
     crew: 'aura-2', day: null, indicator: null, target: '.ai-panel',
   },
   {
+    title: 'His day, adjusted',
+    text: 'The Daily plan page turns Kenji’s alerts into today’s schedule: 7 changes, each with its reason. Steady cycling instead of intervals for his heart rate, a short ride after lunch for glucose, morning bright light and a longer fixed sleep window, and a private call home for his mood. Tick each block off as he does it.',
+    crew: 'aura-2', day: null, indicator: null, target: '#plan',
+  },
+  {
     title: 'Critical: escalate to ground',
     text: 'Mission Specialist Amara Diallo has a fever of 39.4 °C from viral reactivation. The body figure flags the immune system, and AURA tells her to contact the flight surgeon now.',
     crew: 'aura-3', day: null, indicator: 'body_temp', target: '.banner',
   },
   {
     title: 'Symptoms tell the rest',
-    text: 'Numbers miss what she feels. Amara logged chills and growing tiredness in the symptom log. AURA triages it with fixed rules: chills need follow-up, and tiredness on 3 of the last 5 days is persistent. Red flags like chest pain always mean “contact the flight surgeon now”. Each symptom links to the readings worth checking.',
+    text: 'Numbers miss what she feels. Amara logged chills and growing tiredness in the symptom log. AURA triages it with fixed rules: chills need follow-up, and tiredness on 3 of the last 5 days is persistent. Red flags like chest pain always mean “contact the flight surgeon now”. Each symptom links to the readings worth checking. Readings can be logged by voice too: press 🎙 Speak and say “temperature 38.9, heart rate 80”, and AURA fills the form and checks the values are plausible.',
     crew: 'aura-3', day: null, indicator: null, target: '#symptoms',
   },
   {
@@ -53,11 +58,16 @@ export const TOUR_STEPS = [
   {
     title: 'The flight surgeon’s view',
     text: 'This is the 🛰 Ground view page (in the menu bar): the whole crew on one screen, sorted by who needs attention first (the worst of telemetry, symptoms and radiation), with messages shown only once their signal has arrived. 🖨 Report opens a printable health report you can save as PDF.',
-    crew: 'aura-3', day: null, indicator: null, target: '#ground', view: 'ground',
+    crew: 'aura-3', day: null, indicator: null, target: '#ground',
+  },
+  {
+    title: 'Is the team OK?',
+    text: 'Team wellbeing scores each person and the crew from mood, sleep, symptoms and exercise, all against their own baselines. The crew is at 54 (“support”): Kenji is lowest because mood and sleep are far below his normal. AURA suggests team actions, and the ground sees the same score.',
+    crew: 'aura-2', day: null, indicator: null, target: '#team',
   },
   {
     title: 'Daily routine, gamified',
-    text: 'Tasks, streaks, points and badges reward measuring regularly and following up on warnings. Log a check-in to tick tasks off, and watch the status update live.',
+    text: 'Tasks, streaks, points and badges reward measuring regularly and following up on warnings. Weekly challenges and the 👥 crew board turn it into a team effort. Log a check-in to tick tasks off, and watch the status update live.',
     crew: 'aura-2', day: null, indicator: null, target: '.routine',
   },
   {
@@ -66,14 +76,14 @@ export const TOUR_STEPS = [
     crew: 'aura-2', day: null, indicator: null, target: '#research', research: { dataset: 'cmp', key: 'glucose' },
   },
   {
+    title: 'Immune signals from real flight',
+    text: 'The immune and cardiac panels add 80 cytokines and proteins from the same crew. Here IL-6, an inflammation signal, was higher the day after landing than 3 days before launch for all four. These research assays have no clinical range, so AURA compares each person with their own preflight values, and its quality check excludes readings stuck at the assay’s limit (here, 4 IFN-α2 values of exactly 120.88).',
+    crew: 'aura-2', day: null, indicator: null, target: '#research', research: { dataset: 'immune', key: 'il_6' },
+  },
+  {
     title: 'AI review of real bloodwork',
     text: 'White cells fell from launch to landing for all four. Pick a crew member and click Review: Claude compares their markers with their own preflight average and the lab ranges, then suggests what to monitor next flight. AURA’s quality check also caught a misaligned row in the published file and left it out.',
     crew: 'aura-2', day: null, indicator: null, target: '#research-review', research: { dataset: 'cbc', key: 'white_blood_cell_count', crew: 'C003' },
-  },
-  {
-    title: 'Your crew, your data',
-    text: 'Use ✎ Edit to add or change crew members, their baselines and a health scenario; the AI isn’t told the scenario, so it has to find the pattern. Use ⬆ Import to upload your own CSV and see AURA assess you.',
-    crew: 'aura-2', day: null, indicator: null, target: '.crew-list',
   },
   {
     title: 'Ask AURA anything',
@@ -82,7 +92,7 @@ export const TOUR_STEPS = [
   },
   {
     title: 'Built on NASA research',
-    text: 'Indicators map to NASA’s five hazards of human spaceflight, and every threshold cites its source. Demo telemetry is synthetic and clearly labelled. Switch to ISS or Mars transit in the header.',
+    text: 'Indicators map to NASA’s five hazards of human spaceflight, and every threshold cites its source. Demo telemetry is synthetic and clearly labelled. Switch to ISS or Mars transit in the header, and use ✎ Edit or ⬆ Import on the home page to try your own crew and readings.',
     crew: 'aura-2', day: null, indicator: 'radiation_dose', target: '.detail',
   },
 ]

@@ -101,7 +101,7 @@ Run these while the back end is up. `curl` is built into macOS.
 
 | # | Do | Expected |
 | --- | --- | --- |
-| H1 | Click **▶ Demo tour** | 17 steps. Each step switches crew/day and scrolls to the right place |
+| H1 | Click **▶ Demo tour** | 19 steps. Each step switches crew/day and scrolls to the right place |
 | H2 | During the tour | The tour card sits above the **✦ Ask AURA** button; both are visible |
 | H3 | At step 16 ("Ask AURA anything") | The Ask AURA button pulses |
 | H4 | Open Ask AURA during the tour, then minimise it (—) | The tour card hides while the chat is open and comes back after |

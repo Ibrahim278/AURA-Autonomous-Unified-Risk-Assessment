@@ -203,6 +203,16 @@ export default function App() {
         setDay(null)
         setSelected(null)
         await refreshAll()
+      }} onRestart={async () => {
+        // Put the demo back exactly as it ships: default crew, preflight baselines, lunar base, day 60.
+        const o = await api.crewOptions()
+        await api.setCrew({ crew: o.default_crew })
+        if (mission?.baseline_mode === 'adaptive') await api.setBaselineMode('preflight')
+        await api.reset({ environment: 'lunar_surface', days: 60 })
+        setDay(null)
+        setSelected(null)
+        setCrewId('aura-1')
+        await refreshAll()
       }} />
       <NavBar page={page} onNavigate={navigate} />
       {page === 'home' ? (

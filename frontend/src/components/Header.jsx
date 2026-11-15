@@ -4,7 +4,7 @@ const ENV_LABEL = {
   mars_transit: 'Mars transit',
 }
 
-export default function Header({ mission, onReset, onTour, onHome }) {
+export default function Header({ mission, onReset, onRestart, onTour, onHome }) {
   return (
     <header className="header">
       <a className="brand" href="#/home" onClick={(e) => { e.preventDefault(); onHome?.() }} aria-label="AURA home">
@@ -32,6 +32,7 @@ export default function Header({ mission, onReset, onTour, onHome }) {
           </label>
           <span className="pill">Mission day {mission.current_day}</span>
           <button className="pill tour-btn" onClick={onTour}>▶ Demo tour</button>
+          <button className="pill" onClick={onRestart} title="Restart the demo: default crew, lunar base, day 60">↺ Reset</button>
           <span className="pill synthetic" title={mission.data_notice}>Synthetic data</span>
         </div>
       )}
