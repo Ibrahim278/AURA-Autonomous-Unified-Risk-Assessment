@@ -15,6 +15,7 @@ import CrewEditor from './components/CrewEditor.jsx'
 import IndicatorManager from './components/IndicatorManager.jsx'
 import AssistantWidget from './components/AssistantWidget.jsx'
 import CommsPanel from './components/CommsPanel.jsx'
+import PlanPanel from './components/PlanPanel.jsx'
 import GroundView from './components/GroundView.jsx'
 import SymptomLog from './components/SymptomLog.jsx'
 import RadiationPanel from './components/RadiationPanel.jsx'
@@ -36,6 +37,7 @@ export default function App() {
   const [askSignal, setAskSignal] = useState(0)
   const [groundDraft, setGroundDraft] = useState(null)
   const [view, setView] = useState('crew')
+  const [planSignal, setPlanSignal] = useState(0)
   const [system, setSystem] = useState(null)
   const [selected, setSelected] = useState(null)
   const [error, setError] = useState(null)
@@ -134,6 +136,7 @@ export default function App() {
       case 'start_tour': startTour(); break
       case 'message_ground': setView('crew'); scrollTo('#comms'); break
       case 'open_radiation': setView('crew'); scrollTo('#radiation'); break
+      case 'open_plan': setView('crew'); scrollTo('#plan'); break
       case 'open_ground': setView('ground'); break
       case 'open_symptoms': setView('crew'); setDay(null); scrollTo('#symptoms'); break
       default: break
@@ -259,7 +262,17 @@ export default function App() {
                 />
               )}
 
+              <PlanPanel
+                crewId={crewId}
+                day={shownDay}
+                live={day === null}
+                catalog={catalog}
+                refreshKey={`${status.overall}-${status.counts.warning}-${status.counts.critical}-${planSignal}`}
+                onOpenIndicator={(k) => { setSystem(null); setSelected(k); scrollTo('.detail') }}
+              />
+
               <SymptomLog
+                onLogged={() => setPlanSignal((n) => n + 1)}
                 key={crewId}
                 crewId={crewId}
                 day={shownDay}

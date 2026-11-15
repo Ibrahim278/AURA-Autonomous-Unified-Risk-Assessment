@@ -23,7 +23,7 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
-from . import __version__, ai, assistant, checks, comms, custom, radiation, symptoms, ground, forecast, gamification, importer, research
+from . import __version__, ai, assistant, checks, comms, planner, custom, radiation, symptoms, ground, forecast, gamification, importer, research
 from .indicators import INDICATORS, Hazard
 from .simulator import (DEFAULT_CREW_SPECS, DEFAULTS, EDITABLE_BASELINES, ENVIRONMENTS, SCENARIOS,
                         generate, imported_records, make_member)
@@ -296,6 +296,25 @@ def crew_radiation(crew_id: str, day: int | None = Query(None, ge=1)):
     """Radiation dose budget: career (600 mSv), 30-day and 1-year use, rate and projection."""
     _crew_or_404(crew_id)
     return radiation.budget(store, crew_id, day)
+
+
+@app.get("/api/crew/{crew_id}/plan", tags=["routine"])
+def crew_plan(crew_id: str, day: int | None = Query(None, ge=1)):
+    """Today's countermeasure plan: exercise, light, sleep, social and radiation blocks adapted to the flags."""
+    _crew_or_404(crew_id)
+    return planner.plan(store, crew_id, day)
+
+
+@app.post("/api/crew/{crew_id}/plan/{block_id}/toggle", tags=["routine"])
+def toggle_plan_block(crew_id: str, block_id: str):
+    """Tick or untick a block of today's plan."""
+    _crew_or_404(crew_id)
+    p = planner.plan(store, crew_id)
+    if block_id not in {b["id"] for b in p["blocks"]}:
+        raise HTTPException(404, f"No block '{block_id}' in today's plan")
+    done = store.plan_done.setdefault((crew_id, store.current_day), set())
+    done.symmetric_difference_update({block_id})
+    return planner.plan(store, crew_id)
 
 
 @app.get("/api/symptoms/catalog", tags=["symptoms"])

@@ -26,6 +26,8 @@ export const api = {
   telemetry: (id) => request(`/api/crew/${id}/telemetry`),
   forecast: (id, day) => request(`/api/crew/${id}/forecast${day ? `?day=${day}` : ''}`),
   radiation: (id, day) => request(`/api/crew/${id}/radiation${day ? `?day=${day}` : ''}`),
+  plan: (id, day) => request(`/api/crew/${id}/plan${day ? `?day=${day}` : ''}`),
+  togglePlan: (id, block) => request(`/api/crew/${id}/plan/${block}/toggle`, { method: 'POST' }),
   symptomCatalog: () => request('/api/symptoms/catalog'),
   symptoms: (id, day) => request(`/api/crew/${id}/symptoms${day ? `?day=${day}` : ''}`),
   logSymptoms: (id, body) => request(`/api/crew/${id}/symptoms`, { method: 'POST', body: JSON.stringify(body) }),
