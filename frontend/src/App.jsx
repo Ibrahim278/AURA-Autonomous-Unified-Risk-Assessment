@@ -91,6 +91,7 @@ export default function App() {
     const st = TOUR_STEPS[i]
     if (!st) return
     setTourStep(i)
+    setView(st.view ?? 'crew')
     setCrewId(st.crew)
     setDay(st.day)
     setSystem(null)

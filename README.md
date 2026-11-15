@@ -39,7 +39,11 @@ already being abnormal *for that person*.
 | 🚦 | **Three transparent levels.** 🟢 Normal, 🟡 Warning, 🔴 Critical, with the reason and the next actions every time |
 | 🧍 | **Clickable body figure** colored by each body system's worst indicator |
 | ✦ | **AI flight surgeon** (Claude) that writes a 30-second daily briefing grounded in the astronaut's data |
-| 📈 | **Early-warning forecast.** Projects each indicator's trend and flags any that would cross the edge of the personal baseline, a warning or a critical limit within 14 days, with a dashed projection on the chart. Kenji's heart-rate warning is forecast 2 days before it fires |
+| 📈 | **Early-warning forecast.** Projects each indicator's trend and flags any that would cross the edge of the personal baseline, a warning or a critical limit within 14 days, with a dashed projection and a shaded **95% confidence band** on the chart, an earliest-to-latest crossing range, and **related trends** (indicators moving together, such as heart rate with body temperature in a fever). Kenji's heart-rate warning is forecast 2 days before it fires |
+| 🤒 | **Symptom log with triage.** Pick symptoms by body area and rate them 1 to 10. Fixed rules triage them: red flags (chest pain, breathing difficulty, sudden vision loss…) mean contact the flight surgeon now; vision changes (possible SANS), chills, late nausea or a symptom on 3 of the last 5 days need follow-up; early fluid-shift symptoms get self-care advice. Each symptom links to the readings worth checking |
+| 📡 | **Message ground with a real signal delay.** ISS about 0.5 s, the Moon 1.3 s, Mars transit growing to about 12.5 minutes each way. A countdown shows the message travelling, the status packet goes with it, and a simulated flight-surgeon reply arrives after the round trip. On Mars, AURA's own guidance is the crew's first line of support |
+| ☢ | **Radiation dose budget.** Career dose (earlier missions plus this one) against NASA's 600 mSv limit, the 30-day limit, the current rate, days left at that rate, and a projection to the end of the mission |
+| 🛰 | **Ground view for the flight surgeon.** The whole crew on one screen, sorted by priority (the worst of telemetry, symptoms and radiation), with messages shown only once their signal arrives, plus **printable health reports** (save as PDF) for one person or the whole crew |
 | 💬 | **Ask AURA**: a chat button in the bottom-right corner on every screen. Ask anything (health, "how do I…", the NASA data) and get an answer, numbered steps and one-click buttons that take you to the right place. It knows which crew member, day and indicator you're viewing |
 | 🎮 | **Gamified routine.** Daily tasks, streaks, points, levels and badges reward measuring regularly and following up on warnings |
 | ⏪ | **Mission replay** to see what AURA showed on any day, plus ISS, lunar surface and Mars transit environments |
@@ -47,7 +51,7 @@ already being abnormal *for that person*.
 | 👩‍🚀 | **Editable crew.** Add or edit up to 6 members: name, role, age, personal baselines and a health scenario (5 to choose from). The AI isn't told the scenario, so it has to find the pattern |
 | ➕ | **Custom indicators.** Add any measurement (body weight, HRV, steps, water intake, or your own) with its unit, typical range and warning/critical limits. It gets baselines, alerts, charts, check-ins, CSV import and AI coverage like the built-in ten |
 | ⬆ | **Import your own data** from a CSV (one row per day) and become a crew member: alerts, tasks and the AI briefing all run on your readings |
-| ▶ | **Guided demo tour** that walks through the mission story, real NASA data and your own data in 13 steps |
+| ▶ | **Guided demo tour** that walks through the mission story, real NASA data, the new symptom, ground and radiation features, and your own data in 17 steps |
 
 ### Alert logic (in `backend/aura/alerts.py`)
 
@@ -112,11 +116,11 @@ sample (C003 at L-92) and says why.
 
 | ID | Crew member | Story |
 | --- | --- | --- |
-| `aura-1` | Cmdr. Lena Ortiz | Adapts well. Only the expected in-flight changes. |
-| `aura-2` | Dr. Kenji Sato | Sleep slips (warning day 42), then mood (46), then exercise and resting HR (50: 71 bpm, Earth-normal but well above his 64 bpm baseline), then blood pressure (54) and glucose (58). |
-| `aura-3` | Amara Diallo | Viral reactivation: fever builds from day 54 and turns **critical** on day 60. |
+| `aura-1` | Cmdr. Lena Ortiz | Adapts well. Only the expected in-flight changes. A veteran with 410 mSv from earlier missions, so her **radiation budget** reaches a warning (85% of the career limit) while every reading is normal. |
+| `aura-2` | Dr. Kenji Sato | Sleep slips (warning day 42), then mood (46), then exercise and resting HR (50: 71 bpm, Earth-normal but well above his 64 bpm baseline), then blood pressure (54) and glucose (58). Logs trouble sleeping and low mood from day 44. |
+| `aura-3` | Amara Diallo | Viral reactivation: fever builds from day 54 and turns **critical** on day 60. Logs tiredness and chills in the last days, which the symptom triage flags. |
 
-Everyone gets a solar particle event dose on day 22 (lunar surface and Mars transit only).
+Everyone gets a solar particle event dose on day 22 (lunar surface and Mars transit only). Demo symptom logs are synthetic and tagged "demo".
 For the presentation script, see [docs/DEMO_SCRIPT.md](docs/DEMO_SCRIPT.md). To check everything works, follow [docs/TEST_CASES.md](docs/TEST_CASES.md).
 
 ### Make the crew your own
@@ -141,6 +145,30 @@ For the presentation script, see [docs/DEMO_SCRIPT.md](docs/DEMO_SCRIPT.md). To 
 
 Edited crews and imported data live in memory, so restarting the back end returns to the demo crew.
 
+## Built for distance from Earth
+
+Far from Earth, help is minutes away and the crew has to act on their own. Four features are
+built around that:
+
+- **🩺 Symptom log.** Log how you feel and get an instant rule-based triage, linked to the readings
+  worth checking. Red flags always say "contact the flight surgeon now"; vision changes are flagged
+  as possible SANS.
+- **📡 Message ground.** Shows the true signal delay for the environment and day, sends your status
+  packet, and counts down until the (simulated) flight surgeon's reply arrives. In Mars transit
+  that's up to about 25 minutes round trip, so AURA's guidance comes first.
+- **☢ Radiation dose budget.** How much of NASA's 600 mSv career limit is used (earlier missions
+  plus this one), the 30-day window, the rate and a projection to the end of the mission.
+- **🛰 Ground view and reports.** The flight surgeon sees the whole crew sorted by priority and can
+  print or save a health report as PDF.
+
+| Symptom triage | Message ground (Mars transit) |
+| --- | --- |
+| ![Symptom log](docs/screenshots/symptom_log.png) | ![Message ground](docs/screenshots/message_ground.png) |
+
+![Radiation dose budget](docs/screenshots/radiation_budget.png)
+
+![Ground view](docs/screenshots/ground_view.png)
+
 ## Tech stack
 
 | Layer | Technology | Used for |
@@ -151,7 +179,7 @@ Edited crews and imported data live in memory, so restarting the back end return
 | AI | **Anthropic Claude API** (`anthropic` Python SDK 2.8) | Daily briefing, Ask AURA assistant, review of the real crew bloodwork |
 | Front end | **React** 19.3 (JavaScript/JSX), **Vite** 8.3 | Single-page dashboard and dev server (proxies `/api` to the back end) |
 | Charts | **Recharts** 3.10 | Trend charts, sparklines, forecast projections, research charts |
-| Testing | **pytest** 9.2, **httpx** | 81 back-end tests, including a mocked Claude API |
+| Testing | **pytest** 9.2, **httpx** | 107 back-end tests, including a mocked Claude API |
 | Data | NASA OSDR (CSV), JSON, in-memory store | Real Inspiration4 labs; mission data kept in memory for zero-setup demos |
 
 No database or cloud services are needed: clone, install, and run two terminals.
@@ -162,7 +190,11 @@ No database or cloud services are needed: clone, install, and run two terminals.
 frontend/  React 19 + Vite + Recharts dashboard  ──/api──►  backend/  FastAPI (Python)
                                                               ├─ indicators.py    catalog, limits, actions, references
                                                               ├─ alerts.py        baseline-deviation alert engine
-                                                              ├─ forecast.py      trend projection / early warning
+                                                              ├─ forecast.py      trend projection, 95% band, related trends
+                                                              ├─ symptoms.py      symptom catalog and rule-based triage
+                                                              ├─ comms.py         signal delay and crew-to-ground messages
+                                                              ├─ radiation.py     career and 30-day dose budget
+                                                              ├─ ground.py        flight-surgeon overview and printable reports
                                                               ├─ simulator.py     seeded synthetic telemetry + health scenarios
                                                               ├─ importer.py      CSV import of your own data
                                                               ├─ custom.py        user-defined indicators
@@ -183,7 +215,7 @@ data/osdr/  NASA OSDR files (unchanged)        data/import_template.csv  example
 | POST | `/api/mission/next-day` | Advance the mission one day; synthetic crew get that day's readings |
 | POST | `/api/mission/reset` | Regenerate the mission (`environment`, `days`, `seed`); keeps the crew |
 | GET | `/api/crew-options` | Scenarios, editable baselines and the default crew |
-| PUT | `/api/mission/crew` | Replace the crew (name, role, age, scenario, baselines) and regenerate |
+| PUT | `/api/mission/crew` | Replace the crew (name, role, age, scenario, baselines, prior radiation dose) and regenerate |
 | POST | `/api/crew/import` | Add a crew member from your own CSV data |
 | GET | `/api/crew/import/template` | Example CSV for the import |
 | GET | `/api/indicators` | Indicator catalog: limits, explanations, actions, references |
@@ -194,7 +226,14 @@ data/osdr/  NASA OSDR files (unchanged)        data/import_template.csv  example
 | GET | `/api/crew` | Crew with overall status |
 | GET | `/api/crew/{id}/status?day=` | Per-indicator assessment and body-system rollup |
 | GET | `/api/crew/{id}/telemetry` | Chart series with baseline and limits |
-| GET | `/api/crew/{id}/forecast?day=` | Early-warning forecast: trend crossings within 14 days, plus 7-day projections |
+| GET | `/api/crew/{id}/forecast?day=` | Early-warning forecast: trend crossings within 14 days, 7-day projections with a 95% band, related trends |
+| GET | `/api/symptoms/catalog` | Symptoms that can be logged, with red flags marked |
+| GET / POST | `/api/crew/{id}/symptoms` | Symptom log up to a day with its triage / log symptoms (severity 1-10) |
+| GET | `/api/crew/{id}/radiation?day=` | Radiation budget: career, 30-day and 1-year dose, rate and projection |
+| GET | `/api/comms?day=` | Signal delay to Earth for the environment and day |
+| GET / POST | `/api/crew/{id}/messages` | Messages to and from ground (replies appear after the round trip) / send one |
+| GET | `/api/ground?day=` | Flight-surgeon overview of the whole crew, sorted by priority |
+| GET | `/api/report?day=`, `/api/crew/{id}/report?day=` | Printable HTML health report (whole crew or one person) |
 | GET | `/api/crew/{id}/alerts` | Timeline of alert-level changes |
 | POST | `/api/crew/{id}/checkins` | Log manual measurements; returns the updated status |
 | GET | `/api/crew/{id}/tasks` | Today's tasks, streaks, level and badges |
@@ -232,7 +271,10 @@ In line with the NASA Space Apps guidance on AI use, here is where AI was and wa
   `backend/aura/ai.py` and can be changed with `AURA_AI_MODEL`.
 - The AI **never sets an alert level**. Normal, Warning and Critical always come from AURA's
   transparent rule engine (`alerts.py`), and the back end forces an escalation whenever any
-  reading is critical, whatever the AI says. The forecast is plain statistics, not AI.
+  reading is critical, whatever the AI says. The forecast is plain statistics, not AI. Symptom
+  triage, the radiation budget and the ground view are fixed rules, not AI.
+- The flight surgeon's reply in **Message ground** is **simulated** by a rule-based template built
+  from the crew member's AURA status, and is labelled as simulated. There is no real ground link.
 - The AI is instructed not to diagnose, prescribe or dose medication, and to defer to the flight
   surgeon. Its answers are grounded in the data AURA sends it, and buttons it suggests are
   checked against the real dashboard before they are shown.
@@ -261,6 +303,7 @@ In line with the NASA Space Apps guidance on AI use, here is where AI was and wa
 cd backend && python -m pytest
 ```
 
-81 tests cover the alert engine, the simulator scenarios, every API endpoint, gamification,
-the OSDR parser and quality check, the CSV importer, crew editing, custom indicators, the forecast, Ask AURA, and the AI layer (with a
-mocked Claude API).
+107 tests cover the alert engine, the simulator scenarios, every API endpoint, gamification,
+the OSDR parser and quality check, the CSV importer, crew editing, custom indicators, the forecast
+(confidence band and related trends), symptom triage, ground messaging and signal delay, the radiation
+budget, the ground view and reports, Ask AURA, and the AI layer (with a mocked Claude API).

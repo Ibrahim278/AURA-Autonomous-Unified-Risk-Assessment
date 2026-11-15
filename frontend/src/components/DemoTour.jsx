@@ -17,7 +17,7 @@ export const TOUR_STEPS = [
   },
   {
     title: 'Day 48: AURA sees it coming',
-    text: 'His heart rate is still “normal”, but the early-warning forecast projects each trend forward and flags it: it reaches the edge of his baseline in about a day. Click a forecast row to see the dashed projection on the chart.',
+    text: 'His heart rate is still “normal”, but the early-warning forecast projects each trend forward and flags it: it reaches the edge of his baseline in about a day. Each row gives a 95% range and the trends moving together (heart rate with mood). Click a row to see the projection and its shaded range on the chart.',
     crew: 'aura-2', day: 48, indicator: 'heart_rate', target: '.forecast',
   },
   {
@@ -34,6 +34,26 @@ export const TOUR_STEPS = [
     title: 'Critical: escalate to ground',
     text: 'Mission Specialist Amara Diallo has a fever of 39.4 °C from viral reactivation. The body figure flags the immune system, and AURA tells her to contact the flight surgeon now.',
     crew: 'aura-3', day: null, indicator: 'body_temp', target: '.banner',
+  },
+  {
+    title: 'Symptoms tell the rest',
+    text: 'Numbers miss what she feels. Amara logged chills and growing tiredness in the symptom log. AURA triages it with fixed rules: chills need follow-up, and tiredness on 3 of the last 5 days is persistent. Red flags like chest pain always mean “contact the flight surgeon now”. Each symptom links to the readings worth checking.',
+    crew: 'aura-3', day: null, indicator: null, target: '#symptoms',
+  },
+  {
+    title: 'Message ground, mind the delay',
+    text: '“Message ground now” drafts an urgent message with her status attached. On the Moon it reaches Earth in 1.3 s; in Mars transit the delay grows to about 12.5 minutes each way, so AURA’s guidance is the first line of support until the simulated flight surgeon’s reply arrives. Switch to Mars transit in the header to try it.',
+    crew: 'aura-3', day: null, indicator: null, target: '#comms',
+  },
+  {
+    title: 'Radiation budget: the long game',
+    text: 'Commander Ortiz feels fine and every reading is normal, but she is a veteran with 410 mSv from earlier missions. This mission takes her to 85% of NASA’s 600 mSv career limit, so AURA warns and suggests limiting high-dose tasks. A daily dosimeter alone wouldn’t show that.',
+    crew: 'aura-1', day: null, indicator: null, target: '#radiation',
+  },
+  {
+    title: 'The flight surgeon’s view',
+    text: 'This is the 🛰 Ground view (toggle it in the header): the whole crew on one screen, sorted by who needs attention first (the worst of telemetry, symptoms and radiation), with messages shown only once their signal has arrived. 🖨 Report opens a printable health report you can save as PDF.',
+    crew: 'aura-3', day: null, indicator: null, target: '#ground', view: 'ground',
   },
   {
     title: 'Daily routine, gamified',

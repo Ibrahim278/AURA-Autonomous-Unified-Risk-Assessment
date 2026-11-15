@@ -57,7 +57,7 @@ sorted by priority (the worst of telemetry, symptom triage and radiation), with 
 radiation, trends and messages received (only once their signal has arrived). "🖨 Crew report" and each \
 card's "🖨 Report" (also "🖨 Report" on the status banner) open a printable report; save it as PDF from the \
 print dialog. Environment selector (ISS, lunar surface, Mars transit) regenerates the mission; "▶ Demo tour" \
-walks through the story in 13 steps.
+walks through the story in 17 steps.
 - Status banner: the overall Normal / Warning / Critical level for the selected person and day.
 - AI flight surgeon panel: "Generate daily briefing" (left) and the "Early-warning forecast" (right): \
 indicators whose straight-line trend would cross the edge of the personal baseline, a warning or a critical \
@@ -215,7 +215,7 @@ FAQ: list[tuple[str, str, list[str], list[tuple[str, str]]]] = [
      "The Radiation dose budget panel shows how much of the 600 mSv career limit is used and how fast it's going.",
      ["Scroll to ☢ Radiation dose budget below the indicator cards.", "Check the % used, the dose rate and days left at this rate.",
       "Set a person's dose from earlier missions in ✎ Edit (☢ mSv before)."], [("open_radiation", "Show radiation budget")]),
-    (r"tour|demo|judge|present", "The demo tour walks through AURA's story in 13 steps.",
+    (r"tour|demo|judge|present", "The demo tour walks through AURA's story in 17 steps.",
      ["Click ▶ Demo tour in the header.", "Use Next → to move through the steps."], [("start_tour", "Start the tour")]),
     (r"real|nasa|osdr|inspiration|blood", "The Real crew data panel shows real NASA OSDR bloodwork from the Inspiration4 crew.",
      ["Scroll to Real crew data · Inspiration4.", "Switch panels and pick a marker.",
