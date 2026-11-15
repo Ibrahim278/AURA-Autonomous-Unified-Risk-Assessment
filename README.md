@@ -128,29 +128,98 @@ Use either of these, then restart the back end:
 Check http://localhost:8000/api/ai/status. Without credentials, AURA shows a rule-based
 briefing instead, so the demo always works.
 
-## Deploy a live demo
+## Deployment
 
-**Live now:** [www.aura-neuralai.com](https://www.aura-neuralai.com). The front end is on Vercel (custom domain `aura-neuralai.com`, which redirects to `www`) and the API runs on Render at `aura-demo-w9ot.onrender.com`. Every push to `main` redeploys both.
+**Live now:** [www.aura-neuralai.com](https://www.aura-neuralai.com)
 
-The whole app runs as **one web service**: the `Dockerfile` builds the React front end and FastAPI serves it next to the API, so the demo is a single URL.
+| Part | Host | Address | What it runs |
+|---|---|---|---|
+| Front end | **Vercel** | `www.aura-neuralai.com` (the custom domain `aura-neuralai.com` redirects to `www`) | The built React app |
+| Back end | **Render** | `aura-demo-w9ot.onrender.com` | FastAPI: the rule engine, the mission, Claude calls and the Whisper speech model |
 
-**Render (free):** [![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/Ibrahim278/AURA-Autonomous-Unified-Risk-Assessment)
+```
+Browser ──► Vercel (www.aura-neuralai.com) ── /api/* rewrite ──► Render (FastAPI in Docker)
+                 static React app                                 rules · mission · Claude · Whisper
+```
 
-1. Click the button (or in Render: **New > Blueprint** and pick this repo). `render.yaml` sets everything up.
-2. Optional: paste an `ANTHROPIC_API_KEY` when asked to turn on AI answers. Without it AURA uses its offline answers, and every alert still works.
-3. The free plan sleeps after 15 minutes idle, and the first visit then takes about a minute. Open the link a few minutes before judging.
+Every push to `main` redeploys both. The browser only talks to the Vercel address, because `frontend/vercel.json` forwards every `/api` call to Render. No CORS setup is needed.
 
-**Vercel front end + Render back end:** the back end keeps the mission in memory and runs the speech model, so it needs an always-on server (Render). The front end can live on Vercel:
+Why two hosts: the back end keeps the shared mission in memory and runs the speech model, so it needs an always-on server (Render). Vercel serves the static front end from its CDN and holds the custom domain.
 
-1. Deploy the back end on Render as above, and note its URL (for example `https://aura-demo.onrender.com`).
-2. If that URL is different, change the `destination` in `frontend/vercel.json` to it.
-3. In Vercel: **Add New > Project**, pick this repo, set **Root Directory** to `frontend`, and deploy. `vercel.json` forwards every `/api` call to Render, so no CORS setup is needed and the Vercel link is the only one judges see.
+### Back end on Render
 
-The `ANTHROPIC_API_KEY` goes on **Render** (the back end), not Vercel. `ant login` only works on your own computer.
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/Ibrahim278/AURA-Autonomous-Unified-Risk-Assessment)
 
-**Any Docker host:** `docker compose up --build` (or `docker build -t aura . && docker run -p 8000:8000 aura`), then open http://localhost:8000. Put `ANTHROPIC_API_KEY=...` in a `.env` file next to `docker-compose.yml` to turn on the AI.
+1. Click the button, or in Render choose **New > Blueprint** and pick this repo. `render.yaml` defines one free Docker web service, `aura-demo`, with the health check `/api/health`.
+2. When asked for `ANTHROPIC_API_KEY`, paste a key from [console.anthropic.com](https://console.anthropic.com) to turn on the AI. Leave it empty and AURA uses its offline, rule-based answers; every alert still works. The key lives only on Render. `ant auth login` works only on your own computer.
+3. Wait for the first build (about 5 to 10 minutes; it builds the front end, installs Python and bakes the speech model into the image).
+4. Check `https://<your-service>.onrender.com/api/health`. That URL on its own also serves the full app, so Render alone is already a working demo.
 
-Everyone who opens the demo shares one mission, so use **Reset** in the header to start fresh.
+The free plan sleeps after 15 minutes idle, and the first visit then takes about a minute. Open the site a few minutes before judging.
+
+### Front end on Vercel
+
+1. Deploy the back end on Render first and note its URL.
+2. If it is not `https://aura-demo-w9ot.onrender.com`, change the `destination` in `frontend/vercel.json` to your URL.
+3. In Vercel choose **Add New > Project**, import this repo, set **Root Directory** to `frontend` and deploy. Vercel detects Vite; `vercel.json` sets the build (`npm run build`, output `dist`) and the `/api` rewrite.
+4. Optional custom domain: **Project > Settings > Domains**, add the domain and follow the DNS steps (a domain bought through Vercel is set up automatically).
+
+No environment variables are needed on Vercel.
+
+### Run it on another machine with Docker
+
+The `Dockerfile` builds the React front end and serves it next to the API from one container, so the whole app is one address. This works on any Mac, Windows or Linux machine, with no Python or Node install.
+
+1. **Install Docker.** [Docker Desktop](https://www.docker.com/products/docker-desktop/) on Mac or Windows, or Docker Engine with the Compose plugin on Linux. Check with `docker compose version`.
+2. **Get the code.**
+   ```bash
+   git clone https://github.com/Ibrahim278/AURA-Autonomous-Unified-Risk-Assessment.git
+   cd AURA-Autonomous-Unified-Risk-Assessment
+   ```
+3. **Optional: turn on the AI.** Create a file named `.env` next to `docker-compose.yml`:
+   ```bash
+   echo "ANTHROPIC_API_KEY=sk-ant-..." > .env
+   ```
+   Without it AURA runs fully offline with rule-based answers.
+4. **Build and start.**
+   ```bash
+   docker compose up --build -d
+   ```
+   The first build takes about 5 to 10 minutes. Later starts take seconds.
+5. **Check it is up.**
+   ```bash
+   docker compose ps                          # STATUS shows "healthy" after about a minute
+   curl http://localhost:8000/api/health
+   ```
+6. **Open AURA** at **http://localhost:8000**. The API docs are at http://localhost:8000/docs.
+7. **Two-device demo (crew and flight surgeon).** Find the machine's local IP (`ipconfig getifaddr en0` on Mac, `ipconfig` on Windows, `hostname -I` on Linux). On a second laptop or phone on the same Wi-Fi, open `http://<that-ip>:8000` and pick **Console**. Allow port 8000 through the firewall if asked.
+8. **Logs, stop and update.**
+   ```bash
+   docker compose logs -f            # follow the server log
+   docker compose down               # stop (the speech-model cache volume is kept)
+   git pull && docker compose up --build -d   # update to the latest version
+   ```
+
+Settings, in `.env` or the shell (all optional):
+
+| Variable | Default | What it does |
+|---|---|---|
+| `ANTHROPIC_API_KEY` | empty | Turns on the Claude daily briefing, Ask AURA and the bloodwork review |
+| `AURA_ENVIRONMENT` | `lunar_surface` | Starting mission: `iss`, `lunar_surface` or `mars_transit` (sets the signal delay) |
+| `AURA_DAYS` | `60` | Length of the simulated mission |
+| `AURA_SEED` | `42` | Seed for the synthetic crew data |
+| `AURA_WHISPER_MODEL` | `base.en` | Speech model; `tiny.en` is faster on small machines |
+| `AURA_SPEECH` | `on` | `off` uses the browser's speech recognition instead |
+
+Without Compose: `docker build -t aura . && docker run -p 8000:8000 --env-file .env aura` (drop `--env-file .env` if you made no `.env`).
+
+Troubleshooting:
+- **Port 8000 is taken:** change the ports line in `docker-compose.yml` to `"8080:8000"` and open http://localhost:8080.
+- **Voice says "browser speech":** the speech model could not download during the build (no internet). It downloads on first use instead, or set `AURA_SPEECH=off`.
+- **The AI panel says "Rule-based mode":** the key is missing or wrong. Check `curl http://localhost:8000/api/ai/status`, fix `.env`, then `docker compose up -d`.
+- **Apple Silicon:** works as is; Docker builds a native arm64 image.
+
+Everyone who opens one server shares one mission, so press **Reset** in the header to start fresh before a demo.
 
 ## Real NASA data: Inspiration4
 
@@ -247,7 +316,7 @@ built around that:
 | Testing | **pytest** 9.2, **httpx** | 193 back-end tests, including a mocked Claude API |
 | Data | NASA OSDR (CSV), JSON, in-memory store | Real Inspiration4 labs; mission data kept in memory for zero-setup demos |
 
-No database or cloud services are needed: clone, install, and run two terminals. To put it online as a single web service, see [Deploy a live demo](#deploy-a-live-demo).
+No database or cloud services are needed: clone, install, and run two terminals. To put it online as a single web service, see [Deployment](#deployment).
 
 ## Architecture
 
