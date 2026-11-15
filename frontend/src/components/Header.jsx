@@ -22,6 +22,7 @@ export default function Header({ mission, onReset, onTour, view, onView }) {
         <div className="mission-info">
           <div className="seg view-toggle" role="tablist" aria-label="View">
             <button role="tab" aria-selected={view === 'crew'} className={view === 'crew' ? 'active' : ''} onClick={() => onView('crew')}>👩‍🚀 Crew</button>
+            <button role="tab" aria-selected={view === 'team'} className={view === 'team' ? 'active' : ''} onClick={() => onView('team')}>👥 Team</button>
             <button role="tab" aria-selected={view === 'ground'} className={view === 'ground' ? 'active' : ''} onClick={() => onView('ground')}>🛰 Ground</button>
           </div>
           <span className="pill">{mission.mission_name}</span>

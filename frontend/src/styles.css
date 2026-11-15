@@ -572,3 +572,23 @@ button:disabled { opacity: 0.6; cursor: default; }
 .adj { font-size: 0.62rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--warning); border: 1px solid var(--warning); border-radius: 999px; padding: 0 6px; }
 .baseline-mode { display: flex; align-items: center; gap: 8px; margin: -4px 0 10px; flex-wrap: wrap; }
 .baseline-mode .seg button { padding: 4px 10px; font-size: 0.75rem; }
+
+/* ---------- crew wellbeing (team view) ---------- */
+.team { display: flex; flex-direction: column; gap: 16px; }
+.team-head { display: grid; grid-template-columns: auto 1fr; gap: 24px; align-items: center; }
+.team-head h2 { margin: 0 0 6px; }
+.team-score { display: flex; gap: 16px; align-items: center; }
+.score-ring { width: 84px; height: 84px; border-radius: 50%; border: 6px solid var(--lvl); display: flex; align-items: baseline; justify-content: center; padding-top: 22px; box-sizing: border-box; }
+.score-ring strong { font-size: 1.6rem; } .score-ring small { color: var(--muted); }
+.team-tips { margin: 0; padding-left: 18px; font-size: 0.85rem; display: flex; flex-direction: column; gap: 4px; }
+.team-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px; }
+.team-card { border-top: 4px solid var(--lvl); display: flex; flex-direction: column; gap: 8px; }
+.team-card header { display: flex; justify-content: space-between; gap: 8px; align-items: flex-start; }
+.team-card h3 { margin: 0; font-size: 1rem; }
+.team-card .chip { align-self: flex-start; color: var(--text); margin-top: auto; }
+.score-bar { height: 8px; border-radius: 4px; background: var(--bg2); border: 1px solid var(--border); overflow: hidden; }
+.score-bar span { display: block; height: 100%; background: var(--lvl); }
+.score-num { font-size: 0.8rem; color: var(--muted); } .score-num strong { color: var(--text); font-size: 1.1rem; }
+.team-charts { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.team-chart h3 { margin: 0 0 6px; font-size: 0.85rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; }
+@media (max-width: 1100px) { .team-head, .team-charts { grid-template-columns: 1fr; } }

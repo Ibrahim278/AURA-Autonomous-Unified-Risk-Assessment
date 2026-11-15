@@ -16,6 +16,7 @@ import IndicatorManager from './components/IndicatorManager.jsx'
 import AssistantWidget from './components/AssistantWidget.jsx'
 import CommsPanel from './components/CommsPanel.jsx'
 import PlanPanel from './components/PlanPanel.jsx'
+import TeamView from './components/TeamView.jsx'
 import GroundView from './components/GroundView.jsx'
 import SymptomLog from './components/SymptomLog.jsx'
 import RadiationPanel from './components/RadiationPanel.jsx'
@@ -139,6 +140,7 @@ export default function App() {
       case 'message_ground': setView('crew'); scrollTo('#comms'); break
       case 'open_radiation': setView('crew'); scrollTo('#radiation'); break
       case 'open_plan': setView('crew'); scrollTo('#plan'); break
+      case 'open_team': setView('team'); break
       case 'open_ground': setView('ground'); break
       case 'open_symptoms': setView('crew'); setDay(null); scrollTo('#symptoms'); break
       default: break
@@ -208,6 +210,10 @@ export default function App() {
           {error && <div className="toast error">{error}</div>}
           {view === 'ground' && mission && (
             <GroundView day={shownDay} live={day === null} refreshKey={mission.current_day}
+              onOpenCrew={(id) => { setView('crew'); setCrewId(id); setSelected(null); setSystem(null); window.scrollTo({ top: 0, behavior: 'smooth' }) }} />
+          )}
+          {view === 'team' && mission && (
+            <TeamView day={shownDay} live={day === null} refreshKey={mission.current_day}
               onOpenCrew={(id) => { setView('crew'); setCrewId(id); setSelected(null); setSystem(null); window.scrollTo({ top: 0, behavior: 'smooth' }) }} />
           )}
           {view === 'crew' && status && member && (
