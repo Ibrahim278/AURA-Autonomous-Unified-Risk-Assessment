@@ -17,13 +17,13 @@ import os
 from datetime import date
 
 from fastapi import FastAPI, HTTPException, Query
-from fastapi.responses import PlainTextResponse
+from fastapi.responses import HTMLResponse, PlainTextResponse
 from fastapi.middleware.cors import CORSMiddleware
 from typing import Literal
 
 from pydantic import BaseModel, Field
 
-from . import __version__, ai, assistant, comms, custom, radiation, symptoms, forecast, gamification, importer, research
+from . import __version__, ai, assistant, comms, custom, radiation, symptoms, ground, forecast, gamification, importer, research
 from .indicators import INDICATORS, Hazard
 from .simulator import (DEFAULT_CREW_SPECS, DEFAULTS, EDITABLE_BASELINES, ENVIRONMENTS, SCENARIOS,
                         generate, imported_records, make_member)
@@ -368,6 +368,27 @@ def send_message(crew_id: str, body: GroundMessage):
     outbox.send(crew_id, member.name, body.text, body.priority, store.current_day, link,
                 status if body.attach_status else None)
     return {"link": link, "messages": outbox.thread(crew_id)}
+
+
+# ---------------------------------------------------------------- ground view and reports
+@app.get("/api/ground", tags=["ground"])
+def ground_overview(day: int | None = Query(None, ge=1)):
+    """Flight-surgeon view: every crew member, sorted by who needs attention first."""
+    return ground.overview(store, outbox, day)
+
+
+@app.get("/api/report", tags=["ground"], response_class=HTMLResponse)
+def crew_report(day: int | None = Query(None, ge=1)):
+    """Printable whole-crew health report (HTML; use the browser's Save as PDF)."""
+    order = [r["crew_id"] for r in ground.overview(store, outbox, day)["crew"]]
+    return ground.report_html(store, outbox, order, day)
+
+
+@app.get("/api/crew/{crew_id}/report", tags=["ground"], response_class=HTMLResponse)
+def member_report(crew_id: str, day: int | None = Query(None, ge=1)):
+    """Printable health report for one crew member."""
+    _crew_or_404(crew_id)
+    return ground.report_html(store, outbox, [crew_id], day)
 
 
 # ---------------------------------------------------------------- AI flight surgeon
