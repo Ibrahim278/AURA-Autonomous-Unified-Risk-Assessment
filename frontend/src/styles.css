@@ -902,3 +902,4 @@ button:focus-visible, select:focus-visible, a:focus-visible, input[type='range']
 .msg-eta { font-size: 0.7rem; }
 .ask-mic { align-self: stretch; min-width: 44px; font-size: 1rem; }
 .ask-mic.on { border-color: var(--critical); color: var(--critical); animation: fabpulse 1.4s ease-in-out infinite; }
+.listen-btn { font-size: 0.75rem; margin-top: 6px; display: inline-block; }

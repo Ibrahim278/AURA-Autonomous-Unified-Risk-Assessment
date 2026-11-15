@@ -25,6 +25,11 @@ export default function AssistantWidget({ crewId, member, day, live, selected, s
   const [error, setError] = useState(null)
   const [listening, setListening] = useState(false)
   const recRef = useRef(null)
+  const canSpeak = typeof window !== 'undefined' && 'speechSynthesis' in window
+  const [voiceReplies, setVoiceReplies] = useState(() => {
+    try { return localStorage.getItem('aura-voice-replies') !== 'off' } catch { return true }
+  })
+  const [speaking, setSpeaking] = useState(null) // index of the bubble being read aloud
   const Recognition = typeof window !== 'undefined' && (window.SpeechRecognition || window.webkitSpeechRecognition)
   const end = useRef(null)
   const input = useRef(null)
@@ -66,10 +71,39 @@ export default function AssistantWidget({ crewId, member, day, live, selected, s
     onOpenChange?.(open)
   }, [open, onOpenChange])
 
+  // Talk back: read an answer aloud with the browser's built-in voice.
+  const speakText = (reply) => [
+    reply.escalate ? 'Contact the flight surgeon now.' : '',
+    reply.answer,
+    ...reply.steps.map((st, j) => `Step ${j + 1}. ${st}`),
+  ].filter(Boolean).join(' ')
+  const stopSpeaking = () => { if (canSpeak) window.speechSynthesis.cancel(); setSpeaking(null) }
+  const speak = (reply, idx) => {
+    if (!canSpeak) return
+    window.speechSynthesis.cancel()
+    const u = new SpeechSynthesisUtterance(speakText(reply))
+    u.lang = 'en-US'
+    u.rate = 1.02
+    const voice = window.speechSynthesis.getVoices().find((v) => v.lang?.startsWith('en') && /natural|samantha|google us|aria|jenny/i.test(v.name))
+    if (voice) u.voice = voice
+    u.onend = () => setSpeaking((cur) => (cur === idx ? null : cur))
+    u.onerror = () => setSpeaking(null)
+    setSpeaking(idx)
+    window.speechSynthesis.speak(u)
+  }
+  const toggleVoice = () => {
+    const next = !voiceReplies
+    setVoiceReplies(next)
+    try { localStorage.setItem('aura-voice-replies', next ? 'on' : 'off') } catch { /* storage blocked */ }
+    if (!next) stopSpeaking()
+  }
+  useEffect(() => { if (!open) stopSpeaking() }, [open]) // eslint-disable-line react-hooks/exhaustive-deps
+
   // Speak a question: words appear in the box as you talk, and it sends when you stop.
   const listen = () => {
     if (!Recognition) return
     if (listening) { recRef.current?.stop(); return }
+    stopSpeaking()
     const rec = new Recognition()
     rec.lang = 'en-US'
     rec.interimResults = true
@@ -89,7 +123,7 @@ export default function AssistantWidget({ crewId, member, day, live, selected, s
     rec.onend = () => {
       setListening(false)
       recRef.current = null
-      if (finalText.trim()) send(finalText)
+      if (finalText.trim()) send(finalText, { spoken: true })
     }
     recRef.current = rec
     setError(null)
@@ -99,7 +133,7 @@ export default function AssistantWidget({ crewId, member, day, live, selected, s
   }
   useEffect(() => () => recRef.current?.abort(), [])
 
-  const send = async (text) => {
+  const send = async (text, { spoken = false } = {}) => {
     const q = (text ?? question).trim()
     if (!q || busy) return
     const history = chat.filter((m) => m.role !== 'note').slice(-20)
@@ -111,6 +145,8 @@ export default function AssistantWidget({ crewId, member, day, live, selected, s
     try {
       const r = await api.assistant({ question: q, history, crew_id: crewId, day: live ? null : day, indicator: selected, page })
       setChat((c) => [...c, { role: 'assistant', reply: r.reply, mode: r.mode, note: r.note }])
+      // Asked by voice, answered by voice (unless voice replies are switched off).
+      if (spoken && voiceReplies) speak(r.reply, chat.length + 1)
     } catch (e) {
       setError(e.message)
     } finally {
@@ -135,6 +171,12 @@ export default function AssistantWidget({ crewId, member, day, live, selected, s
               </div>
             </div>
             <span className="assistant-head-actions">
+              {canSpeak && (
+                <button className="link" onClick={toggleVoice} aria-pressed={voiceReplies}
+                  title={voiceReplies ? 'Spoken questions get spoken answers. Click to turn off.' : 'Turn on spoken answers'}>
+                  {voiceReplies ? '🔊' : '🔇'}<span className="sr-only"> Voice replies</span>
+                </button>
+              )}
               <button className="link" onClick={() => setShowMemory((v) => !v)} title="Notes Ask AURA remembers">🧠 {memory.length}</button>
               {chat.length > 0 && <button className="link" onClick={() => setChat([])}>Clear</button>}
               <button className="link" onClick={() => setOpen(false)} aria-label="Minimise">—</button>
@@ -187,6 +229,11 @@ export default function AssistantWidget({ crewId, member, day, live, selected, s
                       <button key={j} className="chip action" onClick={() => act(a)}>{a.label} →</button>
                     ))}
                   </div>
+                )}
+                {canSpeak && (
+                  <button className="link listen-btn" onClick={() => (speaking === i ? stopSpeaking() : speak(m.reply, i))}>
+                    {speaking === i ? '■ Stop reading' : '🔊 Read aloud'}
+                  </button>
                 )}
                 {m.mode !== 'ai' && <div className="muted tiny">{m.note}</div>}
               </div>
