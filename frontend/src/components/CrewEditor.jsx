@@ -197,7 +197,7 @@ export default function CrewEditor({ crew, onClose, onSaved, startImport = false
           <button className="link" disabled={crew.length >= MAX_CREW} onClick={() => setImporting(true)}>⬆ Import your data</button>
           <button className="link" disabled={!opts || saving} onClick={() => save(opts.default_crew)}>Restore demo crew</button>
           <span style={{ flex: 1 }} />
-          <button onClick={onClose}>Cancel</button>
+          <button className="chip" onClick={onClose}>Cancel</button>
           <button className="primary" disabled={saving || invalid || !opts} onClick={() => save(rows)}>
             {saving ? 'Generating mission…' : 'Save and regenerate'}
           </button>

@@ -18,7 +18,9 @@
 **Health monitoring that lets astronauts on long-duration missions assess their own health,
 see changes early, and know exactly when to act or call the ground.**
 
-![AURA dashboard](docs/screenshots/dashboard.png)
+![AURA home page](docs/screenshots/home.png)
+
+![AURA health status for Dr. Kenji Sato](docs/screenshots/dashboard.png)
 
 > **Prototype disclaimer:** AURA is a hackathon prototype. Its alert thresholds are
 > *prototype rules* drawn from published research, **not clinically validated flight-medicine
@@ -60,6 +62,7 @@ already being abnormal *for that person*.
 | ➕ | **Custom indicators.** Add any measurement (body weight, HRV, steps, water intake, or your own) with its unit, typical range and warning/critical limits. It gets baselines, alerts, charts, check-ins, CSV import and AI coverage like the built-in ten |
 | ⬆ | **Import your own data** from a CSV (one row per day) and become a crew member: alerts, tasks and the AI briefing all run on your readings |
 | 🏠 | **Landing page and feature pages.** AURA opens on a home page with the story, a live crew snapshot and a menu of every feature; each feature has its own linked page, and Ask AURA can take you to any page ("take me to radiation") |
+| 🌌 | **Space-style interface.** A dark theme by default with a ☀ Light switch in the header (remembered per browser), a glass header with the page menu, and layouts that work on phones. Every page passes an automated WCAG 2 AA accessibility check in both themes |
 | ▶ | **Guided demo tour** that walks through the mission story, real NASA data, the new symptom, ground and radiation features, planner, team wellbeing, voice check-in, cytokines and your own data in 19 steps |
 
 ### Alert logic (in `backend/aura/alerts.py`)
@@ -96,7 +99,7 @@ npm install
 npm run dev
 ```
 
-Open **http://localhost:5173** and click **▶ Demo tour** in the header. The **✦ Ask AURA**
+Open **http://localhost:5173**. AURA opens on its home page; click **▶ Demo tour** in the header (or **Start the demo tour** on the home page). Use **↺ Reset** to put the demo back to its starting state and **☀ Light / ☾ Dark** to switch themes. The **✦ Ask AURA**
 button stays in the bottom-right corner, just below the tour card; opening it pauses the tour,
 and minimising it brings the tour back.
 The interactive API docs are at http://localhost:8000/docs.
@@ -156,11 +159,11 @@ For the presentation script, see [docs/DEMO_SCRIPT.md](docs/DEMO_SCRIPT.md). To 
 
 ![Crew editor](docs/screenshots/crew_editor.png)
 
-- **✎ Edit** (crew sidebar): rename members, add or remove people (no fixed limit), set personal
+- **✎ Edit** (Crew panel): rename members, add or remove people (no fixed limit), set personal
   baselines, and choose a scenario: nominal, behavioural → cardio, immune fever, circadian
   disruption or exercise deconditioning. Saving regenerates the mission. **Restore demo crew**
   brings back the three above, and the demo tour does this automatically.
-- **⬆ Import** (crew sidebar): upload your own CSV. Days −7 to −1 build your baseline and days
+- **⬆ Import** (Crew panel): upload your own CSV. Days −7 to −1 build your baseline and days
   1, 2, 3… are mission days. Start from [`data/import_template.csv`](data/import_template.csv);
   the format is in [docs/DATA_SOURCES.md](docs/DATA_SOURCES.md#your-own-data-csv-import).
 - **+ Add indicator** (Health indicators panel): track a new measurement. Start from a preset
@@ -206,12 +209,13 @@ built around that:
 | Data validation | **Pydantic** 2.14 | Request validation and the AI's structured output schemas |
 | Numerics | **NumPy** 2.5 | Seeded synthetic telemetry, statistics, trend fitting for the forecast |
 | AI | **Anthropic Claude API** (`anthropic` Python SDK 2.8) | Daily briefing, Ask AURA assistant, review of the real crew bloodwork |
-| Front end | **React** 19.3 (JavaScript/JSX), **Vite** 8.3 | Single-page dashboard and dev server (proxies `/api` to the back end) |
+| Front end | **React** 19.3 (JavaScript/JSX), **Vite** 8.3 | Single-page app with hash-routed pages and the dev server (proxies `/api` to the back end) |
+| Design | Plain CSS with theme tokens, Plus Jakarta Sans and JetBrains Mono (Google Fonts) | Dark space theme with a light alternative |
 | Charts | **Recharts** 3.10 | Trend charts, sparklines, forecast projections, research charts |
-| Testing | **pytest** 9.2, **httpx** | 177 back-end tests, including a mocked Claude API |
+| Testing | **pytest** 9.2, **httpx** | 179 back-end tests, including a mocked Claude API |
 | Data | NASA OSDR (CSV), JSON, in-memory store | Real Inspiration4 labs; mission data kept in memory for zero-setup demos |
 
-No database or cloud services are needed: clone, install, and run two terminals.
+No database or cloud services are needed: clone, install, and run two terminals. To put it online as a single web service, see [Deploy a live demo](#deploy-a-live-demo).
 
 ## Architecture
 
@@ -345,7 +349,7 @@ In line with the NASA Space Apps guidance on AI use, here is where AI was and wa
 cd backend && python -m pytest
 ```
 
-177 tests cover the alert engine, the simulator scenarios, every API endpoint, gamification,
+179 tests cover the alert engine, the simulator scenarios, every API endpoint, gamification,
 the OSDR parser and quality check, the CSV importer, crew editing, custom indicators, the forecast
 (confidence band and related trends), symptom triage, ground messaging and signal delay, the radiation
 budget, the ground view and reports, plausibility checks, the planner, the adaptive baseline, crew wellbeing,
