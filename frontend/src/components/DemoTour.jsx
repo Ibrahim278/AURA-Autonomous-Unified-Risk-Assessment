@@ -2,8 +2,8 @@
 export const TOUR_STEPS = [
   {
     title: 'Meet AURA',
-    text: 'Astronauts on long missions have to spot health changes themselves. AURA turns daily measurements into a clear Normal / Warning / Critical status, compared with each astronaut’s own preflight baseline.',
-    crew: 'aura-1', day: null, indicator: null, target: '.banner',
+    text: 'Astronauts on long missions have to spot health changes themselves: on Mars, the flight surgeon is minutes away. AURA turns daily measurements into a clear Normal / Warning / Critical status, compared with each astronaut’s own preflight baseline. Every feature is one click away from this home page.',
+    crew: 'aura-1', day: null, indicator: null, target: '.hero', page: 'home',
   },
   {
     title: 'Day 30: all clear',
@@ -52,7 +52,7 @@ export const TOUR_STEPS = [
   },
   {
     title: 'The flight surgeon’s view',
-    text: 'This is the 🛰 Ground view (toggle it in the header): the whole crew on one screen, sorted by who needs attention first (the worst of telemetry, symptoms and radiation), with messages shown only once their signal has arrived. 🖨 Report opens a printable health report you can save as PDF.',
+    text: 'This is the 🛰 Ground view page (in the menu bar): the whole crew on one screen, sorted by who needs attention first (the worst of telemetry, symptoms and radiation), with messages shown only once their signal has arrived. 🖨 Report opens a printable health report you can save as PDF.',
     crew: 'aura-3', day: null, indicator: null, target: '#ground', view: 'ground',
   },
   {
@@ -62,7 +62,7 @@ export const TOUR_STEPS = [
   },
   {
     title: 'Real astronaut data from NASA',
-    text: 'Below the synthetic mission is real bloodwork from the four Inspiration4 crew (NASA OSDR), from 92 days before launch to 194 days after return. All four had higher glucose the day after landing than just before launch. Out-of-range points are circled, and the lab’s range is shaded.',
+    text: 'The Real NASA data page shows real bloodwork from the four Inspiration4 crew (NASA OSDR), from 92 days before launch to 194 days after return. All four had higher glucose the day after landing than just before launch. Out-of-range points are circled, and the lab’s range is shaded.',
     crew: 'aura-2', day: null, indicator: null, target: '#research', research: { dataset: 'cmp', key: 'glucose' },
   },
   {
@@ -77,7 +77,7 @@ export const TOUR_STEPS = [
   },
   {
     title: 'Ask AURA anything',
-    text: 'The ✦ Ask AURA button below is on every screen. Ask about anyone’s health, what to do next, or how to use AURA, and get an answer, numbered steps and one-click buttons that take you there. Opening it pauses this tour; minimise it to come back.',
+    text: 'The ✦ Ask AURA button below is on every screen. Ask about anyone’s health, what to do next, or how to use AURA, and get an answer, numbered steps and one-click buttons that take you there. Say “take me to radiation” or “show me Amara” and it moves you between pages. Opening it pauses this tour; minimise it to come back.',
     crew: 'aura-2', day: null, indicator: null, target: '.banner', highlight: 'assistant',
   },
   {

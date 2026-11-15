@@ -98,3 +98,17 @@ def test_offline_remember_and_new_action_validation():
     kept = assistant._clean(reply, ctx).actions
     assert [(a.type, a.target) for a in kept] == [("go_to_day", "48"), ("log_symptom", "headache"),
                                                   ("draft_ground_message", "Sleeping badly, advice?")]
+
+
+def test_open_page_navigation_offline_and_validation():
+    from aura.assistant import AssistantAction, AssistantReply, _clean, build_assistant_context, offline_reply
+    from aura.main import store
+    ctx = build_assistant_context(store, "aura-2", None, None)
+    for q, page in [("take me to radiation", "radiation"), ("go to the team page", "team"),
+                    ("open the daily plan", "plan"), ("show me real NASA data", "research"), ("go home", "home")]:
+        r = offline_reply(q, ctx)
+        assert [(a.type, a.target) for a in r.actions] == [("open_page", page)], q
+    bad = AssistantReply(answer="x", steps=[], escalate=False, topic="app_help",
+                         actions=[AssistantAction(type="open_page", label="Nope", target="settings"),
+                                  AssistantAction(type="open_page", label="Plan", target="plan")])
+    assert [a.target for a in _clean(bad, ctx).actions] == ["plan"]

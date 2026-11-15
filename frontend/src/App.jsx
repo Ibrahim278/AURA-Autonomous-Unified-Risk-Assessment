@@ -22,6 +22,9 @@ import SymptomLog from './components/SymptomLog.jsx'
 import RadiationPanel from './components/RadiationPanel.jsx'
 import ResearchPanel from './components/ResearchPanel.jsx'
 import DemoTour, { TOUR_STEPS } from './components/DemoTour.jsx'
+import Landing from './components/Landing.jsx'
+import NavBar, { RelatedLinks } from './components/NavBar.jsx'
+import { PAGES, PAGE_OF_TARGET, pageFromHash } from './pages.js'
 
 export default function App() {
   const [mission, setMission] = useState(null)
@@ -37,7 +40,7 @@ export default function App() {
   const [radiation, setRadiation] = useState(null)
   const [askSignal, setAskSignal] = useState(0)
   const [groundDraft, setGroundDraft] = useState(null)
-  const [view, setView] = useState('crew')
+  const [page, setPage] = useState(pageFromHash)
   const [planSignal, setPlanSignal] = useState(0)
   const [symptomPrefill, setSymptomPrefill] = useState(null)
   const [system, setSystem] = useState(null)
@@ -91,62 +94,77 @@ export default function App() {
     loadCrew()
   }, [loadCrew])
 
+  // ---------------------------------------------------------------- pages (hash routes: #/plan)
+  useEffect(() => {
+    const onHash = () => setPage(pageFromHash())
+    window.addEventListener('hashchange', onHash)
+    return () => window.removeEventListener('hashchange', onHash)
+  }, [])
+  const navigate = useCallback((id, sel = null) => {
+    if (!PAGES[id]) return
+    if (window.location.hash !== `#/${id}`) window.history.pushState(null, '', `#/${id}`)
+    setPage(id)
+    if (sel) {
+      setTimeout(() => document.querySelector(sel)?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 450)
+    } else {
+      window.scrollTo({ top: 0, behavior: 'smooth' })
+    }
+  }, [])
+  // Open a page and, once it has rendered, scroll to an element on it.
+  const goTo = (sel) => navigate(PAGE_OF_TARGET[sel] ?? page, sel)
+  const openIndicator = (k) => { setSystem(null); setSelected(k); goTo('.detail') }
+  const openCrew = (id, target = 'status') => { setCrewId(id); setSelected(null); setSystem(null); navigate(target) }
+
   const goToStep = useCallback((i) => {
     const st = TOUR_STEPS[i]
     if (!st) return
     setTourStep(i)
-    setView(st.view ?? 'crew')
     setCrewId(st.crew)
     setDay(st.day)
     setSystem(null)
     setSelected(st.indicator)
-    setTimeout(() => {
-      document.querySelector(st.target)?.scrollIntoView({ behavior: 'smooth', block: 'center' })
-    }, 450)
-  }, [])
+    navigate(st.page ?? PAGE_OF_TARGET[st.target] ?? 'status', st.target)
+  }, [navigate])
 
   const refreshAll = useCallback(async () => {
     await Promise.all([loadMission(), loadCrew()])
   }, [loadMission, loadCrew])
 
   const startTour = useCallback(async () => {
-        // The tour follows the demo crew's scripted scenarios, so restore them if the crew was edited.
-        const demoReady = crew.some((c) => c.id === 'aura-2' && c.scenario === 'behavioural_cardio') &&
-          crew.some((c) => c.id === 'aura-3' && c.scenario === 'immune_fever')
-        const adaptive = mission?.baseline_mode === 'adaptive'
-        if (adaptive) await api.setBaselineMode('preflight') // the tour's numbers use preflight baselines
-        if (!demoReady) {
-          const o = await api.crewOptions()
-          await api.setCrew({ crew: o.default_crew })
-        }
-        if (!demoReady || adaptive) await refreshAll()
-        goToStep(0)
-      }, [crew, mission, refreshAll, goToStep])
-
-  const scrollTo = (sel) => setTimeout(() => {
-    document.querySelector(sel)?.scrollIntoView({ behavior: 'smooth', block: 'center' })
-  }, 350)
+    // The tour follows the demo crew's scripted scenarios, so restore them if the crew was edited.
+    const demoReady = crew.some((c) => c.id === 'aura-2' && c.scenario === 'behavioural_cardio') &&
+      crew.some((c) => c.id === 'aura-3' && c.scenario === 'immune_fever')
+    const adaptive = mission?.baseline_mode === 'adaptive'
+    if (adaptive) await api.setBaselineMode('preflight') // the tour's numbers use preflight baselines
+    if (!demoReady) {
+      const o = await api.crewOptions()
+      await api.setCrew({ crew: o.default_crew })
+    }
+    if (!demoReady || adaptive) await refreshAll()
+    goToStep(0)
+  }, [crew, mission, refreshAll, goToStep])
 
   const handleAction = (a) => {
     switch (a.type) {
-      case 'open_indicator': setView('crew'); setSystem(null); setSelected(a.target); scrollTo('.detail'); break
-      case 'select_crew': setView('crew'); setCrewId(a.target); setSelected(null); setSystem(null); scrollTo('.banner'); break
-      case 'open_checkin': setView('crew'); setDay(null); scrollTo('#checkin'); break
-      case 'open_briefing': setView('crew'); scrollTo('.ai-panel'); break
+      case 'open_page': navigate(a.target); break
+      case 'open_indicator': openIndicator(a.target); break
+      case 'select_crew': openCrew(a.target, PAGES[page]?.crew ? page : 'status'); break
+      case 'open_checkin': setDay(null); goTo('#checkin'); break
+      case 'open_briefing': goTo('.ai-panel'); break
       case 'open_crew_editor': setEditingCrew('edit'); break
       case 'open_import': setEditingCrew('import'); break
       case 'add_indicator': setManagingIndicators(true); break
-      case 'open_research': setView('crew'); scrollTo('#research'); break
+      case 'open_research': navigate('research'); break
       case 'start_tour': startTour(); break
-      case 'message_ground': setView('crew'); scrollTo('#comms'); break
-      case 'open_radiation': setView('crew'); scrollTo('#radiation'); break
-      case 'open_plan': setView('crew'); scrollTo('#plan'); break
-      case 'go_to_day': { setView('crew'); const d = Number(a.target); setDay(d >= (mission?.current_day ?? 0) ? null : d); scrollTo('.banner'); break }
-      case 'draft_ground_message': setView('crew'); setDay(null); setGroundDraft({ urgent: false, text: a.target, n: Date.now() }); scrollTo('#comms'); break
-      case 'log_symptom': setView('crew'); setDay(null); setSymptomPrefill({ key: a.target, n: Date.now() }); scrollTo('#symptoms'); break
-      case 'open_team': setView('team'); break
-      case 'open_ground': setView('ground'); break
-      case 'open_symptoms': setView('crew'); setDay(null); scrollTo('#symptoms'); break
+      case 'message_ground': navigate('comms'); break
+      case 'open_radiation': navigate('radiation'); break
+      case 'open_plan': navigate('plan'); break
+      case 'go_to_day': { const d = Number(a.target); setDay(d >= (mission?.current_day ?? 0) ? null : d); if (!PAGES[page]?.crew) navigate('status'); break }
+      case 'draft_ground_message': setDay(null); setGroundDraft({ urgent: false, text: a.target, n: Date.now() }); navigate('comms'); break
+      case 'log_symptom': setDay(null); setSymptomPrefill({ key: a.target, n: Date.now() }); goTo('#symptoms'); break
+      case 'open_team': navigate('team'); break
+      case 'open_ground': navigate('ground'); break
+      case 'open_symptoms': setDay(null); goTo('#symptoms'); break
       default: break
     }
   }
@@ -154,6 +172,7 @@ export default function App() {
   const member = useMemo(() => crew.find((c) => c.id === crewId), [crew, crewId])
   const shownDay = day ?? mission?.current_day
   const selectedAssessment = status?.indicators.find((i) => i.indicator === selected)
+  const messageGround = (text) => { setGroundDraft({ urgent: true, text, n: Date.now() }); setDay(null); navigate('comms') }
 
   if (error && !mission) {
     return (
@@ -168,175 +187,131 @@ export default function App() {
     )
   }
 
+  const crewPage = PAGES[page]?.crew
+  const ready = status && member
+  const banner = ready && (
+    <StatusBanner member={member} status={status} live={day === null} onMessageGround={() => {
+      const flagged = status.indicators.filter((i) => i.level === 'critical').map((i) => `${i.name} ${i.value} ${i.unit}`)
+      messageGround(`AURA flagged critical readings: ${flagged.join(', ')}. Requesting flight surgeon review.`)
+    }} />
+  )
+
   return (
     <div className="app">
-      <Header mission={mission} view={view} onView={setView} onTour={() => { setView('crew'); startTour() }} onReset={async (env) => {
+      <Header mission={mission} onHome={() => navigate('home')} onTour={startTour} onReset={async (env) => {
         await api.reset({ environment: env, days: mission?.days ?? 60 })
         setDay(null)
         setSelected(null)
         await refreshAll()
       }} />
-      <div className="layout">
-        <aside className="sidebar">
-          <CrewList crew={crew} selectedId={crewId} onEdit={() => setEditingCrew('edit')} onImport={() => setEditingCrew('import')} onSelect={(id) => {
-            setView('crew')
-            setCrewId(id)
-            setSelected(null)
-            setSystem(null)
-          }} />
-          {mission && (
-            <DayScrubber
-              currentDay={mission.current_day}
-              day={shownDay}
-              live={day === null}
-              onChange={(d) => setDay(d >= mission.current_day ? null : d)}
-            />
-          )}
-          {member && view === 'crew' && (
-            <div className="panel-lite">
-              <CommsPanel key={`${crewId}-${mission?.environment}-${mission?.current_day}`} crewId={crewId} member={member} live={day === null} prefill={groundDraft} />
-            </div>
-          )}
-          <div className="panel-lite" hidden={view !== 'crew'}>
-            <MissionRoutine
-              crewId={crewId}
-              data={routine}
-              onChange={setRoutine}
-              onGoToCheckin={() => {
-                setDay(null)
-                document.getElementById('checkin')?.scrollIntoView({ behavior: 'smooth', block: 'center' })
-              }}
-            />
-          </div>
-        </aside>
-
-        <main className="main">
+      <NavBar page={page} onNavigate={navigate} />
+      {page === 'home' ? (
+        <main className="main home-main">
           {error && <div className="toast error">{error}</div>}
-          {view === 'ground' && mission && (
-            <GroundView day={shownDay} live={day === null} refreshKey={mission.current_day}
-              onOpenCrew={(id) => { setView('crew'); setCrewId(id); setSelected(null); setSystem(null); window.scrollTo({ top: 0, behavior: 'smooth' }) }} />
-          )}
-          {view === 'team' && mission && (
-            <TeamView day={shownDay} live={day === null} refreshKey={mission.current_day}
-              onOpenCrew={(id) => { setView('crew'); setCrewId(id); setSelected(null); setSystem(null); window.scrollTo({ top: 0, behavior: 'smooth' }) }} />
-          )}
-          {view === 'crew' && status && member && (
-            <>
-              <StatusBanner member={member} status={status} live={day === null} onMessageGround={() => {
-                const flagged = status.indicators.filter((i) => i.level === 'critical').map((i) => `${i.name} ${i.value} ${i.unit}`)
-                setGroundDraft({ urgent: true, text: `AURA flagged critical readings: ${flagged.join(', ')}. Requesting flight surgeon review.`, n: Date.now() })
-                scrollTo('#comms')
-              }} />
-              <AIPanel
-                key={`${crewId}-${shownDay}`}
-                crewId={crewId}
-                member={member}
-                day={shownDay}
-                live={day === null}
-                catalog={catalog}
-                onSelectIndicator={(k) => { setSystem(null); setSelected(k); scrollTo('.detail') }}
-                forecast={forecast}
-                onAsk={() => setAskSignal((n) => n + 1)}
-              />
-              <section className="overview">
-                <div className="panel body-panel">
-                  <h2>Body status</h2>
-                  <BodyFigure
-                    systems={status.body_systems}
-                    selected={system}
-                    onSelect={(s) => setSystem((prev) => (prev === s ? null : s))}
-                  />
-                </div>
-                <div className="panel">
-                  <IndicatorGrid
-                    indicators={status.indicators}
-                    telemetry={telemetry}
-                    filterSystem={system}
-                    onClearFilter={() => setSystem(null)}
-                    selected={selected}
-                    onSelect={setSelected}
-                    day={shownDay}
-                    onManage={() => setManagingIndicators(true)}
-                    baselineMode={mission?.baseline_mode}
-                    onBaselineMode={async (mode) => { await api.setBaselineMode(mode); await refreshAll() }}
-                  />
-                </div>
-              </section>
-
-              {selectedAssessment && (
-                <IndicatorDetail
-                  assessment={selectedAssessment}
-                  info={catalog[selected]}
-                  series={telemetry?.series[selected]}
-                  projection={forecast?.day === shownDay ? forecast?.series[selected] : null}
-                  related={forecast?.day === shownDay ? forecast?.related?.[selected] ?? [] : []}
-                  onSelect={(k) => { setSystem(null); setSelected(k) }}
-                  day={shownDay}
-                  onClose={() => setSelected(null)}
-                />
-              )}
-
-              <PlanPanel
-                crewId={crewId}
-                day={shownDay}
-                live={day === null}
-                catalog={catalog}
-                refreshKey={`${status.overall}-${status.counts.warning}-${status.counts.critical}-${planSignal}`}
-                onOpenIndicator={(k) => { setSystem(null); setSelected(k); scrollTo('.detail') }}
-              />
-
-              <SymptomLog
-                onLogged={() => setPlanSignal((n) => n + 1)}
-                prefill={symptomPrefill}
-                key={crewId}
-                crewId={crewId}
-                day={shownDay}
-                live={day === null}
-                catalog={catalog}
-                onOpenIndicator={(k) => { setSystem(null); setSelected(k); scrollTo('.detail') }}
-                onMessageGround={(t) => {
-                  setGroundDraft({ urgent: true, text: `Symptom triage is critical: ${t.reasons.join(' ')} Requesting flight surgeon review.`, n: Date.now() })
-                  scrollTo('#comms')
-                }}
-              />
-
-              <RadiationPanel budget={radiation} onOpenIndicator={(k) => { setSystem(null); setSelected(k); scrollTo('.detail') }} />
-
-              <section className="bottom">
-                <div className="panel" id="checkin">
-                  <CheckInForm
-                    crewId={crewId}
-                    catalog={catalog}
-                    disabled={day !== null}
-                    onSaved={refreshAll}
-                    onSymptoms={(keys) => { setSymptomPrefill({ keys, n: Date.now() }); scrollTo('#symptoms') }}
-                    day={mission?.current_day}
-                    onNextDay={async () => {
-                      const m = await api.nextDay()
-                      setDay(null)
-                      await refreshAll()
-                      return m
-                    }}
-                  />
-                </div>
-                <div className="panel">
-                  <AlertTimeline
-                    alerts={alerts}
-                    catalog={catalog}
-                    upToDay={shownDay}
-                    onSelect={(key, d) => {
-                      setSelected(key)
-                      setDay(d >= mission.current_day ? null : d)
-                    }}
-                  />
-                </div>
-              </section>
-
-              <ResearchPanel focus={tourStep !== null ? TOUR_STEPS[tourStep]?.research : null} />
-            </>
-          )}
+          <Landing mission={mission} crew={crew} onNavigate={navigate} onOpenCrew={(id) => openCrew(id)}
+            onTour={startTour} onAsk={() => setAskSignal((n) => n + 1)}
+            onEditCrew={() => setEditingCrew('edit')} onImport={() => setEditingCrew('import')}
+            onAddIndicator={() => setManagingIndicators(true)} />
         </main>
-      </div>
+      ) : (
+        <div className="layout">
+          <aside className="sidebar">
+            <CrewList crew={crew} selectedId={crewId} onEdit={() => setEditingCrew('edit')} onImport={() => setEditingCrew('import')}
+              onSelect={(id) => openCrew(id, crewPage ? page : 'status')} />
+            {mission && (
+              <DayScrubber currentDay={mission.current_day} day={shownDay} live={day === null}
+                onChange={(d) => setDay(d >= mission.current_day ? null : d)} />
+            )}
+          </aside>
+          <main className="main">
+            {error && <div className="toast error">{error}</div>}
+            <div className="page-title">
+              <h1><span aria-hidden="true">{PAGES[page].icon}</span> {PAGES[page].title}</h1>
+              {crewPage && member && <span className="muted">{member.name} · day {shownDay}{day === null ? ' (live)' : ' (replay)'}</span>}
+            </div>
+            {crewPage && banner}
+
+            {page === 'status' && ready && (
+              <>
+                <AIPanel key={`${crewId}-${shownDay}`} crewId={crewId} member={member} day={shownDay} live={day === null}
+                  catalog={catalog} onSelectIndicator={openIndicator} forecast={forecast} onAsk={() => setAskSignal((n) => n + 1)} />
+                <section className="overview">
+                  <div className="panel body-panel">
+                    <h2>Body status</h2>
+                    <BodyFigure systems={status.body_systems} selected={system} onSelect={(s) => setSystem((prev) => (prev === s ? null : s))} />
+                  </div>
+                  <div className="panel">
+                    <IndicatorGrid indicators={status.indicators} telemetry={telemetry} filterSystem={system}
+                      onClearFilter={() => setSystem(null)} selected={selected} onSelect={setSelected} day={shownDay}
+                      onManage={() => setManagingIndicators(true)} baselineMode={mission?.baseline_mode}
+                      onBaselineMode={async (mode) => { await api.setBaselineMode(mode); await refreshAll() }} />
+                  </div>
+                </section>
+                {selectedAssessment && (
+                  <IndicatorDetail assessment={selectedAssessment} info={catalog[selected]} series={telemetry?.series[selected]}
+                    projection={forecast?.day === shownDay ? forecast?.series[selected] : null}
+                    related={forecast?.day === shownDay ? forecast?.related?.[selected] ?? [] : []}
+                    onSelect={(k) => { setSystem(null); setSelected(k) }} day={shownDay} onClose={() => setSelected(null)} />
+                )}
+              </>
+            )}
+
+            {page === 'checkin' && ready && (
+              <>
+                <div className="panel" id="checkin">
+                  <CheckInForm crewId={crewId} catalog={catalog} disabled={day !== null} onSaved={refreshAll}
+                    onSymptoms={(keys) => { setSymptomPrefill({ keys, n: Date.now() }); goTo('#symptoms') }}
+                    day={mission?.current_day}
+                    onNextDay={async () => { const m = await api.nextDay(); setDay(null); await refreshAll(); return m }} />
+                </div>
+                <SymptomLog onLogged={() => setPlanSignal((n) => n + 1)} prefill={symptomPrefill} key={crewId} crewId={crewId}
+                  day={shownDay} live={day === null} catalog={catalog} onOpenIndicator={openIndicator}
+                  onMessageGround={(t) => messageGround(`Symptom triage is critical: ${t.reasons.join(' ')} Requesting flight surgeon review.`)} />
+              </>
+            )}
+
+            {page === 'plan' && ready && (
+              <PlanPanel crewId={crewId} day={shownDay} live={day === null} catalog={catalog} onOpenIndicator={openIndicator}
+                refreshKey={`${status.overall}-${status.counts.warning}-${status.counts.critical}-${planSignal}`} />
+            )}
+
+            {page === 'radiation' && ready && <RadiationPanel budget={radiation} onOpenIndicator={openIndicator} />}
+
+            {page === 'comms' && member && (
+              <div className="panel comms-page">
+                <CommsPanel key={`${crewId}-${mission?.environment}-${mission?.current_day}`} crewId={crewId} member={member}
+                  live={day === null} prefill={groundDraft} />
+              </div>
+            )}
+
+            {page === 'timeline' && ready && (
+              <div className="panel">
+                <AlertTimeline alerts={alerts} catalog={catalog} upToDay={shownDay}
+                  onSelect={(key, d) => { setDay(d >= mission.current_day ? null : d); openIndicator(key) }} />
+              </div>
+            )}
+
+            {page === 'routine' && member && (
+              <div className="panel routine-page">
+                <MissionRoutine crewId={crewId} data={routine} onChange={setRoutine}
+                  onGoToCheckin={() => { setDay(null); goTo('#checkin') }} />
+              </div>
+            )}
+
+            {page === 'team' && mission && (
+              <TeamView day={shownDay} live={day === null} refreshKey={mission.current_day} onOpenCrew={(id) => openCrew(id)} />
+            )}
+            {page === 'ground' && mission && (
+              <GroundView day={shownDay} live={day === null} refreshKey={mission.current_day} onOpenCrew={(id) => openCrew(id)} />
+            )}
+            {page === 'research' && (
+              <ResearchPanel focus={tourStep !== null ? TOUR_STEPS[tourStep]?.research : null} />
+            )}
+
+            <RelatedLinks page={page} onNavigate={navigate} />
+          </main>
+        </div>
+      )}
       {managingIndicators && (
         <IndicatorManager
           catalog={catalog}
@@ -345,6 +320,7 @@ export default function App() {
             await refreshAll()
             setSystem(null)
             setSelected(key)
+            navigate('status', '.detail')
           }}
         />
       )}
@@ -360,6 +336,7 @@ export default function App() {
             setSystem(null)
             setCrewId((prev) => focusId ?? (saved.some((c) => c.id === prev) ? prev : saved[0]?.id ?? null))
             await refreshAll()
+            if (page === 'home') navigate('status')
           }}
         />
       )}
@@ -373,6 +350,7 @@ export default function App() {
         live={day === null}
         selected={selected}
         selectedName={selected ? catalog[selected]?.name : null}
+        page={page}
         onOpenChange={setAssistantOpen}
         highlight={tourStep !== null && TOUR_STEPS[tourStep]?.highlight === 'assistant'}
         openSignal={askSignal}

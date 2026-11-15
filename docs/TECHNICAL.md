@@ -619,7 +619,15 @@ parallel. `day = null` means live. After any write (check-in, symptom, plan tick
 panels reload. `handleAction()` routes every action, from Ask AURA, the
 tour or a button, to UI state: open a panel, scroll, select a day or indicator, pre-fill a form.
 
-**Views.** The header switches between **Crew**, **Team** and **Ground**.
+**Pages.** AURA opens on a **landing page** (story, mission at a glance, crew snapshot, ▶ demo tour and a
+menu of feature cards). Every feature has its own page, reached from the menu bar or the cards, with a URL
+hash route so the browser's back button works: `#/home`, `#/status` (banner, AI briefing and forecast, body
+figure, indicators, detail), `#/checkin` (check-in and symptom log), `#/plan`, `#/radiation`, `#/comms`,
+`#/timeline`, `#/routine`, `#/team`, `#/ground`, `#/research`. `pages.js` defines the pages, their menu
+groups and their `related` links (shown at the bottom of each page), and `PAGE_OF_TARGET`, which tells the
+demo tour and Ask AURA which page holds an element. The crew picker and mission replay stay in the sidebar,
+and the status banner is shown on every crew page. Ask AURA's `open_page` action (validated against the page
+list) moves the user between pages; offline it understands "take me to radiation" or "show me Amara".
 
 | Component | Role |
 | --- | --- |

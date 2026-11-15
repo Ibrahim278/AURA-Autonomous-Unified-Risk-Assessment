@@ -5,7 +5,7 @@ function suggestionsFor(member, selectedName) {
   const s = []
   if (member) s.push(`How is ${member.name.split(' ').slice(-2, -1)[0] ?? member.name} doing today?`)
   if (selectedName) s.push(`What should I do about ${selectedName.toLowerCase()}?`)
-  s.push('How do I import my own data?', 'What does a warning mean?', 'Show me the real NASA data')
+  s.push('Take me to the radiation budget', 'How do I import my own data?', 'What does a warning mean?')
   return s.slice(0, 4)
 }
 
@@ -15,7 +15,7 @@ function loadChat() {
   try { return JSON.parse(localStorage.getItem(CHAT_KEY)) ?? [] } catch { return [] }
 }
 
-export default function AssistantWidget({ crewId, member, day, live, selected, selectedName, onAction, openSignal = 0, onOpenChange, highlight = false }) {
+export default function AssistantWidget({ crewId, member, day, live, selected, selectedName, page, onAction, openSignal = 0, onOpenChange, highlight = false }) {
   const [open, setOpen] = useState(false)
   const [chat, setChat] = useState(loadChat)
   const [memory, setMemory] = useState([])
@@ -73,7 +73,7 @@ export default function AssistantWidget({ crewId, member, day, live, selected, s
     setBusy(true)
     setError(null)
     try {
-      const r = await api.assistant({ question: q, history, crew_id: crewId, day: live ? null : day, indicator: selected })
+      const r = await api.assistant({ question: q, history, crew_id: crewId, day: live ? null : day, indicator: selected, page })
       setChat((c) => [...c, { role: 'assistant', reply: r.reply, mode: r.mode, note: r.note }])
     } catch (e) {
       setError(e.message)

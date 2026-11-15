@@ -4,10 +4,10 @@ const ENV_LABEL = {
   mars_transit: 'Mars transit',
 }
 
-export default function Header({ mission, onReset, onTour, view, onView }) {
+export default function Header({ mission, onReset, onTour, onHome }) {
   return (
     <header className="header">
-      <div className="brand">
+      <a className="brand" href="#/home" onClick={(e) => { e.preventDefault(); onHome?.() }} aria-label="AURA home">
         <svg viewBox="0 0 40 40" className="logo" aria-hidden="true">
           <circle cx="20" cy="20" r="16" fill="none" stroke="currentColor" strokeWidth="3" />
           <ellipse cx="20" cy="20" rx="19" ry="6" fill="none" stroke="currentColor" strokeWidth="1.5" opacity="0.6" />
@@ -18,14 +18,9 @@ export default function Header({ mission, onReset, onTour, view, onView }) {
           <div className="brand-sub">Autonomous Unified Risk Assessment</div>
           <div className="brand-tag">Your crew&apos;s health, even when Earth is 20 minutes away.</div>
         </div>
-      </div>
+      </a>
       {mission && (
         <div className="mission-info">
-          <div className="seg view-toggle" role="tablist" aria-label="View">
-            <button role="tab" aria-selected={view === 'crew'} className={view === 'crew' ? 'active' : ''} onClick={() => onView('crew')}>👩‍🚀 Crew</button>
-            <button role="tab" aria-selected={view === 'team'} className={view === 'team' ? 'active' : ''} onClick={() => onView('team')}>👥 Team</button>
-            <button role="tab" aria-selected={view === 'ground'} className={view === 'ground' ? 'active' : ''} onClick={() => onView('ground')}>🛰 Ground</button>
-          </div>
           <span className="pill">{mission.mission_name}</span>
           <label className="pill env-select">
             <span className="sr-only">Mission environment</span>

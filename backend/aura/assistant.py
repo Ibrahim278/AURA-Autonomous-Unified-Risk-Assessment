@@ -29,11 +29,34 @@ log = logging.getLogger("aura.assistant")
 ActionType = Literal["open_indicator", "open_checkin", "open_briefing", "open_crew_editor",
                      "open_import", "add_indicator", "open_research", "start_tour", "select_crew",
                      "message_ground", "open_radiation", "open_symptoms", "open_ground", "open_plan", "open_team",
-                     "remember", "draft_ground_message", "go_to_day", "log_symptom"]
-TARGETED = {"open_indicator", "select_crew", "remember", "draft_ground_message", "go_to_day", "log_symptom"}
+                     "remember", "draft_ground_message", "go_to_day", "log_symptom", "open_page"]
+TARGETED = {"open_indicator", "select_crew", "remember", "draft_ground_message", "go_to_day", "log_symptom",
+            "open_page"}
+# Pages of the app (front-end routes #/<page>), with words people use for them.
+PAGES: dict[str, tuple[str, str]] = {
+    "home": ("Home", r"home|landing|start page|main menu|menu"),
+    "status": ("Health status", r"health status|status|dashboard|overview|indicators?|body"),
+    "checkin": ("Check-in and symptoms", r"check[- ]?in|symptoms?|log (my )?readings"),
+    "plan": ("Daily plan", r"(?:daily |today'?s |countermeasure )?(?:plan|schedule)|countermeasures?"),
+    "radiation": ("Radiation", r"radiation(?: dose)?(?: budget)?|dose(?: budget)?|dosimeter"),
+    "comms": ("Message ground", r"message ground|ground message|comms|contact ground|messages?"),
+    "timeline": ("Alert history", r"timeline|alert history|history|past alerts"),
+    "routine": ("Routine and rewards", r"routine|tasks?|badges?|points|challenges?|leaderboard|crew board|streaks?"),
+    "team": ("Team wellbeing", r"team|wellbeing|well-being|crew mood"),
+    "ground": ("Ground view", r"ground view|flight surgeon (view|console)|console"),
+    "research": ("Real NASA data", r"research|(?:real )?nasa data|real data|inspiration ?4|osdr|bloodwork|cytokines?"),
+}
 
 APP_GUIDE = """\
-AURA dashboard guide (use these exact names when telling the user where to click):
+AURA is organised in pages, reached from the menu bar under the header (or the cards on Home). Use \
+open_page with the page id to take the user there: home (landing page: story, crew snapshot, feature menu, \
+demo tour), status (Health status: status banner, AI flight surgeon and early-warning forecast, body figure, \
+indicator cards and detail), checkin (Check-in and symptoms: daily check-in with voice, symptom log), plan \
+(Daily plan), radiation (Radiation dose budget), comms (Message ground), timeline (Alert history), routine \
+(Routine and rewards: tasks, streaks, weekly challenges, crew board, badges), team (Team wellbeing), ground \
+(Ground view, the flight-surgeon console), research (Real NASA data, Inspiration4). The crew picker and \
+mission replay stay in the left sidebar on every page. The status banner shows on every crew page.
+AURA guide by feature (use these exact names when telling the user where to click):
 - Crew box (left sidebar): click a crew member to view them. "✎ Edit" opens the crew editor (add/remove \
 members, name, role, age, personal baselines, health scenario). "⬆ Import" adds a crew member from the \
 user's own CSV (a 'day' column; days -7..-1 are preflight baseline, 1, 2, 3... mission days; one column per \
@@ -123,8 +146,9 @@ critical actions and contact the flight surgeon now.
 open_indicator (an indicator key from the context), select_crew (a crew id), go_to_day (a mission day number \
 up to mission_day, to replay that day), log_symptom (a symptom key from symptom_keys, preselects it in the \
 symptom log), draft_ground_message (the full text of a short message to the flight surgeon, which the user \
-reviews before sending), remember (a short note, at most 200 characters, to save to AURA's memory). Other \
-types take no target.
+reviews before sending), remember (a short note, at most 200 characters, to save to AURA's memory), \
+open_page (a page id from the guide: home, status, checkin, plan, radiation, comms, timeline, routine, team, \
+ground, research). Prefer open_page when the user asks to go somewhere. Other types take no target.
 7. Memory: "memory" lists notes the user asked AURA to remember (preferences, history, context). Use them \
 when relevant. When the user asks you to remember something, offer a remember action with a concise note; \
 it is only saved if they click it.
@@ -200,6 +224,8 @@ def _clean(reply: AssistantReply, ctx: dict) -> AssistantReply:
         if a.type == "go_to_day" and not (t.isdigit() and 1 <= int(t) <= ctx["mission_day"]):
             continue
         if a.type == "log_symptom" and t not in symptoms.CATALOG:
+            continue
+        if a.type == "open_page" and t not in PAGES:
             continue
         if a.type in ("remember", "draft_ground_message") and not 1 <= len(t) <= (200 if a.type == "remember" else 1000):
             continue
@@ -301,6 +327,20 @@ def offline_reply(question: str, ctx: dict) -> AssistantReply:
         return AssistantReply(answer=f"Here's day {d.group(1)} in mission replay.", steps=[],
                               actions=[AssistantAction(type="go_to_day", label=f"Go to day {d.group(1)}",
                                                        target=d.group(1))], escalate=False, topic="app_help")
+    nav = re.search(r"\b(?:take me to|go to|go back to|go(?= home)|open|show(?: me)?|navigate to|switch to|where is|where's)\s+(?:the\s+|my\s+)?(.+)", q)
+    if nav:
+        wanted = nav.group(1).strip(" ?.!")
+        for page, (title, words) in PAGES.items():
+            if re.fullmatch(rf"(?:{words})(?: page| view| screen| panel)?", wanted):
+                return AssistantReply(answer=f"Here's {title}.", steps=[],
+                                      actions=[AssistantAction(type="open_page", label=f"Open {title}"[:40], target=page)],
+                                      escalate=False, topic="app_help")
+        for c in ctx["crew_roster"]:
+            names = {w.lower().strip(".") for w in c["name"].split() if len(w.strip(".")) > 2}
+            if set(re.findall(r"[a-z]+", wanted.lower())) & names:
+                return AssistantReply(answer=f"Here's {c['name']}.", steps=[],
+                                      actions=[AssistantAction(type="select_crew", label=f"Open {c['name']}"[:40], target=c["id"])],
+                                      escalate=False, topic="app_help")
     person = ctx.get("person")
     escalate = bool(person and person.get("escalate"))
     for pattern, answer, steps, actions in FAQ:
@@ -331,8 +371,9 @@ def offline_reply(question: str, ctx: dict) -> AssistantReply:
 
 # --------------------------------------------------------------------------- AI
 def ask_assistant(store: MissionStore, question: str, history: list[ChatTurn], crew_id: str | None = None,
-                  day: int | None = None, indicator: str | None = None) -> dict:
+                  day: int | None = None, indicator: str | None = None, page: str | None = None) -> dict:
     ctx = build_assistant_context(store, crew_id, day, indicator)
+    ctx["current_page"] = page if page in PAGES else None
     status = ai_status()
     if not status["enabled"]:
         return {"mode": "offline", "model": None, "reply": _clean(offline_reply(question, ctx), ctx).model_dump(),

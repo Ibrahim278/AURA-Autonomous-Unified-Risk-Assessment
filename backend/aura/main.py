@@ -601,6 +601,7 @@ class AssistantRequest(BaseModel):
     crew_id: str | None = Field(None, description="Who the user is looking at")
     day: int | None = Field(None, ge=1)
     indicator: str | None = Field(None, description="Selected indicator, if any")
+    page: str | None = Field(None, max_length=30, description="The app page the user is on")
 
 
 class MemoryNote(BaseModel):
@@ -636,4 +637,5 @@ def delete_memory(note_id: int):
 def ask_assistant(body: AssistantRequest):
     """Answer any question with an answer, steps and one-click dashboard actions."""
     crew_id = body.crew_id if body.crew_id in store.crew else None
-    return assistant.ask_assistant(store, body.question, body.history, crew_id, body.day, body.indicator)
+    return assistant.ask_assistant(store, body.question, body.history, crew_id, body.day, body.indicator,
+                                  page=body.page)
