@@ -74,8 +74,8 @@ export default function RadiationPanel({ budget: b, onOpenIndicator }) {
               <ReferenceLine y={0.8 * b.career_limit_mSv} stroke="var(--warning)" strokeDasharray="2 4"
                 label={{ value: '80%', fill: 'var(--warning)', fontSize: 10, position: 'insideBottomRight' }} />
               {b.prior_mSv > 0 && <ReferenceLine y={b.prior_mSv} stroke="var(--muted)" strokeDasharray="1 3" />}
-              <Area dataKey="mSv" stroke="#a78bfa" fill="#a78bfa" fillOpacity={0.18} isAnimationActive={false} />
-              <Line dataKey="projection" stroke="#a78bfa" strokeDasharray="6 4" dot={false} isAnimationActive={false} connectNulls />
+              <Area dataKey="mSv" stroke="#7c3aed" fill="#7c3aed" fillOpacity={0.18} isAnimationActive={false} />
+              <Line dataKey="projection" stroke="#7c3aed" strokeDasharray="6 4" dot={false} isAnimationActive={false} connectNulls />
             </ComposedChart>
           </ResponsiveContainer>
           <p className="hint">{b.note}</p>

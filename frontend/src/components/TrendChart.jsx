@@ -57,10 +57,10 @@ export default function TrendChart({ series, day, projection = null }) {
           <ReferenceLine x={0} stroke="var(--accent)" label={{ value: 'launch', fill: 'var(--accent)', fontSize: 10, position: 'insideTopRight' }} />
           <Line type="monotone" dataKey="value" stroke="var(--line)" strokeWidth={2} dot={<Dot />} isAnimationActive={false} />
           {projection?.length > 0 && projection[0].lo != null && (
-            <Area type="linear" dataKey="band" stroke="none" fill="#c4b5fd" fillOpacity={0.18} connectNulls isAnimationActive={false} />
+            <Area type="linear" dataKey="band" stroke="none" fill="#7c3aed" fillOpacity={0.18} connectNulls isAnimationActive={false} />
           )}
           {projection?.length > 0 && (
-            <Line type="linear" dataKey="projection" stroke="#c4b5fd" strokeWidth={2} strokeDasharray="5 4" dot={false}
+            <Line type="linear" dataKey="projection" stroke="#7c3aed" strokeWidth={2} strokeDasharray="5 4" dot={false}
               connectNulls isAnimationActive={false} />
           )}
         </ComposedChart>

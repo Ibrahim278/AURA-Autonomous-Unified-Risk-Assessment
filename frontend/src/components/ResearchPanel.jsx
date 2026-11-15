@@ -5,9 +5,9 @@ import {
 import { api } from '../api.js'
 import ResearchReview from './ResearchReview.jsx'
 
-const CREW_COLORS = { C001: '#a5c8ff', C002: '#c084fc', C003: '#f472b6', C004: '#2dd4bf' }
+const CREW_COLORS = { C001: '#2366a5', C002: '#7c3aed', C003: '#db2777', C004: '#0f766e' }
 // Crew in files a team adds to data/osdr/ (other IDs) take these in order.
-const EXTRA_COLORS = ['#fbbf24', '#a3e635', '#fb923c', '#67e8f9', '#e879f9', '#94a3b8']
+const EXTRA_COLORS = ['#d97706', '#4d7c0f', '#ea580c', '#0891b2', '#a21caf', '#475569']
 const DATASET_LABELS = { cmp: 'Metabolic panel', cbc: 'Blood count', immune: 'Immune cytokines', cardio: 'Cardio & inflammation' }
 
 function FlagDot({ cx, cy, payload, dataKey, stroke }) {

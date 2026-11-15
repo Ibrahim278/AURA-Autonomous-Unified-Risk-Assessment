@@ -7,7 +7,7 @@ const BAND = {
   watch: { label: 'Watch', cls: 'lvl-warning' },
   support: { label: 'Needs support', cls: 'lvl-critical' },
 }
-const COLORS = ['#38bdf8', '#f472b6', '#a3e635', '#fbbf24', '#c084fc', '#2dd4bf', '#fb923c', '#e879f9', '#67e8f9', '#facc15', '#94a3b8', '#f87171']
+const COLORS = ['#2366a5', '#db2777', '#4d7c0f', '#d97706', '#7c3aed', '#0f766e', '#ea580c', '#a21caf', '#0891b2', '#a16207', '#475569', '#dc2626']
 
 function TrendChart({ data, names, unit, title }) {
   const ids = Object.keys(names)
@@ -26,7 +26,7 @@ function TrendChart({ data, names, unit, title }) {
             <Line key={id} dataKey={id} name={names[id]} stroke={COLORS[i % COLORS.length]} dot={false}
               strokeWidth={1.5} isAnimationActive={false} connectNulls />
           ))}
-          <Line dataKey="crew" name="Crew average" stroke="#e5e7eb" strokeDasharray="5 4" dot={false} strokeWidth={2.2} isAnimationActive={false} connectNulls />
+          <Line dataKey="crew" name="Crew average" stroke="#172536" strokeDasharray="5 4" dot={false} strokeWidth={2.2} isAnimationActive={false} connectNulls />
         </LineChart>
       </ResponsiveContainer>
     </div>

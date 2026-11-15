@@ -1,5 +1,8 @@
 import { PAGES } from '../pages.js'
 
+// Monochrome glyphs for the sidebar (U+FE0E keeps them as text, not colour emoji).
+const GLYPH = { home: '⌂', status: '♡', checkin: '✎', plan: '☷', radiation: '☢', comms: '⇄', timeline: '≡', routine: '★', team: '⚇', ground: '◎', research: '⚗' }
+
 const MENU = ['home', 'status', 'checkin', 'plan', 'radiation', 'comms', 'timeline', 'routine', 'team', 'ground', 'research']
 
 export default function NavBar({ page, onNavigate }) {
@@ -8,7 +11,7 @@ export default function NavBar({ page, onNavigate }) {
       {MENU.map((id) => (
         <a key={id} href={`#/${id}`} title={PAGES[id].title} className={page === id ? 'active' : ''} aria-current={page === id ? 'page' : undefined}
           onClick={(e) => { e.preventDefault(); onNavigate(id) }}>
-          <span aria-hidden="true">{PAGES[id].icon}</span> {PAGES[id].short ?? PAGES[id].title}
+          <span className="nav-glyph" aria-hidden="true">{GLYPH[id] + '\uFE0E'}</span><span className="nav-label">{PAGES[id].short ?? PAGES[id].title}</span>
         </a>
       ))}
     </nav>

@@ -4,24 +4,35 @@ const ENV_LABEL = {
   mars_transit: 'Mars transit',
 }
 
-export default function Header({ mission, onReset, onRestart, onTour, onHome }) {
+export default function Header({ mission, onReset, onRestart, onTour, onHome, children }) {
   return (
-    <header className="header">
+    <>
+    <aside className="side-nav">
       <a className="brand" href="#/home" onClick={(e) => { e.preventDefault(); onHome?.() }} aria-label="AURA home">
-        <svg viewBox="0 0 40 40" className="logo" aria-hidden="true">
+        <span className="logo-box" aria-hidden="true"><svg viewBox="0 0 40 40" className="logo">
           <circle cx="20" cy="20" r="16" fill="none" stroke="currentColor" strokeWidth="3" />
           <ellipse cx="20" cy="20" rx="19" ry="6" fill="none" stroke="currentColor" strokeWidth="1.5" opacity="0.6" />
           <circle cx="20" cy="20" r="5" fill="currentColor" />
-        </svg>
+        </svg></span>
         <div>
           <div className="brand-name">AURA</div>
           <div className="brand-sub">Autonomous Unified Risk Assessment</div>
           <div className="brand-tag">Your crew&apos;s health, even when Earth is 20 minutes away.</div>
         </div>
       </a>
+      {children}
+      <div className="side-note">
+        <span className="side-note-title">Research prototype</span>
+        <span>Not a certified medical device</span>
+      </div>
+    </aside>
+    <header className="header topbar">
+      <div className="topbar-text">
+        <p className="eyebrow">Astronaut health · Autonomous risk assessment</p>
+        <div className="topbar-mission"><span className="status-dot" aria-hidden="true" />{mission?.mission_name ?? 'AURA'}</div>
+      </div>
       {mission && (
         <div className="mission-info">
-          <span className="pill mission-name">{mission.mission_name}</span>
           <label className="pill env-select">
             <span className="sr-only">Mission environment</span>
             <select value={mission.environment} onChange={(e) => onReset(e.target.value)}>
@@ -37,5 +48,6 @@ export default function Header({ mission, onReset, onRestart, onTour, onHome }) 
         </div>
       )}
     </header>
+    </>
   )
 }

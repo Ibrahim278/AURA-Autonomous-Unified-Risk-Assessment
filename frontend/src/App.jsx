@@ -214,8 +214,9 @@ export default function App() {
         setSelected(null)
         setCrewId('aura-1')
         await refreshAll()
-      }} />
-      <NavBar page={page} onNavigate={navigate} />
+      }}>
+        <NavBar page={page} onNavigate={navigate} />
+      </Header>
       {page === 'home' ? (
         <main className="main home-main">
           {error && <div className="toast error">{error}</div>}
@@ -237,7 +238,10 @@ export default function App() {
           <main className="main">
             {error && <div className="toast error">{error}</div>}
             <div className="page-title">
-              <h1><span aria-hidden="true">{PAGES[page].icon}</span> {PAGES[page].title}</h1>
+              <div>
+                <p className="eyebrow">{PAGES[page].group ?? 'AURA'}{crewPage ? ' · Crew health' : ''}</p>
+                <h1>{PAGES[page].title}</h1>
+              </div>
               {crewPage && member && <span className="muted">{member.name} · day {shownDay}{day === null ? ' (live)' : ' (replay)'}</span>}
             </div>
             {crewPage && banner}
