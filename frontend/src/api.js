@@ -34,6 +34,7 @@ export const api = {
   alerts: (id) => request(`/api/crew/${id}/alerts`),
   checkin: (id, body) =>
     request(`/api/crew/${id}/checkins`, { method: 'POST', body: JSON.stringify(body) }),
+  parseVoice: (text) => request('/api/checkins/parse', { method: 'POST', body: JSON.stringify({ text }) }),
   checkCheckin: (id, body) =>
     request(`/api/crew/${id}/checkins/check`, { method: 'POST', body: JSON.stringify(body) }),
   tasks: (id) => request(`/api/crew/${id}/tasks`),

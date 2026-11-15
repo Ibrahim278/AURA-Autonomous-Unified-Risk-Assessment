@@ -25,7 +25,8 @@ export default function SymptomLog({ crewId, day, live, catalog, onOpenIndicator
   const names = useMemo(() => Object.fromEntries(options.map((o) => [o.key, o.name])), [options])
 
   useEffect(() => {
-    if (prefill?.key) setPicked((p) => ({ ...p, [prefill.key]: p[prefill.key] ?? 4 }))
+    const keys = prefill?.keys ?? (prefill?.key ? [prefill.key] : [])
+    if (keys.length) setPicked((p) => ({ ...p, ...Object.fromEntries(keys.map((k) => [k, p[k] ?? 4])) }))
   }, [prefill])
 
   const toggle = (k) => setPicked(({ [k]: had, ...rest }) => (had ? rest : { ...rest, [k]: 4 }))

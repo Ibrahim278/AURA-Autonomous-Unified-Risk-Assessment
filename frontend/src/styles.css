@@ -598,3 +598,10 @@ button:disabled { opacity: 0.6; cursor: default; }
 .assistant-memory ul { list-style: none; margin: 6px 0 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
 .assistant-memory li { display: flex; justify-content: space-between; gap: 8px; }
 .assistant-note { align-self: center; font-size: 0.75rem; color: var(--muted); background: var(--bg2); border: 1px solid var(--border); border-radius: 999px; padding: 3px 10px; flex-shrink: 0; }
+
+/* ---------- voice check-in ---------- */
+.voice { display: flex; gap: 8px; align-items: center; margin-bottom: 10px; flex-wrap: wrap; }
+.voice input { flex: 1 1 220px; min-width: 0; background: var(--bg); color: var(--text); border: 1px solid var(--border); border-radius: 8px; padding: 7px 9px; font: inherit; font-size: 0.82rem; }
+.voice .chip { color: var(--text); }
+.chip.mic.on { border-color: var(--critical); color: var(--critical); }
+.heard { font-size: 0.78rem; color: var(--muted); margin: -4px 0 10px; }

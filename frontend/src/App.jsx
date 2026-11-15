@@ -309,6 +309,7 @@ export default function App() {
                     catalog={catalog}
                     disabled={day !== null}
                     onSaved={refreshAll}
+                    onSymptoms={(keys) => { setSymptomPrefill({ keys, n: Date.now() }); scrollTo('#symptoms') }}
                     day={mission?.current_day}
                     onNextDay={async () => {
                       const m = await api.nextDay()
