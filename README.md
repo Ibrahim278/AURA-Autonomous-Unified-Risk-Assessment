@@ -135,7 +135,7 @@ preflight values.
 
 Everyone gets a solar particle event dose on day 22 (lunar surface and Mars transit only). Demo symptom logs are synthetic and tagged "demo".
 For the presentation script, see [docs/DEMO_SCRIPT.md](docs/DEMO_SCRIPT.md). To check everything works, follow [docs/TEST_CASES.md](docs/TEST_CASES.md). For how it's built (architecture, rules, AI layer, full API), see the
-[technical documentation](docs/TECHNICAL.md).
+[technical documentation](docs/TECHNICAL.md). A screen-by-screen [UI guide](docs/AURA_UI_Guide.docx) (Word) explains every component.
 
 ### Make the crew your own
 
