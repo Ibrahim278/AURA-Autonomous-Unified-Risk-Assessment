@@ -23,7 +23,7 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
-from . import __version__, ai, assistant, comms, custom, radiation, symptoms, ground, forecast, gamification, importer, research
+from . import __version__, ai, assistant, checks, comms, custom, radiation, symptoms, ground, forecast, gamification, importer, research
 from .indicators import INDICATORS, Hazard
 from .simulator import (DEFAULT_CREW_SPECS, DEFAULTS, EDITABLE_BASELINES, ENVIRONMENTS, SCENARIOS,
                         generate, imported_records, make_member)
@@ -329,10 +329,21 @@ def crew_alerts(crew_id: str, from_day: int = 1):
     return store.alert_timeline(crew_id, from_day)
 
 
+@app.post("/api/crew/{crew_id}/checkins/check", tags=["crew"])
+def check_checkin(crew_id: str, body: CheckIn):
+    """Plausibility check without saving: errors (impossible values, with unit hints) and warnings
+    (far from baseline, big jump, systolic not above diastolic) for the astronaut to confirm."""
+    _crew_or_404(crew_id)
+    return checks.check(store, crew_id, body.values, body.day)
+
+
 @app.post("/api/crew/{crew_id}/checkins", tags=["crew"], status_code=201)
 def crew_checkin(crew_id: str, body: CheckIn):
     """Record manual measurements (keyboard entry) and return the updated status."""
     _crew_or_404(crew_id)
+    errors = checks.check(store, crew_id, body.values, body.day)["errors"]
+    if errors:
+        raise HTTPException(422, " ".join(e["message"] for e in errors))
     try:
         day = store.add_checkin(crew_id, body.values, body.day, body.note)
     except (ValueError, UnknownCrewError) as exc:

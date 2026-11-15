@@ -13,9 +13,29 @@ export default function CheckInForm({ crewId, catalog, disabled, onSaved, day, o
   const [note, setNote] = useState('')
   const [msg, setMsg] = useState(null)
   const [busy, setBusy] = useState(false)
+  const [review, setReview] = useState(null) // plausibility check result awaiting the astronaut
+
+  const save = async (payload) => {
+    setBusy(true)
+    try {
+      const status = await api.checkin(crewId, { values: payload, note: note || undefined })
+      setMsg({ type: 'ok', text: `Saved for day ${status.day}. Overall status: ${status.overall}.` })
+      setValues({})
+      setNote('')
+      setUseMood(false)
+      setReview(null)
+      await onSaved()
+    } catch (err) {
+      setMsg({ type: 'error', text: err.message })
+    } finally {
+      setBusy(false)
+    }
+  }
 
   const submit = async (e) => {
     e.preventDefault()
+    setReview(null)
+    setMsg(null)
     const payload = Object.fromEntries(
       Object.entries(values).filter(([, v]) => v !== '').map(([k, v]) => [k, Number(v)]),
     )
@@ -24,19 +44,12 @@ export default function CheckInForm({ crewId, catalog, disabled, onSaved, day, o
       setMsg({ type: 'error', text: 'Enter at least one measurement.' })
       return
     }
-    setBusy(true)
+    // Catch typos and unit mix-ups before they turn into false alerts.
     try {
-      const status = await api.checkin(crewId, { values: payload, note: note || undefined })
-      setMsg({ type: 'ok', text: `Saved for day ${status.day}. Overall status: ${status.overall}.` })
-      setValues({})
-      setNote('')
-      setUseMood(false)
-      await onSaved()
-    } catch (err) {
-      setMsg({ type: 'error', text: err.message })
-    } finally {
-      setBusy(false)
-    }
+      const check = await api.checkCheckin(crewId, { values: payload })
+      if (!check.ok) { setReview({ ...check, payload }); return }
+    } catch { /* if the check fails, the save still validates */ }
+    await save(payload)
   }
 
   return (
@@ -91,6 +104,30 @@ export default function CheckInForm({ crewId, catalog, disabled, onSaved, day, o
           <textarea rows={2} value={note} onChange={(e) => setNote(e.target.value)} placeholder="For example: mild headache after EVA" />
         </label>
         <button type="submit" className="primary">{busy ? 'Saving…' : 'Log check-in'}</button>
+        {review && (
+          <div className={`plaus ${review.errors.length ? 'err' : 'warn'}`} role="alert">
+            <strong>{review.errors.length ? 'Please fix before saving' : 'Please double-check'}</strong>
+            <ul>
+              {[...review.errors, ...review.warnings].map((x) => (
+                <li key={x.message}>
+                  {x.message}
+                  {x.suggested != null && (
+                    <button type="button" className="chip" onClick={() => {
+                      setValues({ ...values, [x.indicator]: String(x.suggested) })
+                      setReview(null)
+                    }}>Use {x.suggested}</button>
+                  )}
+                </li>
+              ))}
+            </ul>
+            {review.errors.length === 0 && (
+              <div className="plaus-actions">
+                <button type="button" className="chip" onClick={() => setReview(null)}>Edit values</button>
+                <button type="button" className="primary small" onClick={() => save(review.payload)}>It's correct, save</button>
+              </div>
+            )}
+          </div>
+        )}
         {msg && <div className={`toast ${msg.type}`}>{msg.text}</div>}
         <p className="hint">Hover over a field to see how to take the measurement.</p>
       </fieldset>
