@@ -32,6 +32,8 @@ export const api = {
   alerts: (id) => request(`/api/crew/${id}/alerts`),
   checkin: (id, body) =>
     request(`/api/crew/${id}/checkins`, { method: 'POST', body: JSON.stringify(body) }),
+  checkCheckin: (id, body) =>
+    request(`/api/crew/${id}/checkins/check`, { method: 'POST', body: JSON.stringify(body) }),
   tasks: (id) => request(`/api/crew/${id}/tasks`),
   completeTask: (id, taskId) =>
     request(`/api/crew/${id}/tasks/${taskId}/complete`, { method: 'POST' }),
