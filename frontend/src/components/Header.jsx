@@ -1,12 +1,12 @@
 import { useEffect, useState } from 'react'
 
-// Dark mode: remembered per browser; first visit follows the system setting.
+// Theme: dark (space) by default; a Light choice is remembered per browser.
 function initialTheme() {
   try {
-    const saved = localStorage.getItem('aura-theme')
+    const saved = localStorage.getItem('aura-theme-v2')
     if (saved === 'dark' || saved === 'light') return saved
   } catch { /* storage blocked */ }
-  return window.matchMedia?.('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
+  return 'dark'
 }
 
 const ENV_LABEL = {
@@ -19,53 +19,45 @@ export default function Header({ mission, onReset, onRestart, onTour, onHome, ch
   const [theme, setTheme] = useState(initialTheme)
   useEffect(() => {
     document.documentElement.dataset.theme = theme
-    try { localStorage.setItem('aura-theme', theme) } catch { /* storage blocked */ }
+    try { localStorage.setItem('aura-theme-v2', theme) } catch { /* storage blocked */ }
   }, [theme])
   const dark = theme === 'dark'
   return (
     <>
-    <aside className="side-nav">
-      <a className="brand" href="#/home" onClick={(e) => { e.preventDefault(); onHome?.() }} aria-label="AURA home">
-        <span className="logo-box" aria-hidden="true"><svg viewBox="0 0 40 40" className="logo">
-          <circle cx="20" cy="20" r="16" fill="none" stroke="currentColor" strokeWidth="3" />
-          <ellipse cx="20" cy="20" rx="19" ry="6" fill="none" stroke="currentColor" strokeWidth="1.5" opacity="0.6" />
-          <circle cx="20" cy="20" r="5" fill="currentColor" />
-        </svg></span>
-        <div>
-          <div className="brand-name">AURA</div>
-          <div className="brand-sub">Autonomous Unified Risk Assessment</div>
-          <div className="brand-tag">Your crew&apos;s health, even when Earth is 20 minutes away.</div>
-        </div>
-      </a>
-      {children}
-      <div className="side-note">
-        <span className="side-note-title">Research prototype</span>
-        <span>Not a certified medical device</span>
+    <header className="site-header">
+      <div className="site-bar">
+        <a className="brand" href="#/home" onClick={(e) => { e.preventDefault(); onHome?.() }} aria-label="AURA home">
+          <span className="logo-box" aria-hidden="true"><svg viewBox="0 0 40 40" className="logo">
+            <circle cx="20" cy="20" r="16" fill="none" stroke="currentColor" strokeWidth="3" />
+            <ellipse cx="20" cy="20" rx="19" ry="6" fill="none" stroke="currentColor" strokeWidth="1.5" opacity="0.6" />
+            <circle cx="20" cy="20" r="5" fill="currentColor" />
+          </svg></span>
+          <span className="brand-text">
+            <span className="brand-name">AURA</span>
+            <span className="brand-sub">Autonomous Unified Risk Assessment</span>
+          </span>
+        </a>
+        {mission && (
+          <div className="mission-info">
+            <span className="pill status-pill mission-name"><span className="status-dot" aria-hidden="true" />{mission.mission_name}</span>
+            <label className="pill env-select">
+              <span className="sr-only">Mission environment</span>
+              <select value={mission.environment} onChange={(e) => onReset(e.target.value)}>
+                {Object.entries(ENV_LABEL).map(([k, v]) => (
+                  <option key={k} value={k}>{v}</option>
+                ))}
+              </select>
+            </label>
+            <span className="pill">Day {mission.current_day}</span>
+            <button className="pill tour-btn" onClick={onTour}>▶ Demo tour</button>
+            <button className="pill" onClick={onRestart} title="Restart the demo: default crew, lunar base, day 60">↺ Reset</button>
+            <button className="pill theme-btn" onClick={() => setTheme(dark ? 'light' : 'dark')}
+              title={dark ? 'Switch to light mode' : 'Switch to dark mode'}>{dark ? '☀ Light' : '☾ Dark'}</button>
+            <span className="pill synthetic" title={mission.data_notice}>Synthetic data</span>
+          </div>
+        )}
       </div>
-    </aside>
-    <header className="header topbar">
-      <div className="topbar-text">
-        <p className="eyebrow">Astronaut health · Autonomous risk assessment</p>
-        <div className="topbar-mission"><span className="status-dot" aria-hidden="true" />{mission?.mission_name ?? 'AURA'}</div>
-      </div>
-      {mission && (
-        <div className="mission-info">
-          <label className="pill env-select">
-            <span className="sr-only">Mission environment</span>
-            <select value={mission.environment} onChange={(e) => onReset(e.target.value)}>
-              {Object.entries(ENV_LABEL).map(([k, v]) => (
-                <option key={k} value={k}>{v}</option>
-              ))}
-            </select>
-          </label>
-          <span className="pill">Mission day {mission.current_day}</span>
-          <button className="pill tour-btn" onClick={onTour}>▶ Demo tour</button>
-          <button className="pill" onClick={onRestart} title="Restart the demo: default crew, lunar base, day 60">↺ Reset</button>
-          <button className="pill theme-btn" onClick={() => setTheme(dark ? 'light' : 'dark')} aria-pressed={dark}
-            title={dark ? 'Switch to light mode' : 'Switch to dark mode'}>{dark ? '☀ Light' : '☾ Dark'}</button>
-          <span className="pill synthetic" title={mission.data_notice}>Synthetic data</span>
-        </div>
-      )}
+      <div className="site-nav">{children}</div>
     </header>
     </>
   )
