@@ -76,6 +76,16 @@ already being abnormal *for that person*.
 The AI never sets or changes a level. It explains and coaches, and the back end forces an
 escalation whenever any reading is critical.
 
+## Screens
+
+| Daily plan, adjusted to alerts | Team wellbeing |
+| --- | --- |
+| ![Daily countermeasure plan](docs/screenshots/daily_plan.png) | ![Team wellbeing view](docs/screenshots/team_view.png) |
+
+| Ask AURA | Light mode | Phone |
+| --- | --- | --- |
+| ![Ask AURA assistant](docs/screenshots/ask_aura.png) | ![Health status in light mode](docs/screenshots/light_mode.png) | ![AURA on a phone](docs/screenshots/phone.png) |
+
 ## Quick start
 
 You need **Python 3.11+** and **Node 20+**. Use two terminals.
