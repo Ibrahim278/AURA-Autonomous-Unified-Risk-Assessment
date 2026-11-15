@@ -23,7 +23,7 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
-from . import __version__, ai, assistant, comms, custom, radiation, forecast, gamification, importer, research
+from . import __version__, ai, assistant, comms, custom, radiation, symptoms, forecast, gamification, importer, research
 from .indicators import INDICATORS, Hazard
 from .simulator import (DEFAULT_CREW_SPECS, DEFAULTS, EDITABLE_BASELINES, ENVIRONMENTS, SCENARIOS,
                         generate, imported_records, make_member)
@@ -106,6 +106,17 @@ class CrewImport(BaseModel):
     role: str = Field("Mission Specialist", min_length=1, max_length=40)
     age: int = Field(40, ge=18, le=80)
     csv: str = Field(..., min_length=1, max_length=2_000_000, description="CSV text (see /api/crew/import/template)")
+
+
+class SymptomItem(BaseModel):
+    key: str = Field(..., description="Symptom key from /api/symptoms/catalog")
+    severity: int = Field(..., ge=1, le=10)
+
+
+class SymptomLog(BaseModel):
+    symptoms: list[SymptomItem] = Field(..., min_length=1, max_length=17)
+    note: str | None = Field(None, max_length=1000)
+    day: int | None = Field(None, ge=1)
 
 
 class GroundMessage(BaseModel):
@@ -285,6 +296,30 @@ def crew_radiation(crew_id: str, day: int | None = Query(None, ge=1)):
     """Radiation dose budget: career (600 mSv), 30-day and 1-year use, rate and projection."""
     _crew_or_404(crew_id)
     return radiation.budget(store, crew_id, day)
+
+
+@app.get("/api/symptoms/catalog", tags=["symptoms"])
+def symptom_catalog():
+    """Symptoms crew can log, grouped by body area. Red flags trigger a critical triage."""
+    return symptoms.catalog()
+
+
+@app.get("/api/crew/{crew_id}/symptoms", tags=["symptoms"])
+def crew_symptoms(crew_id: str, day: int | None = Query(None, ge=1)):
+    """Symptom log up to the day, with the rule-based triage for that day."""
+    _crew_or_404(crew_id)
+    return symptoms.report(store.symptoms[crew_id], day or store.current_day)
+
+
+@app.post("/api/crew/{crew_id}/symptoms", tags=["symptoms"], status_code=201)
+def log_symptoms(crew_id: str, body: SymptomLog):
+    """Log symptoms (severity 1-10) and get the triage: self-care, follow-up or contact ground now."""
+    _crew_or_404(crew_id)
+    try:
+        day = store.log_symptoms(crew_id, [x.model_dump() for x in body.symptoms], body.day, body.note)
+    except ValueError as exc:
+        raise HTTPException(422, str(exc)) from exc
+    return symptoms.report(store.symptoms[crew_id], day)
 
 
 @app.get("/api/crew/{crew_id}/alerts", tags=["crew"])

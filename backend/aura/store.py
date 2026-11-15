@@ -34,6 +34,9 @@ class MissionStore:
             self._inflight: dict[tuple[str, str], list[Reading]] = defaultdict(list)
             self.notes: dict[str, list[dict]] = defaultdict(list)
             self.task_completions: dict[str, dict[int, set[str]]] = {}
+            from .symptoms import seed_demo
+
+            self.symptoms: dict[str, list[dict]] = defaultdict(list, seed_demo(dataset.crew, dataset.days))
             for r in dataset.records:
                 key = (r.crew_id, r.indicator)
                 if r.phase == "preflight":
@@ -201,6 +204,24 @@ class MissionStore:
                     self._baselines[key] = Baseline.from_values(values, INDICATORS[ind])
                 except ValueError:
                     pass  # too few preflight days: fixed limits only
+    def log_symptoms(self, crew_id: str, items: list[dict], day: int | None = None, note: str | None = None) -> int:
+        from .symptoms import CATALOG
+
+        self._require(crew_id)
+        bad = [x["key"] for x in items if x["key"] not in CATALOG]
+        if bad:
+            raise ValueError(f"Unknown symptoms: {bad}")
+        if not items:
+            raise ValueError("Pick at least one symptom")
+        day = self.current_day if day is None else day
+        if not 1 <= day <= self.current_day:
+            raise ValueError(f"Symptoms can be logged for days 1 to {self.current_day}")
+        with self._lock:
+            self.symptoms[crew_id].append({"day": day, "symptoms": [dict(x) for x in items], "note": note or "",
+                                           "source": "manual",
+                                           "timestamp": datetime.now(timezone.utc).isoformat()})
+        return day
+
     def add_checkin(
         self, crew_id: str, values: dict[str, float], day: int | None = None, note: str | None = None
     ) -> int:

@@ -15,6 +15,7 @@ import CrewEditor from './components/CrewEditor.jsx'
 import IndicatorManager from './components/IndicatorManager.jsx'
 import AssistantWidget from './components/AssistantWidget.jsx'
 import CommsPanel from './components/CommsPanel.jsx'
+import SymptomLog from './components/SymptomLog.jsx'
 import RadiationPanel from './components/RadiationPanel.jsx'
 import ResearchPanel from './components/ResearchPanel.jsx'
 import DemoTour, { TOUR_STEPS } from './components/DemoTour.jsx'
@@ -130,6 +131,7 @@ export default function App() {
       case 'start_tour': startTour(); break
       case 'message_ground': scrollTo('#comms'); break
       case 'open_radiation': scrollTo('#radiation'); break
+      case 'open_symptoms': setDay(null); scrollTo('#symptoms'); break
       default: break
     }
   }
@@ -245,6 +247,19 @@ export default function App() {
                   onClose={() => setSelected(null)}
                 />
               )}
+
+              <SymptomLog
+                key={crewId}
+                crewId={crewId}
+                day={shownDay}
+                live={day === null}
+                catalog={catalog}
+                onOpenIndicator={(k) => { setSystem(null); setSelected(k); scrollTo('.detail') }}
+                onMessageGround={(t) => {
+                  setGroundDraft({ urgent: true, text: `Symptom triage is critical: ${t.reasons.join(' ')} Requesting flight surgeon review.`, n: Date.now() })
+                  scrollTo('#comms')
+                }}
+              />
 
               <RadiationPanel budget={radiation} onOpenIndicator={(k) => { setSystem(null); setSelected(k); scrollTo('.detail') }} />
 
