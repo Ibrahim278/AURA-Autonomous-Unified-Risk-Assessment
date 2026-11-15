@@ -28,12 +28,12 @@ RELATED_MIN_R = 0.6
 T95 = {1: 12.706, 2: 4.303, 3: 3.182, 4: 2.776, 5: 2.571, 6: 2.447, 7: 2.365, 8: 2.306, 9: 2.262, 10: 2.228}
 
 
-def _thresholds(key: str, store: MissionStore, crew_id: str, side: str) -> list[tuple[float, str, str]]:
+def _thresholds(key: str, store: MissionStore, crew_id: str, side: str, day: int | None = None) -> list[tuple[float, str, str]]:
     """(value, level, label) lines on one side, nearest-first order not guaranteed."""
     ind = INDICATORS[key]
     lim = ind.limits
     out = []
-    base = store.baseline(crew_id, key) if ind.use_baseline else None
+    base = store.baseline(crew_id, key, day) if ind.use_baseline else None
     if side == "high":
         if base:
             out.append((base.mean + SUSTAINED_Z_MEAN * base.sd, Level.WARNING.label, "edge of your baseline"))
@@ -89,7 +89,7 @@ def indicator_forecast(store: MissionStore, crew_id: str, key: str, day: int) ->
     if ind.adverse_direction is not Direction.BOTH and side != ind.adverse_direction.value:
         return result
     crossings = []
-    for value, level, label in _thresholds(key, store, crew_id, side):
+    for value, level, label in _thresholds(key, store, crew_id, side, day):
         already = now >= value if side == "high" else now <= value
         if already:
             continue

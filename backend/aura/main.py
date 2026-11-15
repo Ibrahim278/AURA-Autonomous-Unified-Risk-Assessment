@@ -139,7 +139,7 @@ def health():
 
 @app.get("/api/mission", tags=["mission"])
 def mission():
-    return {**store.dataset.meta(), "current_day": store.current_day}
+    return {**store.dataset.meta(), "current_day": store.current_day, "baseline_mode": store.baseline_mode}
 
 
 @app.get("/api/environments", tags=["mission"])
@@ -165,6 +165,23 @@ def next_day():
         raise HTTPException(422, "The mission can't run past day 365. Reset it from the header.")
     store.advance_day()
     return mission()
+
+
+class BaselineMode(BaseModel):
+    mode: Literal["preflight", "adaptive"]
+
+
+@app.get("/api/mission/baseline-mode", tags=["mission"])
+def get_baseline_mode():
+    """Preflight (default): compare with the 7 preflight days. Adaptive: compare with a baseline
+    learned in flight (days d-28..d-8), clamped to 1 preflight SD so slow drifts are still caught."""
+    return {"mode": store.baseline_mode}
+
+
+@app.put("/api/mission/baseline-mode", tags=["mission"])
+def set_baseline_mode(body: BaselineMode):
+    store.baseline_mode = body.mode
+    return {"mode": store.baseline_mode}
 
 
 @app.get("/api/crew-options", tags=["mission"])
@@ -267,7 +284,7 @@ def crew_telemetry(
     series = {}
     for key in keys:
         ind = INDICATORS[key]
-        base = store.baseline(crew_id, key)
+        base = store.baseline(crew_id, key, to_day or store.current_day)
         rs = [
             r for r in store.readings(crew_id, key)
             if (from_day is None or r.day >= from_day) and (to_day is None or r.day <= to_day)
@@ -277,7 +294,7 @@ def crew_telemetry(
             "unit": ind.unit,
             "limits": ind.limits.__dict__,
             "baseline": None if base is None or not ind.use_baseline
-            else {"mean": round(base.mean, 2), "sd": round(base.sd, 2)},
+            else {"mean": round(base.mean, 2), "sd": round(base.sd, 2), "kind": base.kind},
             "preflight": store.preflight(crew_id, key),
             "points": [{"day": r.day, "value": r.value, "source": r.source} for r in rs],
         }

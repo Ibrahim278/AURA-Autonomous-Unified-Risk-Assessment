@@ -56,7 +56,7 @@ def check(store, crew_id: str, values: dict[str, float], day: int | None = None)
                                                         f"{lo} to {hi}." + (f" {hint}" if hint else ""),
                            "hint": hint, "suggested": suggested})
             continue
-        base = store.baseline(crew_id, key)
+        base = store.baseline(crew_id, key, day)
         if base is not None and base.sd > 0:
             z = (v - base.mean) / base.sd
             if abs(z) >= Z_LIMIT:

@@ -22,6 +22,7 @@ function Sparkline({ points, level }) {
 
 export default function IndicatorGrid({
   indicators, telemetry, filterSystem, onClearFilter, selected, onSelect, day, onManage,
+  baselineMode, onBaselineMode,
 }) {
   const shown = filterSystem ? indicators.filter((i) => i.body_system === filterSystem) : indicators
   const order = { critical: 0, warning: 1, normal: 2 }
@@ -35,6 +36,16 @@ export default function IndicatorGrid({
           {filterSystem && <button className="link" onClick={onClearFilter}>Show all</button>}
           {onManage && <button className="link" onClick={onManage}>+ Add indicator</button>}
         </span>
+      </div>
+      <div className="baseline-mode">
+        <span className="muted small">Compare with</span>
+        <div className="seg" role="group" aria-label="Baseline">
+          <button className={baselineMode !== 'adaptive' ? 'active' : ''} onClick={() => onBaselineMode('preflight')}
+            title="Your 7 preflight days on Earth">Preflight baseline</button>
+          <button className={baselineMode === 'adaptive' ? 'active' : ''} onClick={() => onBaselineMode('adaptive')}
+            title="Learned in flight from days d-28 to d-8, moved at most 1 SD from preflight so slow drifts are still caught">
+            Adaptive in-flight</button>
+        </div>
       </div>
       {sorted.length === 0 && <p className="muted">No indicators tracked for this region yet.</p>}
       <div className="grid">
@@ -54,7 +65,7 @@ export default function IndicatorGrid({
               <div className="card-value">{fmt(a.value, a.unit)}</div>
               <div className="card-meta">
                 <span>{TREND_LABEL[a.trend]}</span>
-                {a.baseline && <span>baseline {fmt(a.baseline.mean, a.unit)}</span>}
+                {a.baseline && <span>{a.baseline.kind === 'adaptive' ? 'in-flight' : 'baseline'} {fmt(a.baseline.mean, a.unit)}</span>}
                 {a.source === 'manual' && <span className="tag">manual</span>}
                 {a.source === 'imported' && <span className="tag">imported</span>}
               </div>

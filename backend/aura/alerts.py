@@ -53,6 +53,7 @@ class Baseline:
     mean: float
     sd: float
     n: int
+    kind: str = "preflight"  # or "adaptive" (learned in flight; see store.MissionStore.baseline)
 
     @classmethod
     def from_values(cls, values: Sequence[float], indicator: Indicator) -> "Baseline":
@@ -101,6 +102,7 @@ class Assessment:
                 "mean": round(self.baseline.mean, r + 1),
                 "sd": round(self.baseline.sd, r + 1),
                 "n": self.baseline.n,
+                "kind": self.baseline.kind,
             },
             "z_score": None if self.z_score is None else round(self.z_score, 2),
             "deviation": None if self.deviation is None else round(self.deviation, r + 1),

@@ -19,9 +19,18 @@ class UnknownCrewError(KeyError):
     pass
 
 
+# Adaptive in-flight baseline: learn "your in-flight normal" from a recent window, but never
+# far enough to hide a slow drift.
+ADAPT_FROM, ADAPT_TO = 28, 8  # use readings from days d-28 .. d-8 (the last week is what we judge)
+ADAPT_MIN = 10  # readings needed in the window
+ADAPT_MAX_SHIFT_SD = 1.0  # the in-flight mean may move at most 1 preflight SD
+BASELINE_MODES = ("preflight", "adaptive")
+
+
 class MissionStore:
     def __init__(self, dataset: MissionDataset):
         self._lock = threading.Lock()
+        self.baseline_mode = "preflight"
         self.load(dataset)
 
     # ------------------------------------------------------------------ loading
@@ -61,8 +70,20 @@ class MissionStore:
         if crew_id not in self.crew:
             raise UnknownCrewError(crew_id)
 
-    def baseline(self, crew_id: str, indicator: str) -> Baseline | None:
-        return self._baselines.get((crew_id, indicator))
+    def baseline(self, crew_id: str, indicator: str, day: int | None = None) -> Baseline | None:
+        """The personal baseline. In adaptive mode, and when a day is given, an in-flight baseline
+        learned from days d-28..d-8 (outliers beyond 2 preflight SD left out), with its mean
+        clamped to within 1 preflight SD of the preflight mean so a slow drift is still caught."""
+        pre = self._baselines.get((crew_id, indicator))
+        if self.baseline_mode != "adaptive" or pre is None or day is None or not INDICATORS[indicator].use_baseline:
+            return pre
+        values = [r.value for r in self._inflight.get((crew_id, indicator), [])
+                  if day - ADAPT_FROM <= r.day <= day - ADAPT_TO and abs(r.value - pre.mean) < 2 * pre.sd]
+        if len(values) < ADAPT_MIN:
+            return pre
+        learned = Baseline.from_values(values, INDICATORS[indicator])
+        shift = max(-ADAPT_MAX_SHIFT_SD * pre.sd, min(ADAPT_MAX_SHIFT_SD * pre.sd, learned.mean - pre.mean))
+        return Baseline(mean=pre.mean + shift, sd=max(learned.sd, pre.sd * 0.75), n=len(values), kind="adaptive")
 
     def readings(self, crew_id: str, indicator: str, up_to_day: int | None = None) -> list[Reading]:
         self._require(crew_id)
@@ -79,7 +100,7 @@ class MissionStore:
         self._require(crew_id)
         day = self.current_day if day is None else day
         return [
-            assess(ind, self.readings(crew_id, key, day), self.baseline(crew_id, key))
+            assess(ind, self.readings(crew_id, key, day), self.baseline(crew_id, key, day))
             for key, ind in INDICATORS.items()
         ]
 
@@ -104,10 +125,9 @@ class MissionStore:
         events: list[dict] = []
         for key, ind in INDICATORS.items():
             rs = self.readings(crew_id, key)
-            base = self.baseline(crew_id, key)
             prev = Level.NORMAL
             for i in range(len(rs)):
-                a = assess(ind, rs[: i + 1], base)
+                a = assess(ind, rs[: i + 1], self.baseline(crew_id, key, rs[i].day))
                 if a.level != prev and rs[i].day >= from_day:
                     events.append(
                         {

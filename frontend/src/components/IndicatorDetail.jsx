@@ -15,7 +15,7 @@ export default function IndicatorDetail({ assessment: a, info, series, day, onCl
         <div>
           <div className="detail-stats">
             <div><span className="muted">Latest</span><strong>{fmt(a.value, a.unit)}</strong></div>
-            {a.baseline && <div><span className="muted">Your baseline</span><strong>{fmt(a.baseline.mean, a.unit)}</strong></div>}
+            {a.baseline && <div><span className="muted">{a.baseline.kind === 'adaptive' ? 'In-flight baseline' : 'Your baseline'}</span><strong>{fmt(a.baseline.mean, a.unit)}</strong></div>}
             <div><span className="muted">Trend (7 days)</span><strong>{TREND_LABEL[a.trend]}</strong></div>
             {a.z_score != null && <div><span className="muted">Deviation</span><strong>{a.z_score > 0 ? '+' : ''}{a.z_score} SD</strong></div>}
           </div>
