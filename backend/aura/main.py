@@ -586,6 +586,35 @@ class AssistantRequest(BaseModel):
     indicator: str | None = Field(None, description="Selected indicator, if any")
 
 
+class MemoryNote(BaseModel):
+    text: str = Field(..., min_length=1, max_length=200)
+    crew_id: str | None = Field(None, description="Whose note this is; omit for a general note")
+
+
+@app.get("/api/memory", tags=["ai"])
+def list_memory(crew_id: str | None = None):
+    """Notes Ask AURA remembers (general ones plus, if given, that crew member's)."""
+    return [m for m in store.memory if crew_id is None or m["crew_id"] in (None, crew_id)]
+
+
+@app.post("/api/memory", tags=["ai"], status_code=201)
+def add_memory(body: MemoryNote):
+    """Save a note to Ask AURA's memory. It's used as context in later answers."""
+    try:
+        return store.remember(body.text, body.crew_id)
+    except (ValueError, UnknownCrewError) as exc:
+        raise HTTPException(422, f"Can't save that note: {exc}") from exc
+
+
+@app.delete("/api/memory/{note_id}", tags=["ai"])
+def delete_memory(note_id: int):
+    try:
+        store.forget(note_id)
+    except KeyError as exc:
+        raise HTTPException(404, f"No note {note_id}") from exc
+    return {"deleted": note_id}
+
+
 @app.post("/api/assistant", tags=["ai"])
 def ask_assistant(body: AssistantRequest):
     """Answer any question with an answer, steps and one-click dashboard actions."""

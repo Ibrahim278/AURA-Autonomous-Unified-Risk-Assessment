@@ -19,7 +19,7 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
-from . import research
+from . import research, symptoms
 from .ai import FALLBACK_BETA, _client, _describe, _refused, ai_status, build_context
 from .alerts import Level
 from .store import MissionStore
@@ -28,7 +28,9 @@ log = logging.getLogger("aura.assistant")
 
 ActionType = Literal["open_indicator", "open_checkin", "open_briefing", "open_crew_editor",
                      "open_import", "add_indicator", "open_research", "start_tour", "select_crew",
-                     "message_ground", "open_radiation", "open_symptoms", "open_ground", "open_plan", "open_team"]
+                     "message_ground", "open_radiation", "open_symptoms", "open_ground", "open_plan", "open_team",
+                     "remember", "draft_ground_message", "go_to_day", "log_symptom"]
+TARGETED = {"open_indicator", "select_crew", "remember", "draft_ground_message", "go_to_day", "log_symptom"}
 
 APP_GUIDE = """\
 AURA dashboard guide (use these exact names when telling the user where to click):
@@ -68,7 +70,10 @@ walks through the story in 17 steps.
 - AI flight surgeon panel: "Generate daily briefing" (left) and the "Early-warning forecast" (right): \
 indicators whose straight-line trend would cross the edge of the personal baseline, a warning or a critical \
 limit within 14 days. The trend chart in an indicator's detail view shows the 7-day projection as a dashed line.
-- Ask AURA: this chat (bottom-right button), available on every screen.
+- Ask AURA: this chat (bottom-right button), available on every screen. The conversation is kept across \
+reloads. 🧠 Memory (in the chat header) lists notes the user saved by asking "remember that …"; they are used \
+in later answers and can be deleted there. Buttons can open things, replay a day, preselect a symptom in the \
+symptom log, or draft a message to ground for the user to review.
 - Body status: clickable body figure coloured by each body system's worst indicator; click a region to \
 filter the indicator cards.
 - Health indicators panel: "Compare with: Preflight baseline / Adaptive in-flight" switch. Adaptive learns \
@@ -110,8 +115,15 @@ trouble breathing, confusion, fainting, severe bleeding), set escalate=true and 
 critical actions and contact the flight surgeon now.
 3. Never diagnose, prescribe or dose medication. Defer clinical decisions to the flight surgeon.
 4. Steps: 0-4 short imperative steps when the user should do something; empty for simple facts.
-5. Actions: 0-3 buttons that help right now, chosen ONLY from the allowed types. open_indicator and \
-select_crew need a target from the context (an indicator key / a crew id); others take no target.
+5. Actions: 0-3 buttons that help right now, chosen ONLY from the allowed types. These need a target: \
+open_indicator (an indicator key from the context), select_crew (a crew id), go_to_day (a mission day number \
+up to mission_day, to replay that day), log_symptom (a symptom key from symptom_keys, preselects it in the \
+symptom log), draft_ground_message (the full text of a short message to the flight surgeon, which the user \
+reviews before sending), remember (a short note, at most 200 characters, to save to AURA's memory). Other \
+types take no target.
+7. Memory: "memory" lists notes the user asked AURA to remember (preferences, history, context). Use them \
+when relevant. When the user asks you to remember something, offer a remember action with a concise note; \
+it is only saved if they click it.
 6. Be brief: the answer is at most about 90 words. Plain language; explain medical terms briefly.
 """
 
@@ -124,7 +136,7 @@ class ChatTurn(BaseModel):
 class AssistantAction(BaseModel):
     type: ActionType
     label: str = Field(description="Button text, at most 5 words")
-    target: str | None = Field(None, description="Indicator key for open_indicator, crew id for select_crew")
+    target: str | None = Field(None, description="See rule 5: indicator key, crew id, day, symptom key, message or note")
 
 
 class AssistantReply(BaseModel):
@@ -157,7 +169,9 @@ def build_assistant_context(store: MissionStore, crew_id: str | None, day: int |
         roster.append({"id": c.id, "name": c.name, "role": c.role, "overall": s["overall"],
                        "data": "imported" if c.imported is not None else "synthetic"})
     ctx: dict = {"mission_day": store.current_day, "environment": store.dataset.environment_info["name"],
-                 "crew_roster": roster, "research_data": _research_summary()}
+                 "crew_roster": roster, "research_data": _research_summary(),
+                 "symptom_keys": sorted(symptoms.CATALOG),
+                 "memory": [m["text"] for m in store.memory if m["crew_id"] in (None, crew_id)][-20:]}
     if crew_id in store.crew:
         snap = build_context(store, crew_id, day)
         for i in snap["indicators"]:  # keep the snapshot compact
@@ -174,12 +188,18 @@ def _clean(reply: AssistantReply, ctx: dict) -> AssistantReply:
     crew_ids = {c["id"] for c in ctx["crew_roster"]}
     ok = []
     for a in reply.actions:
-        if a.type == "open_indicator" and a.target not in keys:
+        t = (a.target or "").strip()
+        if a.type == "open_indicator" and t not in keys:
             continue
-        if a.type == "select_crew" and a.target not in crew_ids:
+        if a.type == "select_crew" and t not in crew_ids:
             continue
-        if a.type not in ("open_indicator", "select_crew"):
-            a.target = None
+        if a.type == "go_to_day" and not (t.isdigit() and 1 <= int(t) <= ctx["mission_day"]):
+            continue
+        if a.type == "log_symptom" and t not in symptoms.CATALOG:
+            continue
+        if a.type in ("remember", "draft_ground_message") and not 1 <= len(t) <= (200 if a.type == "remember" else 1000):
+            continue
+        a.target = t if a.type in TARGETED else None
         ok.append(a)
     reply.actions = ok[:3]
     reply.steps = reply.steps[:4]
@@ -249,6 +269,9 @@ RED_FLAG_RE = (r"chest (pain|pressure|tight)|can'?t breathe|short(ness)? of brea
                r"severe (pain|headache)|worst headache")
 
 
+REMEMBER_RE = re.compile(r"^\s*(?:please\s+)?remember(?:\s+that)?\s*[:,]?\s*(.+)$", re.I | re.S)
+
+
 def offline_reply(question: str, ctx: dict) -> AssistantReply:
     q = question.lower()
     if re.search(RED_FLAG_RE, q):
@@ -262,6 +285,18 @@ def offline_reply(question: str, ctx: dict) -> AssistantReply:
             actions=[AssistantAction(type="message_ground", label="Message ground"),
                      AssistantAction(type="open_symptoms", label="Log the symptom")],
             escalate=True, topic="health")
+    m = REMEMBER_RE.match(question)
+    if m and m.group(1).strip():
+        note = m.group(1).strip().rstrip(".")[:200]
+        return AssistantReply(answer=f"I can remember this: “{note}”. Click Save to memory to keep it; I'll use it in "
+                                     "future answers.", steps=[],
+                              actions=[AssistantAction(type="remember", label="Save to memory", target=note)],
+                              escalate=False, topic="app_help")
+    d = re.search(r"\b(?:go to|show(?: me)?|replay|jump to|open) day (\d{1,3})\b", q)
+    if d and 1 <= int(d.group(1)) <= ctx["mission_day"]:
+        return AssistantReply(answer=f"Here's day {d.group(1)} in mission replay.", steps=[],
+                              actions=[AssistantAction(type="go_to_day", label=f"Go to day {d.group(1)}",
+                                                       target=d.group(1))], escalate=False, topic="app_help")
     person = ctx.get("person")
     escalate = bool(person and person.get("escalate"))
     for pattern, answer, steps, actions in FAQ:

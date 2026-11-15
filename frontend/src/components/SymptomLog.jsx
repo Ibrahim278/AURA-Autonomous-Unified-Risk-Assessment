@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { api } from '../api.js'
 import { LEVEL } from '../levels.js'
 
-export default function SymptomLog({ crewId, day, live, catalog, onOpenIndicator, onMessageGround, onLogged }) {
+export default function SymptomLog({ crewId, day, live, catalog, onOpenIndicator, onMessageGround, onLogged, prefill }) {
   const [options, setOptions] = useState([])
   const [data, setData] = useState(null)
   const [picked, setPicked] = useState({})
@@ -23,6 +23,10 @@ export default function SymptomLog({ crewId, day, live, catalog, onOpenIndicator
     return Object.entries(g)
   }, [options])
   const names = useMemo(() => Object.fromEntries(options.map((o) => [o.key, o.name])), [options])
+
+  useEffect(() => {
+    if (prefill?.key) setPicked((p) => ({ ...p, [prefill.key]: p[prefill.key] ?? 4 }))
+  }, [prefill])
 
   const toggle = (k) => setPicked(({ [k]: had, ...rest }) => (had ? rest : { ...rest, [k]: 4 }))
 

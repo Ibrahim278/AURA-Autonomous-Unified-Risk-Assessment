@@ -31,6 +31,9 @@ class MissionStore:
     def __init__(self, dataset: MissionDataset):
         self._lock = threading.Lock()
         self.baseline_mode = "preflight"
+        # Ask AURA memory: notes the user chose to save. Survives mission resets on purpose.
+        self.memory: list[dict] = []
+        self._memory_ids = 0
         self.load(dataset)
 
     # ------------------------------------------------------------------ loading
@@ -201,6 +204,31 @@ class MissionStore:
         for d in (self._preflight, self._inflight, self._baselines):
             for k in [k for k in d if k[1] == key]:
                 del d[k]
+
+    # ------------------------------------------------------------------ Ask AURA memory
+    MEMORY_MAX = 30
+
+    def remember(self, text: str, crew_id: str | None = None) -> dict:
+        text = " ".join(text.split())[:200]
+        if not text:
+            raise ValueError("Nothing to remember")
+        if crew_id is not None:
+            self._require(crew_id)
+        with self._lock:
+            if any(m["text"].lower() == text.lower() and m["crew_id"] == crew_id for m in self.memory):
+                return next(m for m in self.memory if m["text"].lower() == text.lower() and m["crew_id"] == crew_id)
+            self._memory_ids += 1
+            note = {"id": self._memory_ids, "crew_id": crew_id, "text": text,
+                    "created": datetime.now(timezone.utc).isoformat()}
+            self.memory = [*self.memory, note][-self.MEMORY_MAX:]
+        return note
+
+    def forget(self, note_id: int) -> None:
+        with self._lock:
+            before = len(self.memory)
+            self.memory = [m for m in self.memory if m["id"] != note_id]
+            if len(self.memory) == before:
+                raise KeyError(note_id)
 
     # ------------------------------------------------------------------ writes
     def add_member(self, member, records) -> None:
