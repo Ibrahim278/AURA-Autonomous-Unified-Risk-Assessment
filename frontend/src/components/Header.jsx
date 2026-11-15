@@ -21,7 +21,7 @@ export default function Header({ mission, onReset, onRestart, onTour, onHome }) 
       </a>
       {mission && (
         <div className="mission-info">
-          <span className="pill">{mission.mission_name}</span>
+          <span className="pill mission-name">{mission.mission_name}</span>
           <label className="pill env-select">
             <span className="sr-only">Mission environment</span>
             <select value={mission.environment} onChange={(e) => onReset(e.target.value)}>

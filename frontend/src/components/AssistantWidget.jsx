@@ -86,7 +86,7 @@ export default function AssistantWidget({ crewId, member, day, live, selected, s
     <>
       {!open && (
         <button className={`assistant-fab ${highlight ? 'pulse' : ''}`} onClick={() => setOpen(true)} aria-label="Ask AURA">
-          <span className="fab-icon">✦</span> Ask AURA
+          <span className="fab-icon" aria-hidden="true">✦</span> <span className="fab-label">Ask AURA</span>
         </button>
       )}
       {open && (

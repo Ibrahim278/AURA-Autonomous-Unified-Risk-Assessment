@@ -149,7 +149,7 @@ export default function ResearchPanel({ focus = null }) {
             </button>
           ))}
         </div>
-        <select value={key} onChange={(e) => setKey(e.target.value)} className="env-select">
+        <select value={key} onChange={(e) => setKey(e.target.value)} className="env-select" aria-label="Marker">
           <optgroup label="Space-relevant">
             {featured.map((a) => <option key={a.key} value={a.key}>{a.name}{a.out_of_range ? ` (${a.out_of_range} out of range)` : ''}</option>)}
           </optgroup>

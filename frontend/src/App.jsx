@@ -105,7 +105,8 @@ export default function App() {
     if (window.location.hash !== `#/${id}`) window.history.pushState(null, '', `#/${id}`)
     setPage(id)
     if (sel) {
-      setTimeout(() => document.querySelector(sel)?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 450)
+      // On phones the tour card covers the lower half, so put the target at the top instead.
+      setTimeout(() => document.querySelector(sel)?.scrollIntoView({ behavior: 'smooth', block: window.innerWidth <= 600 ? 'start' : 'center' }), 450)
     } else {
       window.scrollTo({ top: 0, behavior: 'smooth' })
     }
