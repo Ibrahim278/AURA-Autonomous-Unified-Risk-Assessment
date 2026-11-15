@@ -27,7 +27,8 @@ from .store import MissionStore
 log = logging.getLogger("aura.assistant")
 
 ActionType = Literal["open_indicator", "open_checkin", "open_briefing", "open_crew_editor",
-                     "open_import", "add_indicator", "open_research", "start_tour", "select_crew"]
+                     "open_import", "add_indicator", "open_research", "start_tour", "select_crew",
+                     "message_ground"]
 
 APP_GUIDE = """\
 AURA dashboard guide (use these exact names when telling the user where to click):
@@ -36,6 +37,11 @@ members, name, role, age, personal baselines, health scenario). "⬆ Import" add
 user's own CSV (a 'day' column; days -7..-1 are preflight baseline, 1, 2, 3... mission days; one column per \
 indicator; template at data/import_template.csv).
 - Mission replay (sidebar): drag the slider to see any past day; "Live" is the current day.
+- Message ground (sidebar, 📡): send a message to the flight surgeon with today's status packet attached. \
+It shows the real signal delay for the environment (ISS ~0.5 s, Moon ~1.3 s, Mars transit grows to ~12.5 min \
+one way) with a countdown; a SIMULATED ground reply comes back after the round trip. A demo clock runs 60x \
+faster. When the delay is minutes, AURA's own guidance is the crew's first line of support. The red escalate \
+line on the status banner has "Message ground now →", which drafts an urgent message.
 - Mission routine (sidebar): daily tasks, streaks, points, levels and badges. Measurement tasks tick \
 themselves when a check-in logs the reading.
 - Header: environment selector (ISS, lunar surface, Mars transit) regenerates the mission; "▶ Demo tour" \
@@ -178,6 +184,11 @@ FAQ: list[tuple[str, str, list[str], list[tuple[str, str]]]] = [
     (r"check.?in|log|enter|record|measure", "Log today's readings in the Daily check-in panel.",
      ["Go back to Live if you are replaying a past day.", "Type the values you measured.",
       "Click Log check-in. The status updates straight away."], [("open_checkin", "Open check-in")]),
+    (r"ground|mission control|flight surgeon|message|delay|earth|signal|comms",
+     "Use Message ground in the sidebar. It shows how long your message takes to reach Earth and when to expect a reply.",
+     ["Find 📡 Message ground in the left sidebar.", "Type your message; tick Urgent if needed and keep Attach status on.",
+      "Click Send. A countdown shows the signal travelling; the simulated flight-surgeon reply arrives after the round trip.",
+      "While you wait, follow AURA's actions on the flagged indicators."], [("message_ground", "Message ground")]),
     (r"tour|demo|judge|present", "The demo tour walks through AURA's story in 13 steps.",
      ["Click ▶ Demo tour in the header.", "Use Next → to move through the steps."], [("start_tour", "Start the tour")]),
     (r"real|nasa|osdr|inspiration|blood", "The Real crew data panel shows real NASA OSDR bloodwork from the Inspiration4 crew.",

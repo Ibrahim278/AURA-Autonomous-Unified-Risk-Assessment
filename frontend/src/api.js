@@ -47,6 +47,9 @@ export const api = {
   addIndicator: (body) => request('/api/indicators', { method: 'POST', body: JSON.stringify(body) }),
   deleteIndicator: (key) => request(`/api/indicators/${key}`, { method: 'DELETE' }),
   assistant: (body) => request('/api/assistant', { method: 'POST', body: JSON.stringify(body) }),
+  comms: (day) => request(`/api/comms${day ? `?day=${day}` : ''}`),
+  messages: (id) => request(`/api/crew/${id}/messages`),
+  sendMessage: (id, body) => request(`/api/crew/${id}/messages`, { method: 'POST', body: JSON.stringify(body) }),
   nextDay: () => request('/api/mission/next-day', { method: 'POST' }),
   reset: (body) => request('/api/mission/reset', { method: 'POST', body: JSON.stringify(body) }),
 }
