@@ -111,6 +111,20 @@ Use either of these, then restart the back end:
 Check http://localhost:8000/api/ai/status. Without credentials, AURA shows a rule-based
 briefing instead, so the demo always works.
 
+## Deploy a live demo
+
+The whole app runs as **one web service**: the `Dockerfile` builds the React front end and FastAPI serves it next to the API, so the demo is a single URL.
+
+**Render (free):** [![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/Ibrahim278/AURA-Autonomous-Unified-Risk-Assessment)
+
+1. Click the button (or in Render: **New > Blueprint** and pick this repo). `render.yaml` sets everything up.
+2. Optional: paste an `ANTHROPIC_API_KEY` when asked to turn on AI answers. Without it AURA uses its offline answers, and every alert still works.
+3. The free plan sleeps after 15 minutes idle, and the first visit then takes about a minute. Open the link a few minutes before judging.
+
+**Any Docker host:** `docker build -t aura . && docker run -p 8000:8000 aura`, then open http://localhost:8000.
+
+Everyone who opens the demo shares one mission, so use **Reset** in the header to start fresh.
+
 ## Real NASA data: Inspiration4
 
 ![Real crew data panel with AI review](docs/screenshots/research_ai_review.png)

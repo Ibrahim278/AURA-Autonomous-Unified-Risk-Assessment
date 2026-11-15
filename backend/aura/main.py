@@ -639,3 +639,26 @@ def ask_assistant(body: AssistantRequest):
     crew_id = body.crew_id if body.crew_id in store.crew else None
     return assistant.ask_assistant(store, body.question, body.history, crew_id, body.day, body.indicator,
                                   page=body.page)
+
+
+# --- Hosted demo: serve the built React app from the same server -----------------------------
+# In production (Docker / Render) the front end is built into frontend/dist and served here, so the
+# whole demo is one URL. In development Vite serves the front end instead and this does nothing.
+from pathlib import Path  # noqa: E402
+
+from fastapi.responses import FileResponse  # noqa: E402
+from fastapi.staticfiles import StaticFiles  # noqa: E402
+
+_DIST = Path(os.getenv("AURA_FRONTEND_DIST", Path(__file__).resolve().parents[2] / "frontend" / "dist"))
+if (_DIST / "index.html").is_file():
+    if (_DIST / "assets").is_dir():
+        app.mount("/assets", StaticFiles(directory=_DIST / "assets"), name="assets")
+
+    @app.get("/{path:path}", include_in_schema=False)
+    def spa(path: str):
+        if path.startswith("api/"):
+            raise HTTPException(404, "Not found")
+        file = (_DIST / path).resolve()
+        if path and file.is_file() and _DIST.resolve() in file.parents:
+            return FileResponse(file)
+        return FileResponse(_DIST / "index.html")
