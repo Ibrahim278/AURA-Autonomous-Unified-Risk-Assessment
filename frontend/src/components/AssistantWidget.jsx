@@ -9,9 +9,17 @@ function suggestionsFor(member, selectedName) {
   return s.slice(0, 4)
 }
 
+const CHAT_KEY = 'aura-chat-v1'
+
+function loadChat() {
+  try { return JSON.parse(localStorage.getItem(CHAT_KEY)) ?? [] } catch { return [] }
+}
+
 export default function AssistantWidget({ crewId, member, day, live, selected, selectedName, onAction, openSignal = 0, onOpenChange, highlight = false }) {
   const [open, setOpen] = useState(false)
-  const [chat, setChat] = useState([])
+  const [chat, setChat] = useState(loadChat)
+  const [memory, setMemory] = useState([])
+  const [showMemory, setShowMemory] = useState(false)
   const [question, setQuestion] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState(null)
@@ -26,6 +34,26 @@ export default function AssistantWidget({ crewId, member, day, live, selected, s
     if (open) input.current?.focus()
   }, [open])
 
+  // Keep the conversation across reloads (this browser only).
+  useEffect(() => {
+    try { localStorage.setItem(CHAT_KEY, JSON.stringify(chat.slice(-30))) } catch { /* storage unavailable */ }
+  }, [chat])
+
+  useEffect(() => {
+    if (open) api.memory(crewId).then(setMemory).catch(() => {})
+  }, [open, crewId])
+
+  const act = async (a) => {
+    if (a.type !== 'remember') { onAction(a); return }
+    try {
+      await api.addMemory({ text: a.target, crew_id: crewId ?? null })
+      setMemory(await api.memory(crewId))
+      setChat((c) => [...c, { role: 'note', content: `🧠 Saved to memory: “${a.target}”` }])
+    } catch (e) {
+      setError(e.message)
+    }
+  }
+
   useEffect(() => {
     if (openSignal) setOpen(true)
   }, [openSignal])
@@ -38,7 +66,8 @@ export default function AssistantWidget({ crewId, member, day, live, selected, s
   const send = async (text) => {
     const q = (text ?? question).trim()
     if (!q || busy) return
-    const history = chat.map((m) => ({ role: m.role, content: m.role === 'user' ? m.content : m.reply.answer }))
+    const history = chat.filter((m) => m.role !== 'note').slice(-20)
+      .map((m) => ({ role: m.role, content: m.role === 'user' ? m.content : m.reply.answer }))
     setChat((c) => [...c, { role: 'user', content: q }])
     setQuestion('')
     setBusy(true)
@@ -70,11 +99,30 @@ export default function AssistantWidget({ crewId, member, day, live, selected, s
               </div>
             </div>
             <span className="assistant-head-actions">
+              <button className="link" onClick={() => setShowMemory((v) => !v)} title="Notes Ask AURA remembers">🧠 {memory.length}</button>
               {chat.length > 0 && <button className="link" onClick={() => setChat([])}>Clear</button>}
               <button className="link" onClick={() => setOpen(false)} aria-label="Minimise">—</button>
             </span>
           </div>
 
+          {showMemory && (
+            <div className="assistant-memory">
+              <strong>Memory</strong>
+              <span className="muted tiny"> Ask “remember that …” to add a note. AURA uses these in answers.</span>
+              {memory.length === 0 && <p className="muted small">Nothing saved yet.</p>}
+              <ul>
+                {memory.map((n) => (
+                  <li key={n.id}>
+                    <span>{n.text}{n.crew_id ? '' : <em className="muted"> · everyone</em>}</span>
+                    <button className="link" aria-label="Forget" onClick={async () => {
+                      await api.deleteMemory(n.id)
+                      setMemory(await api.memory(crewId))
+                    }}>✕</button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
           <div className="assistant-log" aria-live="polite">
             {chat.length === 0 && (
               <div className="assistant-welcome">
@@ -86,7 +134,9 @@ export default function AssistantWidget({ crewId, member, day, live, selected, s
                 </div>
               </div>
             )}
-            {chat.map((m, i) => m.role === 'user' ? (
+            {chat.map((m, i) => m.role === 'note' ? (
+              <div key={i} className="assistant-note">{m.content}</div>
+            ) : m.role === 'user' ? (
               <div key={i} className="bubble user">{m.content}</div>
             ) : (
               <div key={i} className="bubble assistant rich">
@@ -98,7 +148,7 @@ export default function AssistantWidget({ crewId, member, day, live, selected, s
                 {m.reply.actions.length > 0 && (
                   <div className="assistant-actions">
                     {m.reply.actions.map((a, j) => (
-                      <button key={j} className="chip action" onClick={() => onAction(a)}>{a.label} →</button>
+                      <button key={j} className="chip action" onClick={() => act(a)}>{a.label} →</button>
                     ))}
                   </div>
                 )}

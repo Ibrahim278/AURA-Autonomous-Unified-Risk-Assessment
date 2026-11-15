@@ -64,3 +64,37 @@ def test_ai_reply_actions_are_validated(monkeypatch):
     body = captured[0]
     assert "aura_context" in body["messages"][-1]["content"]
     assert body["output_config"]["effort"] == "low"
+
+
+def test_memory_api_and_context():
+    from aura import main as m
+    from fastapi.testclient import TestClient as TC
+    c = TC(m.app)
+    m.store.memory.clear()
+    n = c.post("/api/memory", json={"text": "I prefer metric units", "crew_id": "aura-2"}).json()
+    c.post("/api/memory", json={"text": "Team call every Friday"})
+    assert c.post("/api/memory", json={"text": "x", "crew_id": "nobody"}).status_code == 422
+    assert [x["text"] for x in c.get("/api/memory?crew_id=aura-2").json()] == ["I prefer metric units", "Team call every Friday"]
+    assert [x["text"] for x in c.get("/api/memory?crew_id=aura-1").json()] == ["Team call every Friday"]
+    ctx = assistant.build_assistant_context(m.store, "aura-2", None, None)
+    assert "I prefer metric units" in ctx["memory"]
+    assert c.delete(f"/api/memory/{n['id']}").status_code == 200
+    assert c.delete(f"/api/memory/{n['id']}").status_code == 404
+    m.store.memory.clear()
+
+
+def test_offline_remember_and_new_action_validation():
+    from aura import main as m
+    r = assistant.offline_reply("Remember that I get headaches after EVA", {"person": None})
+    assert r.actions[0].type == "remember" and r.actions[0].target == "I get headaches after EVA"
+    ctx = assistant.build_assistant_context(m.store, "aura-2", None, None)
+    reply = assistant.AssistantReply(answer="x", steps=[], escalate=False, topic="app_help", actions=[
+        assistant.AssistantAction(type="go_to_day", label="Day 48", target="48"),
+        assistant.AssistantAction(type="go_to_day", label="Bad", target="999"),
+        assistant.AssistantAction(type="log_symptom", label="Log", target="headache"),
+        assistant.AssistantAction(type="log_symptom", label="Bad", target="sneezing"),
+        assistant.AssistantAction(type="draft_ground_message", label="Draft", target="Sleeping badly, advice?"),
+    ])
+    kept = assistant._clean(reply, ctx).actions
+    assert [(a.type, a.target) for a in kept] == [("go_to_day", "48"), ("log_symptom", "headache"),
+                                                  ("draft_ground_message", "Sleeping badly, advice?")]

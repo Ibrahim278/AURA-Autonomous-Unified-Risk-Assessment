@@ -592,3 +592,9 @@ button:disabled { opacity: 0.6; cursor: default; }
 .team-charts { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
 .team-chart h3 { margin: 0 0 6px; font-size: 0.85rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; }
 @media (max-width: 1100px) { .team-head, .team-charts { grid-template-columns: 1fr; } }
+
+/* ---------- Ask AURA memory ---------- */
+.assistant-memory { padding: 8px 12px; border-bottom: 1px solid var(--border); font-size: 0.8rem; max-height: 160px; overflow-y: auto; flex-shrink: 0; }
+.assistant-memory ul { list-style: none; margin: 6px 0 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.assistant-memory li { display: flex; justify-content: space-between; gap: 8px; }
+.assistant-note { align-self: center; font-size: 0.75rem; color: var(--muted); background: var(--bg2); border: 1px solid var(--border); border-radius: 999px; padding: 3px 10px; flex-shrink: 0; }

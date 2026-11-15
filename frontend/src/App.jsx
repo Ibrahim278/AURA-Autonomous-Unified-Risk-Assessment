@@ -39,6 +39,7 @@ export default function App() {
   const [groundDraft, setGroundDraft] = useState(null)
   const [view, setView] = useState('crew')
   const [planSignal, setPlanSignal] = useState(0)
+  const [symptomPrefill, setSymptomPrefill] = useState(null)
   const [system, setSystem] = useState(null)
   const [selected, setSelected] = useState(null)
   const [error, setError] = useState(null)
@@ -140,6 +141,9 @@ export default function App() {
       case 'message_ground': setView('crew'); scrollTo('#comms'); break
       case 'open_radiation': setView('crew'); scrollTo('#radiation'); break
       case 'open_plan': setView('crew'); scrollTo('#plan'); break
+      case 'go_to_day': { setView('crew'); const d = Number(a.target); setDay(d >= (mission?.current_day ?? 0) ? null : d); scrollTo('.banner'); break }
+      case 'draft_ground_message': setView('crew'); setDay(null); setGroundDraft({ urgent: false, text: a.target, n: Date.now() }); scrollTo('#comms'); break
+      case 'log_symptom': setView('crew'); setDay(null); setSymptomPrefill({ key: a.target, n: Date.now() }); scrollTo('#symptoms'); break
       case 'open_team': setView('team'); break
       case 'open_ground': setView('ground'); break
       case 'open_symptoms': setView('crew'); setDay(null); scrollTo('#symptoms'); break
@@ -283,6 +287,7 @@ export default function App() {
 
               <SymptomLog
                 onLogged={() => setPlanSignal((n) => n + 1)}
+                prefill={symptomPrefill}
                 key={crewId}
                 crewId={crewId}
                 day={shownDay}
