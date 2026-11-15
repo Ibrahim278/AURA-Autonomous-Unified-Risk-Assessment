@@ -23,7 +23,7 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
-from . import __version__, ai, assistant, checks, comms, planner, custom, radiation, symptoms, ground, forecast, gamification, importer, research
+from . import __version__, ai, assistant, checks, comms, planner, wellbeing, custom, radiation, symptoms, ground, forecast, gamification, importer, research
 from .indicators import INDICATORS, Hazard
 from .simulator import (DEFAULT_CREW_SPECS, DEFAULTS, EDITABLE_BASELINES, ENVIRONMENTS, SCENARIOS,
                         generate, imported_records, make_member)
@@ -422,6 +422,12 @@ def send_message(crew_id: str, body: GroundMessage):
 def ground_overview(day: int | None = Query(None, ge=1)):
     """Flight-surgeon view: every crew member, sorted by who needs attention first."""
     return ground.overview(store, outbox, day)
+
+
+@app.get("/api/wellbeing", tags=["ground"])
+def crew_wellbeing(day: int | None = Query(None, ge=1)):
+    """Team behavioural health: wellbeing score per person and for the crew, mood and sleep trends, tips."""
+    return wellbeing.overview(store, day)
 
 
 @app.get("/api/report", tags=["ground"], response_class=HTMLResponse)

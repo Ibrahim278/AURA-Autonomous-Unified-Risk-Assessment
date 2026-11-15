@@ -28,7 +28,7 @@ log = logging.getLogger("aura.assistant")
 
 ActionType = Literal["open_indicator", "open_checkin", "open_briefing", "open_crew_editor",
                      "open_import", "add_indicator", "open_research", "start_tour", "select_crew",
-                     "message_ground", "open_radiation", "open_symptoms", "open_ground", "open_plan"]
+                     "message_ground", "open_radiation", "open_symptoms", "open_ground", "open_plan", "open_team"]
 
 APP_GUIDE = """\
 AURA dashboard guide (use these exact names when telling the user where to click):
@@ -56,7 +56,9 @@ self-care. It links to the indicators worth checking.
 and a cumulative chart projected to the planned mission end. Prior career dose is set per person in ✎ Edit.
 - Mission routine (sidebar): daily tasks, streaks, points, levels and badges. Measurement tasks tick \
 themselves when a check-in logs the reading.
-- Header: "👩‍🚀 Crew / 🛰 Ground" toggle. Ground is the flight-surgeon console: every crew member on one screen, \
+- Header: "👩‍🚀 Crew / 👥 Team / 🛰 Ground" toggle. Team is crew wellbeing: a 0-100 wellbeing score per person \
+and for the crew (mood and sleep below baseline, behavioural symptoms, missed exercise over 7 days; thriving \
+>= 75, watch 55-74, needs support < 55), mood and sleep trend charts for everyone, and team suggestions. Ground is the flight-surgeon console: every crew member on one screen, \
 sorted by priority (the worst of telemetry, symptom triage and radiation), with flagged readings, symptoms, \
 radiation, trends and messages received (only once their signal has arrived). "🖨 Crew report" and each \
 card's "🖨 Report" (also "🖨 Report" on the status banner) open a printable report; save it as PDF from the \
@@ -205,6 +207,10 @@ FAQ: list[tuple[str, str, list[str], list[tuple[str, str]]]] = [
      ["Click 🛰 Ground in the header to see every crew member sorted by priority.",
       "Click 🖨 Crew report for the whole crew, or 🖨 Report on one person's card or status banner.",
       "In the report tab, click Print / Save as PDF."], [("open_ground", "Open the Ground view")]),
+    (r"team|wellbeing|well-being|morale|crew mood|cohesion|behavioural health|behavioral health",
+     "The Team view shows the crew's wellbeing together: a score per person and for the crew, with mood and sleep trends.",
+     ["Click 👥 Team in the header.", "Cards are sorted with whoever needs support first; each lists what drives the score.",
+      "Follow the team suggestions at the top."], [("open_team", "Open the Team view")]),
     (r"plan|schedule|countermeasure|workout|what should i do today",
      "Today's countermeasure plan turns your flags into a timed schedule for the day.",
      ["Scroll to 🗓 Today's countermeasure plan below the indicator cards.",
