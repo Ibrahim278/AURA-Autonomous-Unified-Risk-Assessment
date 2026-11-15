@@ -15,6 +15,7 @@ import CrewEditor from './components/CrewEditor.jsx'
 import IndicatorManager from './components/IndicatorManager.jsx'
 import AssistantWidget from './components/AssistantWidget.jsx'
 import CommsPanel from './components/CommsPanel.jsx'
+import GroundView from './components/GroundView.jsx'
 import SymptomLog from './components/SymptomLog.jsx'
 import RadiationPanel from './components/RadiationPanel.jsx'
 import ResearchPanel from './components/ResearchPanel.jsx'
@@ -34,6 +35,7 @@ export default function App() {
   const [radiation, setRadiation] = useState(null)
   const [askSignal, setAskSignal] = useState(0)
   const [groundDraft, setGroundDraft] = useState(null)
+  const [view, setView] = useState('crew')
   const [system, setSystem] = useState(null)
   const [selected, setSelected] = useState(null)
   const [error, setError] = useState(null)
@@ -120,18 +122,19 @@ export default function App() {
 
   const handleAction = (a) => {
     switch (a.type) {
-      case 'open_indicator': setSystem(null); setSelected(a.target); scrollTo('.detail'); break
-      case 'select_crew': setCrewId(a.target); setSelected(null); setSystem(null); scrollTo('.banner'); break
-      case 'open_checkin': setDay(null); scrollTo('#checkin'); break
-      case 'open_briefing': scrollTo('.ai-panel'); break
+      case 'open_indicator': setView('crew'); setSystem(null); setSelected(a.target); scrollTo('.detail'); break
+      case 'select_crew': setView('crew'); setCrewId(a.target); setSelected(null); setSystem(null); scrollTo('.banner'); break
+      case 'open_checkin': setView('crew'); setDay(null); scrollTo('#checkin'); break
+      case 'open_briefing': setView('crew'); scrollTo('.ai-panel'); break
       case 'open_crew_editor': setEditingCrew('edit'); break
       case 'open_import': setEditingCrew('import'); break
       case 'add_indicator': setManagingIndicators(true); break
-      case 'open_research': scrollTo('#research'); break
+      case 'open_research': setView('crew'); scrollTo('#research'); break
       case 'start_tour': startTour(); break
-      case 'message_ground': scrollTo('#comms'); break
-      case 'open_radiation': scrollTo('#radiation'); break
-      case 'open_symptoms': setDay(null); scrollTo('#symptoms'); break
+      case 'message_ground': setView('crew'); scrollTo('#comms'); break
+      case 'open_radiation': setView('crew'); scrollTo('#radiation'); break
+      case 'open_ground': setView('ground'); break
+      case 'open_symptoms': setView('crew'); setDay(null); scrollTo('#symptoms'); break
       default: break
     }
   }
@@ -155,7 +158,7 @@ export default function App() {
 
   return (
     <div className="app">
-      <Header mission={mission} onTour={startTour} onReset={async (env) => {
+      <Header mission={mission} view={view} onView={setView} onTour={() => { setView('crew'); startTour() }} onReset={async (env) => {
         await api.reset({ environment: env, days: mission?.days ?? 60 })
         setDay(null)
         setSelected(null)
@@ -164,6 +167,7 @@ export default function App() {
       <div className="layout">
         <aside className="sidebar">
           <CrewList crew={crew} selectedId={crewId} onEdit={() => setEditingCrew('edit')} onImport={() => setEditingCrew('import')} onSelect={(id) => {
+            setView('crew')
             setCrewId(id)
             setSelected(null)
             setSystem(null)
@@ -176,12 +180,12 @@ export default function App() {
               onChange={(d) => setDay(d >= mission.current_day ? null : d)}
             />
           )}
-          {member && (
+          {member && view === 'crew' && (
             <div className="panel-lite">
               <CommsPanel key={`${crewId}-${mission?.environment}-${mission?.current_day}`} crewId={crewId} member={member} live={day === null} prefill={groundDraft} />
             </div>
           )}
-          <div className="panel-lite">
+          <div className="panel-lite" hidden={view !== 'crew'}>
             <MissionRoutine
               crewId={crewId}
               data={routine}
@@ -196,7 +200,11 @@ export default function App() {
 
         <main className="main">
           {error && <div className="toast error">{error}</div>}
-          {status && member && (
+          {view === 'ground' && mission && (
+            <GroundView day={shownDay} live={day === null} refreshKey={mission.current_day}
+              onOpenCrew={(id) => { setView('crew'); setCrewId(id); setSelected(null); setSystem(null); window.scrollTo({ top: 0, behavior: 'smooth' }) }} />
+          )}
+          {view === 'crew' && status && member && (
             <>
               <StatusBanner member={member} status={status} live={day === null} onMessageGround={() => {
                 const flagged = status.indicators.filter((i) => i.level === 'critical').map((i) => `${i.name} ${i.value} ${i.unit}`)

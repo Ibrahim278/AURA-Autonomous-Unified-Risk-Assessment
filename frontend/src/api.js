@@ -54,6 +54,8 @@ export const api = {
   comms: (day) => request(`/api/comms${day ? `?day=${day}` : ''}`),
   messages: (id) => request(`/api/crew/${id}/messages`),
   sendMessage: (id, body) => request(`/api/crew/${id}/messages`, { method: 'POST', body: JSON.stringify(body) }),
+  ground: (day) => request(`/api/ground${day ? `?day=${day}` : ''}`),
+  reportUrl: (id, day) => `${BASE}${id ? `/api/crew/${id}/report` : '/api/report'}${day ? `?day=${day}` : ''}`,
   nextDay: () => request('/api/mission/next-day', { method: 'POST' }),
   reset: (body) => request('/api/mission/reset', { method: 'POST', body: JSON.stringify(body) }),
 }

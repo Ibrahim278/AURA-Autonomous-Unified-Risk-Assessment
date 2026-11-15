@@ -28,7 +28,7 @@ log = logging.getLogger("aura.assistant")
 
 ActionType = Literal["open_indicator", "open_checkin", "open_briefing", "open_crew_editor",
                      "open_import", "add_indicator", "open_research", "start_tour", "select_crew",
-                     "message_ground", "open_radiation", "open_symptoms"]
+                     "message_ground", "open_radiation", "open_symptoms", "open_ground"]
 
 APP_GUIDE = """\
 AURA dashboard guide (use these exact names when telling the user where to click):
@@ -52,7 +52,11 @@ self-care. It links to the indicators worth checking.
 and a cumulative chart projected to the planned mission end. Prior career dose is set per person in ✎ Edit.
 - Mission routine (sidebar): daily tasks, streaks, points, levels and badges. Measurement tasks tick \
 themselves when a check-in logs the reading.
-- Header: environment selector (ISS, lunar surface, Mars transit) regenerates the mission; "▶ Demo tour" \
+- Header: "👩‍🚀 Crew / 🛰 Ground" toggle. Ground is the flight-surgeon console: every crew member on one screen, \
+sorted by priority (the worst of telemetry, symptom triage and radiation), with flagged readings, symptoms, \
+radiation, trends and messages received (only once their signal has arrived). "🖨 Crew report" and each \
+card's "🖨 Report" (also "🖨 Report" on the status banner) open a printable report; save it as PDF from the \
+print dialog. Environment selector (ISS, lunar surface, Mars transit) regenerates the mission; "▶ Demo tour" \
 walks through the story in 13 steps.
 - Status banner: the overall Normal / Warning / Critical level for the selected person and day.
 - AI flight surgeon panel: "Generate daily briefing" (left) and the "Early-warning forecast" (right): \
@@ -189,6 +193,11 @@ FAQ: list[tuple[str, str, list[str], list[tuple[str, str]]]] = [
     (r"edit|crew member|add (a )?(person|member)|scenario|rename", "The crew editor lets you change who is on the mission.",
      ["Click ✎ Edit in the Crew box.", "Change names, roles, ages, baselines or the health scenario.",
       "Click Save and regenerate."], [("open_crew_editor", "Edit the crew")]),
+    (r"ground view|flight surgeon (view|console)|health report|crew report|export|pdf|print|whole crew|all crew",
+     "The Ground view shows the whole crew for the flight surgeon, and every view can export a printable report.",
+     ["Click 🛰 Ground in the header to see every crew member sorted by priority.",
+      "Click 🖨 Crew report for the whole crew, or 🖨 Report on one person's card or status banner.",
+      "In the report tab, click Print / Save as PDF."], [("open_ground", "Open the Ground view")]),
     (r"symptom",
      "Log how you feel in the Symptom log. AURA triages it straight away with fixed rules.",
      ["Scroll to 🩺 Symptom log below the indicator cards.", "Pick your symptoms and rate each 1 to 10.",

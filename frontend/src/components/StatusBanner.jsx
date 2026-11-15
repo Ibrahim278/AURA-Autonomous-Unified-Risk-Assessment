@@ -1,4 +1,5 @@
 import { LEVEL } from '../levels.js'
+import { api } from '../api.js'
 
 const MESSAGE = {
   normal: 'All indicators are within your personal baseline. Keep up your routine.',
@@ -23,6 +24,8 @@ export default function StatusBanner({ member, status, live, onMessageGround }) 
         <span className="count lvl-normal">{status.counts.normal} normal</span>
         <span className="count lvl-warning">{status.counts.warning} warning</span>
         <span className="count lvl-critical">{status.counts.critical} critical</span>
+        <a className="chip report-link" href={api.reportUrl(member.id, live ? null : status.day)} target="_blank" rel="noreferrer"
+          title="Printable health report (save as PDF from the print dialog)">🖨 Report</a>
       </div>
       {status.escalate && (
         <div className="escalate">

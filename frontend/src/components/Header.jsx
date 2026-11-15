@@ -4,7 +4,7 @@ const ENV_LABEL = {
   mars_transit: 'Mars transit',
 }
 
-export default function Header({ mission, onReset, onTour }) {
+export default function Header({ mission, onReset, onTour, view, onView }) {
   return (
     <header className="header">
       <div className="brand">
@@ -20,6 +20,10 @@ export default function Header({ mission, onReset, onTour }) {
       </div>
       {mission && (
         <div className="mission-info">
+          <div className="seg view-toggle" role="tablist" aria-label="View">
+            <button role="tab" aria-selected={view === 'crew'} className={view === 'crew' ? 'active' : ''} onClick={() => onView('crew')}>👩‍🚀 Crew</button>
+            <button role="tab" aria-selected={view === 'ground'} className={view === 'ground' ? 'active' : ''} onClick={() => onView('ground')}>🛰 Ground</button>
+          </div>
           <span className="pill">{mission.mission_name}</span>
           <label className="pill env-select">
             <span className="sr-only">Mission environment</span>
