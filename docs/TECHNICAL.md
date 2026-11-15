@@ -242,7 +242,7 @@ and build the baseline. Days ≥ 1 are **in flight**; there is no day 0.
 | `aura-2` | Dr. Kenji Sato | behavioural_cardio | 95 mSv |
 | `aura-3` | Amara Diallo | immune_fever | 0 mSv |
 
-`PUT /api/mission/crew` replaces the crew (up to 6) and regenerates the mission.
+`PUT /api/mission/crew` replaces the crew (any size, with a safety cap of 100 for the hosted demo) and regenerates the mission.
 `POST /api/mission/next-day` appends one more day of synthetic readings.
 
 ---

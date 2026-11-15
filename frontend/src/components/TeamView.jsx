@@ -7,7 +7,7 @@ const BAND = {
   watch: { label: 'Watch', cls: 'lvl-warning' },
   support: { label: 'Needs support', cls: 'lvl-critical' },
 }
-const COLORS = ['#38bdf8', '#f472b6', '#a3e635', '#fbbf24', '#c084fc', '#2dd4bf']
+const COLORS = ['#38bdf8', '#f472b6', '#a3e635', '#fbbf24', '#c084fc', '#2dd4bf', '#fb923c', '#e879f9', '#67e8f9', '#facc15', '#94a3b8', '#f87171']
 
 function TrendChart({ data, names, unit, title }) {
   const ids = Object.keys(names)

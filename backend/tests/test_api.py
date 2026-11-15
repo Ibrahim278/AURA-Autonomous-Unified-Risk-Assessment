@@ -120,6 +120,18 @@ def test_edit_crew_regenerates_mission():
     assert client.put("/api/mission/crew", json={"crew": DEFAULT_CREW_SPECS}).status_code == 200
 
 
+
+def test_crew_has_no_six_person_limit():
+    from aura.simulator import DEFAULT_CREW_SPECS
+    from aura.main import MAX_CREW
+    big = [{"name": f"Astronaut {i}", "scenario": "nominal"} for i in range(12)]
+    r = client.put("/api/mission/crew", json={"crew": big})
+    assert r.status_code == 200 and len(r.json()) == 12
+    assert len(client.get("/api/wellbeing").json()["members"]) == 12
+    too_many = [{"name": f"A{i}"} for i in range(MAX_CREW + 1)]
+    assert client.put("/api/mission/crew", json={"crew": too_many}).status_code == 422
+    assert client.put("/api/mission/crew", json={"crew": DEFAULT_CREW_SPECS}).status_code == 200
+
 def test_shorter_mission_still_tells_the_scenario_story():
     from aura.simulator import generate
     from aura.store import MissionStore

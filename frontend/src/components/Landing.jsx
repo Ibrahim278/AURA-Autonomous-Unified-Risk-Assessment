@@ -94,7 +94,7 @@ export default function Landing({ mission, crew, onNavigate, onOpenCrew, onTour,
           <button className="feature-card" onClick={onEditCrew}>
             <span className="feature-icon" aria-hidden="true">✎</span>
             <span className="feature-title">Edit the crew</span>
-            <span className="feature-desc">Names, baselines, earlier radiation dose and a health scenario for up to 6 people.</span>
+            <span className="feature-desc">Names, baselines, earlier radiation dose and a health scenario for a crew of any size.</span>
             <span className="feature-go">Open →</span>
           </button>
           <button className="feature-card" onClick={onImport}>

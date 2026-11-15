@@ -97,8 +97,13 @@ class CrewSpec(BaseModel):
     prior_dose_mSv: float = Field(0, ge=0, le=2000, description="Career radiation dose from earlier missions")
 
 
+# No mission-size limit: future crews may be larger than today's. The cap only stops a runaway
+# request from overloading the hosted demo (the ISS record is 13 people aboard at once).
+MAX_CREW = 100
+
+
 class CrewUpdate(BaseModel):
-    crew: list[CrewSpec] = Field(..., min_length=1, max_length=6)
+    crew: list[CrewSpec] = Field(..., min_length=1, max_length=MAX_CREW)
 
 
 class CrewImport(BaseModel):
@@ -538,8 +543,8 @@ def import_template():
 @app.post("/api/crew/import", tags=["crew"], status_code=201)
 def import_crew(body: CrewImport):
     """Add a crew member from your own CSV data. Other members and check-ins are kept."""
-    if len(store.crew) >= 6:
-        raise HTTPException(422, "The crew is full (6 members). Remove someone in the crew editor first.")
+    if len(store.crew) >= MAX_CREW:
+        raise HTTPException(422, f"The crew already has {MAX_CREW} members, the most this demo supports.")
     try:
         readings, warnings = importer.parse_csv(
             body.csv, store.dataset.days, launch=body.launch_date or date.fromisoformat(store.dataset.start_date))

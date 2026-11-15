@@ -1,6 +1,9 @@
 import { useEffect, useState } from 'react'
 import { api } from '../api.js'
 
+// Matches the server's safety cap; real missions can be any size below it.
+const MAX_CREW = 100
+
 const blank = (scenario = 'nominal') => ({ name: '', role: 'Mission Specialist', age: 35, scenario, baseline: {}, prior_dose_mSv: 0 })
 
 function ImportForm({ roles, full, onImported, onCancel, customKeys = [] }) {
@@ -52,7 +55,7 @@ function ImportForm({ roles, full, onImported, onCancel, customKeys = [] }) {
         Launch date (only if your file has dates): the date that becomes mission day 1{' '}
         <input aria-label="Launch date" type="date" value={launch} onChange={(e) => setLaunch(e.target.value)} />
       </label>
-      {full && <p className="muted small">The crew is full (6). Remove someone and save first.</p>}
+      {full && <p className="muted small">The crew already has {MAX_CREW} members, the most this demo supports.</p>}
       {error && <div className="toast error">{error}</div>}
       <div className="modal-foot">
         <span style={{ flex: 1 }} />
@@ -129,7 +132,7 @@ export default function CrewEditor({ crew, onClose, onSaved, startImport = false
           <ImportForm
             roles={opts.roles}
             customKeys={customKeys}
-            full={crew.length >= 6}
+            full={crew.length >= MAX_CREW}
             onCancel={() => setImporting(false)}
             onImported={async (r) => {
               await onSaved([...crew, r.member], r.member.id)
@@ -190,8 +193,8 @@ export default function CrewEditor({ crew, onClose, onSaved, startImport = false
 
         {error && <div className="toast error">{error}</div>}
         {!importing && <div className="modal-foot">
-          <button className="link" disabled={rows.length >= 6} onClick={() => setRows([...rows, blank()])}>+ Add member</button>
-          <button className="link" disabled={crew.length >= 6} onClick={() => setImporting(true)}>⬆ Import your data</button>
+          <button className="link" disabled={rows.length >= MAX_CREW} onClick={() => setRows([...rows, blank()])}>+ Add member</button>
+          <button className="link" disabled={crew.length >= MAX_CREW} onClick={() => setImporting(true)}>⬆ Import your data</button>
           <button className="link" disabled={!opts || saving} onClick={() => save(opts.default_crew)}>Restore demo crew</button>
           <span style={{ flex: 1 }} />
           <button onClick={onClose}>Cancel</button>

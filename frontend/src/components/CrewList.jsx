@@ -10,6 +10,7 @@ export default function CrewList({ crew, selectedId, onSelect, onEdit, onImport 
           {onEdit && <button className="link" onClick={onEdit}>✎ Edit</button>}
         </span>
       </div>
+      <div className="crew-items">
       {crew.map((c) => {
         const lvl = LEVEL[c.overall]
         return (
@@ -27,6 +28,7 @@ export default function CrewList({ crew, selectedId, onSelect, onEdit, onImport 
           </button>
         )
       })}
+      </div>
     </div>
   )
 }

@@ -56,7 +56,7 @@ already being abnormal *for that person*.
 | 🎮 | **Gamified routine.** Daily tasks, streaks, points, levels and 11 badges reward measuring regularly and following up on warnings, plus **weekly challenges** (+50 each), a **crew board** and a shared crew goal |
 | ⏪ | **Mission replay** to see what AURA showed on any day, plus ISS, lunar surface and Mars transit environments |
 | 🧪 | **Real crew data.** Actual Inspiration4 bloodwork from NASA OSDR (metabolic panel, blood count, **71 immune cytokines**, **9 cardiovascular and inflammation proteins**, and the **Alamar 200-plex protein panels in serum and urine**), charted per crew member against lab ranges, with an **AI review** of each person's changes versus their own preflight baseline |
-| 👩‍🚀 | **Editable crew.** Add or edit up to 6 members: name, role, age, personal baselines and a health scenario (5 to choose from). The AI isn't told the scenario, so it has to find the pattern |
+| 👩‍🚀 | **Editable crew.** Add or edit any number of members: name, role, age, personal baselines and a health scenario (5 to choose from). The AI isn't told the scenario, so it has to find the pattern |
 | ➕ | **Custom indicators.** Add any measurement (body weight, HRV, steps, water intake, or your own) with its unit, typical range and warning/critical limits. It gets baselines, alerts, charts, check-ins, CSV import and AI coverage like the built-in ten |
 | ⬆ | **Import your own data** from a CSV (one row per day) and become a crew member: alerts, tasks and the AI briefing all run on your readings |
 | 🏠 | **Landing page and feature pages.** AURA opens on a home page with the story, a live crew snapshot and a menu of every feature; each feature has its own linked page, and Ask AURA can take you to any page ("take me to radiation") |
@@ -156,7 +156,7 @@ For the presentation script, see [docs/DEMO_SCRIPT.md](docs/DEMO_SCRIPT.md). To 
 
 ![Crew editor](docs/screenshots/crew_editor.png)
 
-- **✎ Edit** (crew sidebar): rename members, add or remove people (up to 6), set personal
+- **✎ Edit** (crew sidebar): rename members, add or remove people (no fixed limit), set personal
   baselines, and choose a scenario: nominal, behavioural → cardio, immune fever, circadian
   disruption or exercise deconditioning. Saving regenerates the mission. **Restore demo crew**
   brings back the three above, and the demo tour does this automatically.
