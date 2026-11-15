@@ -15,7 +15,7 @@ base". This regenerates the mission and clears check-ins. Restarting the back en
 
 | # | Do | Expected |
 | --- | --- | --- |
-| A1 | `cd backend && python -m pytest` | `81 passed` and no failures |
+| A1 | `cd backend && python -m pytest` | `107 passed` and no failures |
 | A2 | `cd frontend && npm run build` | `✓ built in …` and no errors |
 
 ## B. Back end smoke tests (terminal)
@@ -101,12 +101,31 @@ Run these while the back end is up. `curl` is built into macOS.
 
 | # | Do | Expected |
 | --- | --- | --- |
-| H1 | Click **▶ Demo tour** | 13 steps. Each step switches crew/day and scrolls to the right place |
+| H1 | Click **▶ Demo tour** | 17 steps. Each step switches crew/day and scrolls to the right place |
 | H2 | During the tour | The tour card sits above the **✦ Ask AURA** button; both are visible |
-| H3 | At step 12 ("Ask AURA anything") | The Ask AURA button pulses |
+| H3 | At step 16 ("Ask AURA anything") | The Ask AURA button pulses |
 | H4 | Open Ask AURA during the tour, then minimise it (—) | The tour card hides while the chat is open and comes back after |
 | H5 | Edit the crew, then start the tour | The demo crew is restored automatically before step 1 |
-| H6 | Steps 9–10 | Real-data panel switches to glucose, then to white blood cells with C003 selected |
+| H6 | Steps 13–14 | Real-data panel switches to glucose, then to white blood cells with C003 selected |
+
+## J. Symptoms, ground messages, radiation and the ground view
+
+| # | Do | Expected |
+| --- | --- | --- |
+| J1 | Select **Diallo**, scroll to **🩺 Symptom log** | Warning triage: chills need follow-up, tiredness logged on 3 of the last 5 days. Recent log shows "demo" entries |
+| J2 | Select **Ortiz**, pick **Headache** and **Blurry near vision**, click **Log and triage** | Warning: "Headache with a vision change: ask ground for a SANS eye exam" |
+| J3 | Pick **Chest pain or pressure** (any severity) and log | **Critical**, first action "Contact the flight surgeon now", and a **📡 Message ground now** button |
+| J4 | Ask AURA (AI off) "I have chest pain" | Starts "Contact the flight surgeon now", with **Message ground** and **Log the symptom** buttons |
+| J5 | Diallo → banner **Message ground now →** → **Send** (Lunar surface) | 1.3 s one way. "✓ Delivered to Earth" within a second; the simulated flight-surgeon reply appears about 5 s later and mentions body temperature |
+| J6 | Switch header to **Mars transit**, send a message | About 12.5 min one way, "Delayed" pill. Countdown ~12 s to Earth; the reply arrives about 30 s after you send (demo clock 60×) |
+| J7 | Ortiz (Lunar, Live) → **☢ Radiation dose budget** | **Warning**, 84.7% of 600 mSv (410 earlier + ~98 this mission). Chart shows the 600 and 80% lines |
+| J8 | Ortiz, replay day **30** | Normal, with "On this course you pass 80% of the career limit around day 38" |
+| J9 | Diallo, replay day **22** | Radiation budget **Critical**: "looks like a solar particle event" |
+| J10 | **✎ Edit** → set Diallo's ☢ "mSv before" to 500 → Save | Her budget shows the new career total and turns Warning |
+| J11 | Header **🛰 Ground** | Cards sorted Diallo (critical), then Sato and Ortiz (warning; Ortiz's is from radiation). After J5, Diallo's card shows the message received |
+| J12 | **🖨 Crew report** (or **🖨 Report** on a card or the status banner) | A printable report opens in a new tab; **Print / Save as PDF** works |
+| J13 | Sato, replay day 48, open the heart-rate forecast row | Chart shows a shaded 95% range around the dashed projection; "Moving together: Mood (self-report) · opposite directions" |
+| J14 | Diallo, Live, open **Resting heart rate** | "Moving together" lists **Body temperature** first (same direction, r ≈ 0.95) |
 
 ## I. Edge cases worth a look
 

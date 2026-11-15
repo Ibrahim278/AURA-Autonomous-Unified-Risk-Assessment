@@ -101,3 +101,18 @@ values are real astronaut measurements.**
 
 The thresholds live in `backend/aura/indicators.py`. Each indicator lists a `references`
 field. All thresholds are **prototype rules** and are not clinically validated.
+
+## Symptoms, signal delay and radiation budget
+
+- **Symptom triage** (`backend/aura/symptoms.py`) uses fixed prototype rules informed by NASA HRP
+  evidence: red flags escalate, vision changes are treated as possible Spaceflight-Associated
+  Neuro-ocular Syndrome (SANS), and motion sickness, fluid-shift congestion and back pain are
+  expected only in the first days of flight. Demo symptom logs are synthetic and tagged `demo`.
+- **Signal delay** (`backend/aura/comms.py`): ISS about 0.5 s via the TDRS relay; Moon 1.28 s
+  (384,400 km at the speed of light); Mars transit grows from about 0.2 to 12.5 minutes one way
+  (1.5 AU at mission end), within the real Earth-Mars range of about 3 to 22 minutes. The
+  flight-surgeon reply is a simulated, rule-based template.
+- **Radiation budget** (`backend/aura/radiation.py`): NASA-STD-3001 Volume 1 Rev B 600 mSv career
+  effective dose limit, and the 30-day (250 mGy-Eq) and 1-year (500 mGy-Eq) blood-forming organ
+  limits. Dosimeter mSv is compared with the mGy-Eq limits as an approximation. Prior career doses
+  of the demo crew (410, 95 and 0 mSv) are invented for the story.
