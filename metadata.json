@@ -15,7 +15,8 @@
     "members": ["Ibrahim Irfan", "Melvyn Avoa"]
   },
   "links": {
-    "live_demo": "https://aura-space-health.vercel.app",
+    "live_demo": "https://www.aura-neuralai.com",
+    "live_demo_vercel": "https://aura-space-health.vercel.app",
     "api": "https://aura-demo-w9ot.onrender.com/api/health",
     "repository": "https://github.com/Ibrahim278/AURA-Autonomous-Unified-Risk-Assessment",
     "technical_docs": "docs/TECHNICAL.md",

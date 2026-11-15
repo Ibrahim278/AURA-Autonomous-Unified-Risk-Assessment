@@ -10,6 +10,7 @@
 | **Team** | NeuralAI |
 | **Project lead** | Ibrahim Irfan |
 | **Team members** | Ibrahim Irfan, Melvyn Avoa |
+| **Live demo** | **[www.aura-neuralai.com](https://www.aura-neuralai.com)** |
 
 # AURA: Autonomous Unified Risk Assessment
 
@@ -17,6 +18,8 @@
 
 **Health monitoring that lets astronauts on long-duration missions assess their own health,
 see changes early, and know exactly when to act or call the ground.**
+
+**▶ Try it live: [www.aura-neuralai.com](https://www.aura-neuralai.com)** (the first visit after a quiet spell can take about a minute while the server wakes up). Press **▶ Demo tour** for the 19-step story.
 
 ![AURA home page](docs/screenshots/home.png)
 
@@ -125,6 +128,8 @@ Check http://localhost:8000/api/ai/status. Without credentials, AURA shows a rul
 briefing instead, so the demo always works.
 
 ## Deploy a live demo
+
+**Live now:** [www.aura-neuralai.com](https://www.aura-neuralai.com). The front end is on Vercel (custom domain `aura-neuralai.com`, which redirects to `www`) and the API runs on Render at `aura-demo-w9ot.onrender.com`. Every push to `main` redeploys both.
 
 The whole app runs as **one web service**: the `Dockerfile` builds the React front end and FastAPI serves it next to the API, so the demo is a single URL.
 
