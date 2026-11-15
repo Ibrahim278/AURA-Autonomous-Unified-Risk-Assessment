@@ -21,10 +21,13 @@ function Transit({ m, label, from }) {
 
 // Delivery status for a message to ground, like read receipts: each step lights up as it happens.
 function Status({ m, reply }) {
+  // A live operator's "seen" receipt is sent from Earth, so it takes the one-way delay to reach the crew.
+  const travelMs = new Date(m.arrives_at) - new Date(m.sent_at)
+  const seenAt = m.seen_at ? new Date(new Date(m.seen_at).getTime() + travelMs).toISOString() : reply?.sent_at
   const steps = [
     { key: 'sent', label: 'Sent', done: true },
     { key: 'delivered', label: 'Delivered to Earth', done: secs(m.arrives_at) <= 0, at: m.arrives_at },
-    { key: 'seen', label: 'Seen by flight surgeon', done: !!reply && secs(reply.sent_at) <= 0, at: reply?.sent_at },
+    { key: 'seen', label: 'Seen by flight surgeon', done: !!seenAt && secs(seenAt) <= 0, at: seenAt },
     { key: 'replied', label: 'Reply received', done: !!reply && secs(reply.arrives_at) <= 0, at: reply?.arrives_at },
   ]
   const current = steps.findIndex((x) => !x.done)
@@ -69,16 +72,21 @@ export default function CommsPanel({ crewId, member, live, prefill }) {
   }, [prefill])
 
   // While anything is in flight, refresh the countdown every second and pull arrived replies.
-  const waiting = data?.messages.some((m) => m.pending || secs(m.arrives_at) > 0)
+  // With a live operator on the ground, also check every few seconds for their receipt and reply.
+  const liveGround = data?.mode === 'live'
+  const unanswered = liveGround && data.messages.some((m) => m.direction === 'to_ground' && !data.messages.some((r) => r.in_reply_to === m.id))
+  const waiting = unanswered || data?.messages.some((m) => m.pending || secs(m.arrives_at) > 0)
   useEffect(() => {
     if (!waiting) return
+    let n = 0
     const t = setInterval(async () => {
-      tick((n) => n + 1)
+      tick((x) => x + 1)
+      n += 1
       const due = data.messages.some((m) => m.pending && secs(m.arrives_at) <= 0)
-      if (due) setData(await api.messages(crewId))
+      if (due || (unanswered && n % 3 === 0)) setData(await api.messages(crewId))
     }, 1000)
     return () => clearInterval(t)
-  }, [waiting, data, crewId])
+  }, [waiting, unanswered, data, crewId])
 
   const send = async (e) => {
     e.preventDefault()
@@ -101,6 +109,9 @@ export default function CommsPanel({ crewId, member, live, prefill }) {
     <div className="comms" id="comms">
       <div className="panel-head">
         <h2>📡 Message ground</h2>
+        {data && <span className={`pill ${liveGround ? 'pill-ok' : ''}`} title={liveGround ? 'A person at the Flight surgeon console answers' : 'AURA simulates the flight surgeon'}>
+          {liveGround ? '● Live operator' : 'Simulated ground'}
+        </span>}
         {link && <span className={`pill ${link.mode === 'autonomous' ? 'pill-warn' : 'pill-ok'}`}>
           {link.mode === 'autonomous' ? 'Delayed' : 'Live'}
         </span>}
@@ -115,7 +126,7 @@ export default function CommsPanel({ crewId, member, live, prefill }) {
       <ol className="msg-log">
         {data?.messages.map((m) => m.pending ? (
           <li key={m.id} className="msg from-ground pending">
-            <div className="msg-head">Flight surgeon</div>
+            <div className="msg-head">{liveGround ? 'Ground' : 'Flight surgeon'}</div>
             <Transit m={m} from={data.messages.find((o) => o.id === m.in_reply_to)?.sent_at}
               label={secs(m.sent_at) > 0 ? 'Waiting for ground to receive and answer' : 'Reply travelling back to you'} />
           </li>
@@ -135,6 +146,7 @@ export default function CommsPanel({ crewId, member, live, prefill }) {
               <Transit m={m} label={`Travelling to Earth (${fmtTrue(m.delay_s)} real delay)`} />}
             {m.direction === 'to_ground' && <Status m={m} reply={data.messages.find((r) => r.in_reply_to === m.id)} />}
             {m.simulated && <div className="muted sim">Simulated ground response (demo)</div>}
+            {m.direction === 'from_ground' && m.simulated === false && <div className="muted sim">Live reply from the Flight surgeon console</div>}
           </li>
         ))}
       </ol>

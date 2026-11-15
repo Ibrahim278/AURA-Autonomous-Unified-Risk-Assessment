@@ -419,7 +419,7 @@ def _link(day: int | None = None) -> dict:
 def crew_messages(crew_id: str):
     """Messages to and from ground. Replies show as pending until their signal arrives."""
     _crew_or_404(crew_id)
-    return {"link": _link(), "messages": outbox.thread(crew_id)}
+    return {"link": _link(), "mode": outbox.mode, "messages": outbox.thread(crew_id)}
 
 
 @app.post("/api/crew/{crew_id}/messages", tags=["comms"], status_code=201)
@@ -431,7 +431,61 @@ def send_message(crew_id: str, body: GroundMessage):
     link = _link()
     outbox.send(crew_id, member.name, body.text, body.priority, store.current_day, link,
                 status if body.attach_status else None)
-    return {"link": link, "messages": outbox.thread(crew_id)}
+    return {"link": link, "mode": outbox.mode, "messages": outbox.thread(crew_id)}
+
+
+# ---------------------------------------------------------------- live ground (Flight surgeon console)
+class CommsMode(BaseModel):
+    mode: Literal["simulated", "live"]
+
+
+class GroundReply(BaseModel):
+    text: str = Field(min_length=1, max_length=2000)
+    author: str = Field("Flight surgeon", min_length=1, max_length=80)
+
+
+@app.get("/api/comms/mode", tags=["comms"])
+def get_comms_mode():
+    """Who answers crew messages: the simulated flight surgeon, or a person at the console."""
+    return {"mode": outbox.mode}
+
+
+@app.put("/api/comms/mode", tags=["comms"])
+def set_comms_mode(body: CommsMode):
+    outbox.mode = body.mode
+    return {"mode": outbox.mode}
+
+
+@app.get("/api/ground/inbox", tags=["comms"])
+def ground_inbox():
+    """Flight surgeon console: crew messages that have reached Earth (newest first)."""
+    names = {cid: c.name for cid, c in store.crew.items()}
+    msgs, in_transit = outbox.inbox()
+    for m in msgs:
+        m["crew_name"] = names.get(m["crew_id"], m["crew_id"])
+    return {"mode": outbox.mode, "link": _link(), "messages": msgs, "in_transit": in_transit}
+
+
+@app.post("/api/ground/messages/{msg_id}/seen", tags=["comms"])
+def ground_seen(msg_id: int):
+    """The console opened this message: the crew sees 'Seen by flight surgeon'."""
+    try:
+        return outbox.mark_seen(msg_id)
+    except KeyError as exc:
+        raise HTTPException(404, "No such message.") from exc
+    except ValueError as exc:
+        raise HTTPException(409, str(exc)) from exc
+
+
+@app.post("/api/ground/messages/{msg_id}/reply", tags=["comms"], status_code=201)
+def ground_reply(msg_id: int, body: GroundReply):
+    """A real reply typed at the console. It reaches the crew after the one-way delay."""
+    try:
+        return outbox.reply(msg_id, body.text, body.author)
+    except KeyError as exc:
+        raise HTTPException(404, "No such message.") from exc
+    except ValueError as exc:
+        raise HTTPException(409, str(exc)) from exc
 
 
 # ---------------------------------------------------------------- ground view and reports

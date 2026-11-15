@@ -12,6 +12,7 @@ def fresh():
     main.store.load(generate())
     main.outbox.clear()
     yield
+    main.outbox.mode = "simulated"
 
 
 client = TestClient(main.app)
@@ -69,3 +70,46 @@ def test_api_send_and_reset_clears():
     client.post("/api/mission/reset", json={"environment": "mars_transit"})
     assert client.get("/api/crew/aura-2/messages").json()["messages"] == []
     assert client.get("/api/comms").json()["mode"] == "autonomous"
+
+
+def test_live_ground_reply_travels_back_with_the_delay():
+    box = comms.Outbox()
+    box.mode = "live"
+    link = comms.link_status("mars_transit", 60, 60)
+    t0 = datetime(2030, 1, 1, tzinfo=timezone.utc)
+    out = box.send("aura-3", "Amara Diallo", "Fever since this morning", "urgent", 60, link, None, now=t0)
+    # live mode: no simulated reply is queued
+    assert [m["direction"] for m in box.thread("aura-3", now=t0)] == ["to_ground"]
+    # the console can't see or answer it before its signal reaches Earth
+    assert box.inbox(now=t0) == ([], 1)
+    with pytest.raises(ValueError):
+        box.reply(out["id"], "Too early", "Dr. Reyes", now=t0)
+    travel = timedelta(seconds=link["one_way_s"] / comms.DEMO_SPEED)
+    t1 = t0 + travel + timedelta(seconds=1)
+    inbox, in_transit = box.inbox(now=t1)
+    assert in_transit == 0 and inbox[0]["id"] == out["id"] and inbox[0]["replies"] == []
+    box.mark_seen(out["id"], now=t1)
+    r = box.reply(out["id"], "Take paracetamol and rest. Re-measure in 1 h.", "Dr. Reyes", now=t1)
+    assert r["simulated"] is False and r["author"] == "Dr. Reyes"
+    crew_view = box.thread("aura-3", now=t1)
+    assert crew_view[0]["seen_at"] and crew_view[1]["pending"] is True  # still on its way back
+    later = box.thread("aura-3", now=t1 + travel + timedelta(seconds=0.1))
+    assert later[1]["pending"] is False and later[1]["text"].startswith("Take paracetamol")
+
+
+def test_live_ground_api():
+    assert client.get("/api/comms/mode").json()["mode"] == "simulated"
+    assert client.put("/api/comms/mode", json={"mode": "live"}).json()["mode"] == "live"
+    assert client.put("/api/comms/mode", json={"mode": "robot"}).status_code == 422
+    client.post("/api/mission/reset", json={"environment": "lunar_surface", "days": 60})
+    client.post("/api/crew/aura-3/messages", json={"text": "Feverish", "priority": "urgent"})
+    import time
+    time.sleep(0.1)  # lunar delay on the demo clock is ~0.02 s
+    box = client.get("/api/ground/inbox").json()
+    assert box["mode"] == "live" and box["messages"][0]["crew_name"] == "Amara Diallo"
+    mid = box["messages"][0]["id"]
+    assert client.post(f"/api/ground/messages/{mid}/seen").status_code == 200
+    r = client.post(f"/api/ground/messages/{mid}/reply", json={"text": "Rest and hydrate.", "author": "Dr. Reyes"})
+    assert r.status_code == 201 and r.json()["simulated"] is False
+    assert client.post("/api/ground/messages/9999/reply", json={"text": "x"}).status_code == 404
+    assert client.post(f"/api/ground/messages/{mid}/reply", json={"text": ""}).status_code == 422

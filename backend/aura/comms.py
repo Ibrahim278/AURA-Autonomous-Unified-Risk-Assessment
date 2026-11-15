@@ -11,8 +11,10 @@ Delay model (one-way light time, plus a little relay overhead):
   mission length, from about 0.2 min at day 1 to about 12.5 min at the end (1.5 AU). The real
   Earth-Mars delay ranges from about 3 to 22 minutes.
 
-The ground's reply is SIMULATED: a rule-based message built from the crew member's AURA status,
-labelled as such. There is no real ground link. A demo clock (DEMO_SPEED) shortens the wait
+By default the ground's reply is SIMULATED: a rule-based message built from the crew member's
+AURA status, labelled as such. In LIVE ground mode a person at the Flight surgeon console reads
+each message once its signal reaches Earth and types the reply, which then travels back with the
+same delay. There is still no real spacecraft link. A demo clock (DEMO_SPEED) shortens the wait
 so a 12 minute delay takes 12 seconds on screen; the true delay is always shown.
 """
 
@@ -115,6 +117,7 @@ class Outbox:
         self._lock = threading.Lock()
         self._ids = itertools.count(1)
         self.messages: list[dict] = []
+        self.mode = "simulated"  # or "live": a person answers from the Flight surgeon console
 
     def clear(self) -> None:
         with self._lock:
@@ -144,6 +147,12 @@ class Outbox:
             },
             "simulated": False,
         }
+        out["travel_s"] = travel.total_seconds()
+        if self.mode == "live":
+            # A person at the console answers; nothing is pre-written.
+            with self._lock:
+                self.messages.append(out)
+            return out
         reply_sent = now + travel + timedelta(seconds=GROUND_HANDLING_S / speed)
         reply = {
             "id": next(self._ids),
@@ -163,6 +172,63 @@ class Outbox:
         with self._lock:
             self.messages += [out, reply]
         return out
+
+    # ------------------------------------------------------------ ground (console) side
+    def inbox(self, now: datetime | None = None) -> tuple[list[dict], int]:
+        """Crew messages that have reached Earth, newest first, with their replies."""
+        now = now or datetime.now(timezone.utc)
+        out = []
+        for m in self.messages:
+            if m["direction"] != "to_ground" or datetime.fromisoformat(m["arrives_at"]) > now:
+                continue
+            replies = [r for r in self.messages if r.get("in_reply_to") == m["id"]]
+            out.append({**m, "replies": [{k: r[k] for k in ("id", "author", "text", "sent_at", "arrives_at", "simulated")}
+                                         for r in replies]})
+        # In transit: the console only knows something is on its way, not what it says.
+        in_transit = sum(1 for m in self.messages
+                         if m["direction"] == "to_ground" and datetime.fromisoformat(m["arrives_at"]) > now)
+        out.sort(key=lambda m: m["arrives_at"], reverse=True)
+        return out, in_transit
+
+    def mark_seen(self, msg_id: int, now: datetime | None = None) -> dict:
+        now = now or datetime.now(timezone.utc)
+        with self._lock:
+            m = self._get_arrived(msg_id, now)
+            m.setdefault("seen_at", now.isoformat())
+            return m
+
+    def reply(self, msg_id: int, text: str, author: str, now: datetime | None = None) -> dict:
+        """A person's reply from the console. It travels back with the same one-way delay."""
+        now = now or datetime.now(timezone.utc)
+        with self._lock:
+            m = self._get_arrived(msg_id, now)
+            m.setdefault("seen_at", now.isoformat())
+            travel = timedelta(seconds=m.get("travel_s", 0.0))
+            r = {
+                "id": next(self._ids),
+                "crew_id": m["crew_id"],
+                "direction": "from_ground",
+                "author": author,
+                "day": m["day"],
+                "priority": m["priority"],
+                "text": text.strip(),
+                "sent_at": now.isoformat(),
+                "arrives_at": (now + travel).isoformat(),
+                "delay_s": m["delay_s"],
+                "status_packet": None,
+                "simulated": False,
+                "in_reply_to": m["id"],
+            }
+            self.messages.append(r)
+            return r
+
+    def _get_arrived(self, msg_id: int, now: datetime) -> dict:
+        for m in self.messages:
+            if m["id"] == msg_id and m["direction"] == "to_ground":
+                if datetime.fromisoformat(m["arrives_at"]) > now:
+                    raise ValueError("That message hasn't reached Earth yet.")
+                return m
+        raise KeyError(msg_id)
 
     def thread(self, crew_id: str, now: datetime | None = None) -> list[dict]:
         """The crew member's messages. Ground replies appear only once they've 'arrived'."""

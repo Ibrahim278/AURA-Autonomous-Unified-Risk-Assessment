@@ -47,6 +47,11 @@ export const PAGES = {
     desc: 'The flight surgeon’s console: the whole crew sorted by priority, messages and printable reports.',
     related: ['team', 'comms'],
   },
+  console: {
+    title: 'Flight surgeon console', short: 'Console', icon: '⌨', group: 'Crew', crew: false,
+    desc: 'Play the ground side live: read crew messages as their signal reaches Earth and type a real reply. It reaches the crew after the same delay.',
+    related: ['ground', 'comms'],
+  },
   research: {
     title: 'Real NASA data', short: 'NASA data', icon: '🧪', group: 'Research', crew: false,
     desc: 'Real Inspiration4 bloodwork, cytokines and proteins from NASA OSDR, with an AI review per astronaut.',
@@ -65,7 +70,7 @@ export const GROUPS = [
 export const PAGE_OF_TARGET = {
   '.banner': 'status', '.detail': 'status', '.forecast': 'status', '.ai-panel': 'status', '.overview': 'status',
   '#symptoms': 'checkin', '#checkin': 'checkin', '#plan': 'plan', '#radiation': 'radiation', '#comms': 'comms',
-  '.timeline': 'timeline', '.routine': 'routine', '#team': 'team', '#ground': 'ground', '#research': 'research',
+  '.timeline': 'timeline', '.routine': 'routine', '#team': 'team', '#ground': 'ground', '#console': 'console', '#research': 'research',
   '#research-review': 'research', '.crew-list': 'status', '.landing': 'home', '.hero': 'home',
 }
 

@@ -46,7 +46,7 @@ already being abnormal *for that person*.
 | ✦ | **AI flight surgeon** (Claude) that writes a 30-second daily briefing grounded in the astronaut's data |
 | 📈 | **Early-warning forecast.** Projects each indicator's trend and flags any that would cross the edge of the personal baseline, a warning or a critical limit within 14 days, with a dashed projection and a shaded **95% confidence band** on the chart, an earliest-to-latest crossing range, and **related trends** (indicators moving together, such as heart rate with body temperature in a fever). Kenji's heart-rate warning is forecast 2 days before it fires |
 | 🤒 | **Symptom log with triage.** Pick symptoms by body area and rate them 1 to 10. Fixed rules triage them: red flags (chest pain, breathing difficulty, sudden vision loss…) mean contact the flight surgeon now; vision changes (possible SANS), chills, late nausea or a symptom on 3 of the last 5 days need follow-up; early fluid-shift symptoms get self-care advice. Each symptom links to the readings worth checking |
-| 📡 | **Message ground with a real signal delay.** ISS about 0.5 s, the Moon 1.3 s, Mars transit growing to about 12.5 minutes each way. A countdown shows the message travelling, the status packet goes with it, and a **delivery status** ticks through Sent → Delivered to Earth → Seen by flight surgeon → Reply received as the simulated reply makes its round trip. On Mars, AURA's own guidance is the crew's first line of support |
+| 📡 | **Message ground with a real signal delay.** ISS about 0.5 s, the Moon 1.3 s, Mars transit growing to about 12.5 minutes each way. A countdown shows the message travelling, the status packet goes with it, and a **delivery status** ticks through Sent → Delivered to Earth → Seen by flight surgeon → Reply received as the reply makes its round trip. Ground can be simulated, or **played live by a person on the Flight surgeon console** from a second laptop or phone. On Mars, AURA's own guidance is the crew's first line of support |
 | ☢ | **Radiation dose budget.** Career dose (earlier missions plus this one) against NASA's 600 mSv limit, the 30-day limit, the current rate, days left at that rate, and a projection to the end of the mission |
 | 🛰 | **Ground view for the flight surgeon.** The whole crew on one screen, sorted by priority (the worst of telemetry, symptoms and radiation), with messages shown only once their signal arrives, plus **printable health reports** (save as PDF) for one person or the whole crew |
 | ✅ | **Plausibility checks on check-ins.** Impossible values are blocked with a hint ("looks like °F, did you mean 37.0 °C?"); unusual ones (4+ SD from baseline, a sudden jump, systolic not above diastolic) ask you to confirm before saving |
@@ -200,6 +200,11 @@ built around that:
   that's up to about 25 minutes round trip, so AURA's guidance comes first.
 - **☢ Radiation dose budget.** How much of NASA's 600 mSv career limit is used (earlier missions
   plus this one), the 30-day window, the rate and a projection to the end of the mission.
+- **⌨ Flight surgeon console (live ground side).** Switch to **Live operator** and a teammate on a
+  second device becomes the ground. Crew messages appear only once their signal reaches Earth, with
+  the status packet. Opening one sends a "Seen" receipt, and the typed reply travels back to the crew
+  with the same delay. To run it on two devices: `npm run dev -- --host` and open the printed
+  network address on the second device (or use the deployed link), then pick **Console**.
 - **🛰 Ground view and reports.** The flight surgeon sees the whole crew sorted by priority and can
   print or save a health report as PDF.
 
@@ -210,6 +215,8 @@ built around that:
 ![Radiation dose budget](docs/screenshots/radiation_budget.png)
 
 ![Ground view](docs/screenshots/ground_view.png)
+
+![Flight surgeon console: a live reply from a person on the ground](docs/screenshots/flight_surgeon_console.png)
 
 ## Tech stack
 
@@ -222,7 +229,7 @@ built around that:
 | Front end | **React** 19.3 (JavaScript/JSX), **Vite** 8.3 | Single-page app with hash-routed pages and the dev server (proxies `/api` to the back end) |
 | Design | Plain CSS with theme tokens, Plus Jakarta Sans and JetBrains Mono (Google Fonts) | Dark space theme with a light alternative |
 | Charts | **Recharts** 3.10 | Trend charts, sparklines, forecast projections, research charts |
-| Testing | **pytest** 9.2, **httpx** | 179 back-end tests, including a mocked Claude API |
+| Testing | **pytest** 9.2, **httpx** | 181 back-end tests, including a mocked Claude API |
 | Data | NASA OSDR (CSV), JSON, in-memory store | Real Inspiration4 labs; mission data kept in memory for zero-setup demos |
 
 No database or cloud services are needed: clone, install, and run two terminals. To put it online as a single web service, see [Deploy a live demo](#deploy-a-live-demo).
@@ -281,6 +288,10 @@ data/osdr/  NASA OSDR files (unchanged)        data/import_template.csv  example
 | GET | `/api/crew/{id}/radiation?day=` | Radiation budget: career, 30-day and 1-year dose, rate and projection |
 | GET | `/api/comms?day=` | Signal delay to Earth for the environment and day |
 | GET / POST | `/api/crew/{id}/messages` | Messages to and from ground (replies appear after the round trip) / send one |
+| GET / PUT | `/api/comms/mode` | Who answers: `simulated` or `live` (a person at the console) |
+| GET | `/api/ground/inbox` | Console: crew messages that have reached Earth, plus how many are in transit |
+| POST | `/api/ground/messages/{id}/seen` | Console opened it; the crew sees "Seen" after the one-way delay |
+| POST | `/api/ground/messages/{id}/reply` | A real reply; it reaches the crew after the one-way delay |
 | GET | `/api/ground?day=` | Flight-surgeon overview of the whole crew, sorted by priority |
 | GET | `/api/report?day=`, `/api/crew/{id}/report?day=` | Printable HTML health report (whole crew or one person) |
 | GET | `/api/crew/{id}/alerts` | Timeline of alert-level changes |
@@ -330,7 +341,8 @@ In line with the NASA Space Apps guidance on AI use, here is where AI was and wa
   reading is critical, whatever the AI says. The forecast is plain statistics, not AI. Symptom
   triage, the radiation budget and the ground view are fixed rules, not AI.
 - The flight surgeon's reply in **Message ground** is **simulated** by a rule-based template built
-  from the crew member's AURA status, and is labelled as simulated. There is no real ground link.
+  from the crew member's AURA status, and is labelled as simulated. In **Live operator** mode a
+  person answers from the Flight surgeon console instead. Either way, there is no real ground link.
 - The AI is instructed not to diagnose, prescribe or dose medication, and to defer to the flight
   surgeon. Its answers are grounded in the data AURA sends it, and buttons it suggests are
   checked against the real dashboard before they are shown.
@@ -359,7 +371,7 @@ In line with the NASA Space Apps guidance on AI use, here is where AI was and wa
 cd backend && python -m pytest
 ```
 
-179 tests cover the alert engine, the simulator scenarios, every API endpoint, gamification,
+181 tests cover the alert engine, the simulator scenarios, every API endpoint, gamification,
 the OSDR parser and quality check, the CSV importer, crew editing, custom indicators, the forecast
 (confidence band and related trends), symptom triage, ground messaging and signal delay, the radiation
 budget, the ground view and reports, plausibility checks, the planner, the adaptive baseline, crew wellbeing,

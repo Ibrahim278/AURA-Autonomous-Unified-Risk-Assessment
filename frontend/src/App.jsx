@@ -18,6 +18,7 @@ import CommsPanel from './components/CommsPanel.jsx'
 import PlanPanel from './components/PlanPanel.jsx'
 import TeamView from './components/TeamView.jsx'
 import GroundView from './components/GroundView.jsx'
+import GroundConsole from './components/GroundConsole.jsx'
 import SymptomLog from './components/SymptomLog.jsx'
 import RadiationPanel from './components/RadiationPanel.jsx'
 import ResearchPanel from './components/ResearchPanel.jsx'
@@ -319,6 +320,7 @@ export default function App() {
             {page === 'ground' && mission && (
               <GroundView day={shownDay} live={day === null} refreshKey={mission.current_day} onOpenCrew={(id) => openCrew(id)} />
             )}
+            {page === 'console' && mission && <GroundConsole refreshKey={mission.current_day} />}
             {page === 'research' && (
               <ResearchPanel focus={tourStep !== null ? TOUR_STEPS[tourStep]?.research : null} />
             )}

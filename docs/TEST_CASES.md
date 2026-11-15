@@ -118,6 +118,7 @@ Run these while the back end is up. `curl` is built into macOS.
 | J4 | Ask AURA (AI off) "I have chest pain" | Starts "Contact the flight surgeon now", with **Message ground** and **Log the symptom** buttons |
 | J5 | Diallo → banner **Message ground now →** → **Send** (Lunar surface) | 1.3 s one way. "✓ Delivered to Earth" within a second; the simulated flight-surgeon reply appears about 5 s later and mentions body temperature |
 | J6 | Switch header to **Mars transit**, send a message | About 12.5 min one way, "Delayed" pill. Countdown ~12 s to Earth; the reply arrives about 30 s after you send (demo clock 60×) |
+| J6b | Second browser → **⌨ Console** → **Live operator**. First browser (Diallo, Mars transit) sends an urgent message | Console shows "1 on the way to Earth", then the message after ~12 s with the status packet. Crew sees **Seen by flight surgeon** ~12 s later. Type a reply → crew gets it ~12 s after, labelled "Live reply from the Flight surgeon console". Switch back to **Simulated ground** afterwards |
 | J7 | Ortiz (Lunar, Live) → **☢ Radiation dose budget** | **Warning**, 84.7% of 600 mSv (410 earlier + ~98 this mission). Chart shows the 600 and 80% lines |
 | J8 | Ortiz, replay day **30** | Normal, with "On this course you pass 80% of the career limit around day 38" |
 | J9 | Diallo, replay day **22** | Radiation budget **Critical**: "looks like a solar particle event" |

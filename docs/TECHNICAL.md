@@ -576,7 +576,11 @@ day; leave it out for "live" (the current day).
 | Method | Path | Purpose |
 | --- | --- | --- |
 | GET | `/comms?day=` | Signal delay for the environment and day |
-| GET / POST | `/crew/{id}/messages` | Thread with ground / send a message |
+| GET / POST | `/crew/{id}/messages` | Thread with ground / send a message (response includes `mode`) |
+| GET / PUT | `/comms/mode` | `simulated` (template reply) or `live` (a person at the console) |
+| GET | `/ground/inbox` | Messages that have reached Earth, newest first, with replies; `in_transit` count |
+| POST | `/ground/messages/{id}/seen` | Seen receipt (409 if the message hasn't reached Earth yet) |
+| POST | `/ground/messages/{id}/reply` | Human reply, delayed by the one-way time (409 too early, 404 unknown) |
 | GET | `/ground?day=` | Flight-surgeon overview |
 | GET | `/report?day=` | Printable HTML report, whole crew |
 | GET | `/crew/{id}/report?day=` | Printable HTML report, one member |

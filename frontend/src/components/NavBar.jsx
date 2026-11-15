@@ -1,9 +1,9 @@
 import { PAGES } from '../pages.js'
 
 // Monochrome glyphs for the sidebar (U+FE0E keeps them as text, not colour emoji).
-const GLYPH = { home: '⌂', status: '♡', checkin: '✎', plan: '☷', radiation: '☢', comms: '⇄', timeline: '≡', routine: '★', team: '⚇', ground: '◎', research: '⚗' }
+const GLYPH = { home: '⌂', status: '♡', checkin: '✎', plan: '☷', radiation: '☢', comms: '⇄', timeline: '≡', routine: '★', team: '⚇', ground: '◎', console: '⌨', research: '⚗' }
 
-const MENU = ['home', 'status', 'checkin', 'plan', 'radiation', 'comms', 'timeline', 'routine', 'team', 'ground', 'research']
+const MENU = ['home', 'status', 'checkin', 'plan', 'radiation', 'comms', 'timeline', 'routine', 'team', 'ground', 'console', 'research']
 
 export default function NavBar({ page, onNavigate }) {
   return (
