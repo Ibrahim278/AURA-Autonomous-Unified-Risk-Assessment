@@ -79,6 +79,8 @@ class CrewMember:
     offset_fn: OffsetFn | None = field(default=None, repr=False, compare=False)
     # (indicator, day, value) readings uploaded by the user; replaces simulation for this member.
     imported: list[tuple[str, int, float]] | None = field(default=None, repr=False, compare=False)
+    # Effective dose from earlier missions (mSv), counted against the 600 mSv career limit.
+    prior_dose_mSv: float = 0.0
 
     def public(self) -> dict:
         d = asdict(self)
@@ -192,7 +194,7 @@ EDITABLE_BASELINES = ("heart_rate", "systolic_bp", "diastolic_bp", "glucose", "b
 
 
 def make_member(id: str, name: str, role: str, age: int, scenario: str = "nominal",
-                baseline: dict[str, float] | None = None) -> CrewMember:
+                baseline: dict[str, float] | None = None, prior_dose_mSv: float = 0.0) -> CrewMember:
     if scenario not in SCENARIOS:
         raise ValueError(f"scenario must be one of {sorted(SCENARIOS)}")
     baseline = baseline or {}
@@ -203,21 +205,23 @@ def make_member(id: str, name: str, role: str, age: int, scenario: str = "nomina
         _, _, lo, hi = DEFAULTS[k]
         if not lo <= v <= hi:
             raise ValueError(f"baseline {k}={v} is outside {lo}-{hi}")
+    if not 0 <= prior_dose_mSv <= 2000:
+        raise ValueError("prior career dose must be between 0 and 2000 mSv")
     sc = SCENARIOS[scenario]
     return CrewMember(id=id, name=name, role=role, age=age, scenario=scenario,
                       scenario_description=sc["description"], baseline_means=dict(baseline),
-                      offset_fn=sc["fn"])
+                      offset_fn=sc["fn"], prior_dose_mSv=float(prior_dose_mSv))
 
 
 DEFAULT_CREW_SPECS: list[dict] = [
     {"id": "aura-1", "name": "Cmdr. Lena Ortiz", "role": "Commander", "age": 44, "scenario": "nominal",
-     "baseline": {"heart_rate": 58, "systolic_bp": 114, "sleep_hours": 7.0}},
+     "baseline": {"heart_rate": 58, "systolic_bp": 114, "sleep_hours": 7.0}, "prior_dose_mSv": 410},
     {"id": "aura-2", "name": "Dr. Kenji Sato", "role": "Flight Engineer", "age": 39,
      "scenario": "behavioural_cardio",
-     "baseline": {"heart_rate": 63, "systolic_bp": 119, "diastolic_bp": 77, "mood": 8}},
+     "baseline": {"heart_rate": 63, "systolic_bp": 119, "diastolic_bp": 77, "mood": 8}, "prior_dose_mSv": 95},
     {"id": "aura-3", "name": "Amara Diallo", "role": "Mission Specialist", "age": 35,
      "scenario": "immune_fever",
-     "baseline": {"heart_rate": 60, "glucose": 85, "sleep_hours": 7.4, "body_temp": 36.5}},
+     "baseline": {"heart_rate": 60, "glucose": 85, "sleep_hours": 7.4, "body_temp": 36.5}, "prior_dose_mSv": 0},
 ]
 
 
