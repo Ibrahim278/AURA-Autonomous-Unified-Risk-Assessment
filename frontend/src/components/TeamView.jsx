@@ -26,7 +26,7 @@ function TrendChart({ data, names, unit, title }) {
             <Line key={id} dataKey={id} name={names[id]} stroke={COLORS[i % COLORS.length]} dot={false}
               strokeWidth={1.5} isAnimationActive={false} connectNulls />
           ))}
-          <Line dataKey="crew" name="Crew average" stroke="#172536" strokeDasharray="5 4" dot={false} strokeWidth={2.2} isAnimationActive={false} connectNulls />
+          <Line dataKey="crew" name="Crew average" stroke="var(--text)" strokeDasharray="5 4" dot={false} strokeWidth={2.2} isAnimationActive={false} connectNulls />
         </LineChart>
       </ResponsiveContainer>
     </div>

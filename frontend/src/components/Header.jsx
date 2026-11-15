@@ -1,3 +1,14 @@
+import { useEffect, useState } from 'react'
+
+// Night mode: remembered per browser; first visit follows the system setting.
+function initialTheme() {
+  try {
+    const saved = localStorage.getItem('aura-theme')
+    if (saved === 'dark' || saved === 'light') return saved
+  } catch { /* storage blocked */ }
+  return window.matchMedia?.('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
+}
+
 const ENV_LABEL = {
   iss: 'ISS · low Earth orbit',
   lunar_surface: 'Lunar surface base',
@@ -5,6 +16,12 @@ const ENV_LABEL = {
 }
 
 export default function Header({ mission, onReset, onRestart, onTour, onHome, children }) {
+  const [theme, setTheme] = useState(initialTheme)
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme
+    try { localStorage.setItem('aura-theme', theme) } catch { /* storage blocked */ }
+  }, [theme])
+  const dark = theme === 'dark'
   return (
     <>
     <aside className="side-nav">
@@ -44,6 +61,8 @@ export default function Header({ mission, onReset, onRestart, onTour, onHome, ch
           <span className="pill">Mission day {mission.current_day}</span>
           <button className="pill tour-btn" onClick={onTour}>▶ Demo tour</button>
           <button className="pill" onClick={onRestart} title="Restart the demo: default crew, lunar base, day 60">↺ Reset</button>
+          <button className="pill theme-btn" onClick={() => setTheme(dark ? 'light' : 'dark')} aria-pressed={dark}
+            title={dark ? 'Switch to day mode' : 'Switch to night mode'}>{dark ? '☀ Day' : '☾ Night'}</button>
           <span className="pill synthetic" title={mission.data_notice}>Synthetic data</span>
         </div>
       )}
