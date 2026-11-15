@@ -2,6 +2,13 @@ import { fmt } from '../levels.js'
 
 const LEVEL_CLS = { warning: 'lvl-warning', critical: 'lvl-critical' }
 
+function rangeText([a, b]) {
+  const d = (n) => `${n} day${n === 1 ? '' : 's'}`
+  if (a == null) return 'not within 4 weeks'
+  if (b == null) return `${d(a)} to more than 4 weeks`
+  return a === b ? d(a) : `${a} to ${d(b)}`
+}
+
 export default function ForecastPanel({ forecast, onSelectIndicator }) {
   const risks = forecast?.risks ?? []
   return (
@@ -36,6 +43,10 @@ export default function ForecastPanel({ forecast, onSelectIndicator }) {
                   <span className="muted tiny">
                     {r.slope_per_day > 0 ? '+' : ''}{r.slope_per_day} {r.unit}/day · in 7 days ≈ {fmt(r.projected_7d, r.unit)}
                   </span>
+                  {c.range && <span className="forecast-range">95% range: {rangeText(c.range)}</span>}
+                  {r.related?.length > 0 && (
+                    <span className="forecast-related">Moving with {r.related.map((x) => x.name.toLowerCase()).join(', ')}</span>
+                  )}
                 </span>
                 <span className={`badge ${LEVEL_CLS[c.level]}`}>{c.level}</span>
               </button>

@@ -251,6 +251,8 @@ export default function App() {
                   info={catalog[selected]}
                   series={telemetry?.series[selected]}
                   projection={forecast?.day === shownDay ? forecast?.series[selected] : null}
+                  related={forecast?.day === shownDay ? forecast?.related?.[selected] ?? [] : []}
+                  onSelect={(k) => { setSystem(null); setSelected(k) }}
                   day={shownDay}
                   onClose={() => setSelected(null)}
                 />

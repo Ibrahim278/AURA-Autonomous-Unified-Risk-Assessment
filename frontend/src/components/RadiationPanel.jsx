@@ -27,7 +27,7 @@ function Gauge({ b }) {
 export default function RadiationPanel({ budget: b, onOpenIndicator }) {
   if (!b) return null
   const lvl = LEVEL[b.level]
-  const proj = [...b.cumulative]
+  const proj = b.cumulative.map((c) => ({ ...c }))
   const last = proj[proj.length - 1]
   if (last && b.planned_end_day > last.day) {
     last.projection = last.mSv

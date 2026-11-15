@@ -1,5 +1,5 @@
 import {
-  CartesianGrid, ComposedChart, Line, ReferenceArea, ReferenceLine, ResponsiveContainer,
+  Area, CartesianGrid, ComposedChart, Line, ReferenceArea, ReferenceLine, ResponsiveContainer,
   Tooltip, XAxis, YAxis,
 } from 'recharts'
 
@@ -20,12 +20,12 @@ export default function TrendChart({ series, day, projection = null }) {
   // Dashed 7-day trend projection, starting from the fitted value on the current day.
   if (projection?.length) {
     const today = data.find((d) => d.day === projection[0].day)
-    if (today) today.projection = projection[0].value
-    for (const pt of projection.slice(1)) data.push({ day: pt.day, projection: pt.value, phase: 'projection' })
+    if (today) { today.projection = projection[0].value; today.band = [projection[0].lo, projection[0].hi] }
+    for (const pt of projection.slice(1)) data.push({ day: pt.day, projection: pt.value, band: [pt.lo, pt.hi], phase: 'projection' })
   }
   const b = series.baseline
   const lim = series.limits
-  const values = data.flatMap((d) => [d.value, d.projection]).filter((v) => v != null)
+  const values = data.flatMap((d) => [d.value, d.projection, ...(d.band ?? [])]).filter((v) => v != null)
   const lo = Math.min(...values, b ? b.mean - 2 * b.sd : Infinity)
   const hi = Math.max(...values, b ? b.mean + 2 * b.sd : -Infinity)
   const pad = (hi - lo) * 0.15 || 1
@@ -42,7 +42,7 @@ export default function TrendChart({ series, day, projection = null }) {
           <Tooltip
             contentStyle={{ background: 'var(--panel)', border: '1px solid var(--border)', borderRadius: 8 }}
             labelFormatter={(d) => (d < 1 ? `Preflight day ${d}` : `Mission day ${d}`)}
-            formatter={(v, _n, item) => [`${v} ${series.unit}`, item.payload.source]}
+            formatter={(v, n, item) => (n === 'band' ? [`${v[0]} to ${v[1]} ${series.unit}`, '95% range'] : [`${v} ${series.unit}`, n === 'projection' ? 'trend' : item.payload.source])}
           />
           {b && (
             <ReferenceArea y1={b.mean - 2 * b.sd} y2={b.mean + 2 * b.sd} fill="var(--normal)" fillOpacity={0.08} ifOverflow="hidden" />
@@ -56,6 +56,9 @@ export default function TrendChart({ series, day, projection = null }) {
           ))}
           <ReferenceLine x={0} stroke="var(--accent)" label={{ value: 'launch', fill: 'var(--accent)', fontSize: 10, position: 'insideTopRight' }} />
           <Line type="monotone" dataKey="value" stroke="var(--line)" strokeWidth={2} dot={<Dot />} isAnimationActive={false} />
+          {projection?.length > 0 && projection[0].lo != null && (
+            <Area type="linear" dataKey="band" stroke="none" fill="#c4b5fd" fillOpacity={0.18} connectNulls isAnimationActive={false} />
+          )}
           {projection?.length > 0 && (
             <Line type="linear" dataKey="projection" stroke="#c4b5fd" strokeWidth={2} strokeDasharray="5 4" dot={false}
               connectNulls isAnimationActive={false} />
@@ -68,6 +71,7 @@ export default function TrendChart({ series, day, projection = null }) {
         <span><i className="sw crit" /> critical limit</span>
         <span><i className="sw manual" /> manual entry</span>
         {projection?.length > 0 && <span><i className="sw proj" /> 7-day trend projection</span>}
+        {projection?.length > 0 && <span><i className="sw pband" /> 95% range of the trend</span>}
       </div>
     </div>
   )
