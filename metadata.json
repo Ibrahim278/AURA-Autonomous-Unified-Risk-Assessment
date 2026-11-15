@@ -1,0 +1,54 @@
+{
+  "name": "AURA",
+  "full_name": "AURA: Autonomous Unified Risk Assessment",
+  "tagline": "Your crew's health, even when Earth is 20 minutes away.",
+  "description": "Astronaut health monitoring for long missions far from Earth. AURA compares every reading with the astronaut's own preflight baseline, gives a Normal, Warning or Critical status with the reason, forecasts trends 14 days ahead, and says what to do next. Transparent rules set every level; Claude AI explains and coaches, with an offline fallback for every AI feature.",
+  "version": "0.1.0",
+  "license": "MIT",
+  "event": {
+    "name": "NASA Space Apps Challenge 2026",
+    "challenge": "Create Health Monitoring Software for Astronauts on Space Missions"
+  },
+  "team": {
+    "name": "NeuralAI",
+    "lead": "Ibrahim Irfan",
+    "members": ["Ibrahim Irfan", "Melvyn Avoa"]
+  },
+  "links": {
+    "live_demo": "https://aura-space-health.vercel.app",
+    "api": "https://aura-demo-w9ot.onrender.com/api/health",
+    "repository": "https://github.com/Ibrahim278/AURA-Autonomous-Unified-Risk-Assessment",
+    "technical_docs": "docs/TECHNICAL.md",
+    "data_sources": "docs/DATA_SOURCES.md",
+    "demo_script": "docs/DEMO_SCRIPT.md",
+    "ui_guide": "docs/AURA_UI_Guide.docx"
+  },
+  "stack": {
+    "backend": ["Python 3.13", "FastAPI", "Pydantic v2", "NumPy", "faster-whisper (Whisper base.en)", "Anthropic Claude API"],
+    "frontend": ["React 19", "Vite", "Recharts"],
+    "testing": ["pytest (193 tests)", "Playwright + axe (manual browser checks)"],
+    "hosting": ["Docker", "Render (back end)", "Vercel (front end)"]
+  },
+  "features": [
+    "Personal preflight baselines and an adaptive in-flight baseline",
+    "Normal / Warning / Critical alerts from transparent, cited rules",
+    "14-day early-warning forecast with a 95% range",
+    "Daily countermeasure plan, symptom triage and plausibility checks",
+    "Radiation dose budget against NASA-STD-3001 limits",
+    "Message ground with the real signal delay and delivery status",
+    "Flight surgeon console: a person plays the ground live from a second device",
+    "Ground view with printable reports and a crew wellbeing score",
+    "Gamified routine: streaks, badges, weekly challenges, crew board",
+    "Ask AURA: typed or spoken questions (on-device Whisper), spoken answers, auto-navigation, memory",
+    "Real NASA OSDR Inspiration4 bloodwork, cytokines and protein panels with an AI review",
+    "CSV import of your own data and custom indicators",
+    "Dark and light themes, phone layout, WCAG 2 AA audited"
+  ],
+  "nasa_data": [
+    {"id": "OSD-575", "url": "https://osdr.nasa.gov/bio/repo/data/studies/OSD-575", "use": "Inspiration4 metabolic panel, immune cytokines, cardiovascular proteins, serum 200-plex"},
+    {"id": "OSD-569", "url": "https://osdr.nasa.gov/bio/repo/data/studies/OSD-569", "use": "Inspiration4 complete blood count"},
+    {"id": "OSD-656", "url": "https://osdr.nasa.gov/bio/repo/data/studies/OSD-656", "use": "Inspiration4 urine immune proteins"}
+  ],
+  "synthetic_data": "The demo crew's telemetry is synthetic (seeded simulator) and labelled as such.",
+  "disclaimer": "Hackathon prototype. Thresholds are research-informed prototype rules, not clinically validated flight-medicine limits."
+}

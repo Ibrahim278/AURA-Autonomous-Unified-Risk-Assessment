@@ -1,0 +1,28 @@
+# Run AURA (front end + API in one container) with: docker compose up --build
+# Then open http://localhost:8000. Put ANTHROPIC_API_KEY=... in a .env file next to this one to turn on the AI.
+services:
+  aura:
+    build: .
+    image: aura:latest
+    ports:
+      - "8000:8000"
+    environment:
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      AURA_ENVIRONMENT: ${AURA_ENVIRONMENT:-lunar_surface}
+      AURA_DAYS: ${AURA_DAYS:-60}
+      AURA_SEED: ${AURA_SEED:-42}
+      AURA_WHISPER_MODEL: ${AURA_WHISPER_MODEL:-base.en}
+      AURA_SPEECH: ${AURA_SPEECH:-on}
+    volumes:
+      # caches the speech model if it wasn't baked into the image
+      - hf-cache:/root/.cache/huggingface
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/health')"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 60s
+    restart: unless-stopped
+
+volumes:
+  hf-cache:

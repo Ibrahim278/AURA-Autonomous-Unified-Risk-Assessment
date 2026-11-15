@@ -142,7 +142,7 @@ The whole app runs as **one web service**: the `Dockerfile` builds the React fro
 
 The `ANTHROPIC_API_KEY` goes on **Render** (the back end), not Vercel. `ant login` only works on your own computer.
 
-**Any Docker host:** `docker build -t aura . && docker run -p 8000:8000 aura`, then open http://localhost:8000.
+**Any Docker host:** `docker compose up --build` (or `docker build -t aura . && docker run -p 8000:8000 aura`), then open http://localhost:8000. Put `ANTHROPIC_API_KEY=...` in a `.env` file next to `docker-compose.yml` to turn on the AI.
 
 Everyone who opens the demo shares one mission, so use **Reset** in the header to start fresh.
 
@@ -391,3 +391,7 @@ the OSDR parser and quality check, the CSV importer, crew editing, custom indica
 (confidence band and related trends), symptom triage, ground messaging and signal delay, the radiation
 budget, the ground view and reports, plausibility checks, the planner, the adaptive baseline, crew wellbeing,
 voice parsing, weekly challenges and the crew board, Ask AURA (memory and actions), and the AI layer (with a mocked Claude API).
+
+## License
+
+MIT, see [LICENSE](LICENSE). The NASA OSDR files in `data/osdr/` keep NASA's terms. Project facts (team, links, stack, data) are in [metadata.json](metadata.json).
