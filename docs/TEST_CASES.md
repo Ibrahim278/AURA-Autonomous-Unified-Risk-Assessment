@@ -15,7 +15,7 @@ base". This regenerates the mission and clears check-ins. Restarting the back en
 
 | # | Do | Expected |
 | --- | --- | --- |
-| A1 | `cd backend && python -m pytest` | `131 passed` and no failures |
+| A1 | `cd backend && python -m pytest` | `134 passed` and no failures |
 | A2 | `cd frontend && npm run build` | `✓ built in …` and no errors |
 
 ## B. Back end smoke tests (terminal)
@@ -140,6 +140,7 @@ Run these while the back end is up. `curl` is built into macOS.
 | K7 | Ask AURA: "remember I get headaches after exercise", then open 🧠 | The note is listed and can be deleted; later answers can use it |
 | K8 | Ask AURA: "show me day 30" | Replay jumps to day 30 |
 | K9 | Check-in: 🎙 type or say "pulse sixty two, slept six and a half hours, mild headache" | Heart rate 62 and sleep 6.5 filled; Headache offered for the symptom log |
+| K11 | Real crew data: **Immune cytokines**, then **Cardio & inflammation** → Haptoglobin | IL-6 chart for C001–C004 with no lab band and a "compare with preflight" note; Haptoglobin notes 7 samples excluded at the assay limit (17,907,000 ng/mL) |
 | K10 | Mission routine | Week challenges with progress bars; 👥 Crew board shows ranks, "(you)" and the crew goal; 11 badges |
 
 ## I. Edge cases worth a look
