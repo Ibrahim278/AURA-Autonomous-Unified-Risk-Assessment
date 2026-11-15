@@ -112,7 +112,7 @@ export default function GroundConsole({ refreshKey }) {
             )}
             {m.replies.map((r) => (
               <div key={r.id} className="console-reply">
-                <span className="muted small">{r.author}{r.simulated ? ' (simulated)' : ''}:</span> {r.text}
+                <span className="muted small">{r.author}{r.simulated && !/simulated/i.test(r.author) ? ' (simulated)' : ''}:</span> {r.text}
                 <div className="muted tiny">
                   {secs(r.arrives_at) > 0 ? `Travelling to the crew, arrives in ${secs(r.arrives_at).toFixed(0)} s on the demo clock` : 'Delivered to the crew'}
                 </div>
