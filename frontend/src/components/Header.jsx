@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 
-// Night mode: remembered per browser; first visit follows the system setting.
+// Dark mode: remembered per browser; first visit follows the system setting.
 function initialTheme() {
   try {
     const saved = localStorage.getItem('aura-theme')
@@ -62,7 +62,7 @@ export default function Header({ mission, onReset, onRestart, onTour, onHome, ch
           <button className="pill tour-btn" onClick={onTour}>▶ Demo tour</button>
           <button className="pill" onClick={onRestart} title="Restart the demo: default crew, lunar base, day 60">↺ Reset</button>
           <button className="pill theme-btn" onClick={() => setTheme(dark ? 'light' : 'dark')} aria-pressed={dark}
-            title={dark ? 'Switch to day mode' : 'Switch to night mode'}>{dark ? '☀ Day' : '☾ Night'}</button>
+            title={dark ? 'Switch to light mode' : 'Switch to dark mode'}>{dark ? '☀ Light' : '☾ Dark'}</button>
           <span className="pill synthetic" title={mission.data_notice}>Synthetic data</span>
         </div>
       )}

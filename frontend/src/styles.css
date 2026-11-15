@@ -838,7 +838,7 @@ button:focus-visible, select:focus-visible, a:focus-visible, input[type='range']
 }
 .research-controls select, .tl-filters select { padding: 7px 10px; border: 1px solid var(--border); border-radius: 8px; background: var(--panel); color: var(--text); font: inherit; font-size: 0.85rem; }
 
-/* ---------- night mode ---------- */
+/* ---------- dark mode ---------- */
 :root[data-theme='dark'] {
   --bg: #0b1522; --bg2: #0f1c2c; --panel: #13233a; --panel2: #1a2e47; --border: #26405c;
   --text: #e6edf5; --muted: #9fb0c4; --grid: #22374f; --accent: #7cc0f5; --line: #7cc0f5;
