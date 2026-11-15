@@ -889,3 +889,16 @@ button:focus-visible, select:focus-visible, a:focus-visible, input[type='range']
   radial-gradient(circle, #f59e0b 4px, transparent 5px) 18px 50% / 18px 10px no-repeat,
   radial-gradient(circle, #22c55e 4px, transparent 5px) 36px 50% / 18px 10px no-repeat; }
 :root[data-theme='light'] .hero-tag { background: linear-gradient(90deg, #22d3ee, #60a5fa); -webkit-background-clip: text; background-clip: text; }
+
+/* ---------- message delivery status ---------- */
+.msg-status { margin-top: 8px; display: flex; flex-direction: column; gap: 4px; }
+.msg-steps { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 0.72rem; color: var(--muted); }
+.msg-steps li { display: inline-flex; align-items: center; gap: 5px; }
+.msg-steps .tick { width: 15px; height: 15px; border-radius: 50%; display: grid; place-items: center; font-size: 0.6rem; font-weight: 800; border: 1.5px solid var(--border); }
+.msg-steps li.done { color: var(--text); }
+.msg-steps li.done .tick { background: var(--normal); border-color: var(--normal); color: var(--bg); }
+.msg-steps li.now { color: var(--accent); }
+.msg-steps li.now .tick { border-color: var(--accent); animation: blink 1.4s ease-in-out infinite; }
+.msg-eta { font-size: 0.7rem; }
+.ask-mic { align-self: stretch; min-width: 44px; font-size: 1rem; }
+.ask-mic.on { border-color: var(--critical); color: var(--critical); animation: fabpulse 1.4s ease-in-out infinite; }

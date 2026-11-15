@@ -23,6 +23,9 @@ export default function AssistantWidget({ crewId, member, day, live, selected, s
   const [question, setQuestion] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState(null)
+  const [listening, setListening] = useState(false)
+  const recRef = useRef(null)
+  const Recognition = typeof window !== 'undefined' && (window.SpeechRecognition || window.webkitSpeechRecognition)
   const end = useRef(null)
   const input = useRef(null)
 
@@ -62,6 +65,39 @@ export default function AssistantWidget({ crewId, member, day, live, selected, s
   useEffect(() => {
     onOpenChange?.(open)
   }, [open, onOpenChange])
+
+  // Speak a question: words appear in the box as you talk, and it sends when you stop.
+  const listen = () => {
+    if (!Recognition) return
+    if (listening) { recRef.current?.stop(); return }
+    const rec = new Recognition()
+    rec.lang = 'en-US'
+    rec.interimResults = true
+    let finalText = ''
+    rec.onresult = (e) => {
+      let interim = ''
+      for (let i = e.resultIndex; i < e.results.length; i++) {
+        const t = e.results[i][0].transcript
+        if (e.results[i].isFinal) finalText += t
+        else interim += t
+      }
+      setQuestion((finalText + interim).trim())
+    }
+    rec.onerror = (e) => {
+      if (e.error !== 'aborted' && e.error !== 'no-speech') setError(`Voice input: ${e.error}. You can type your question instead.`)
+    }
+    rec.onend = () => {
+      setListening(false)
+      recRef.current = null
+      if (finalText.trim()) send(finalText)
+    }
+    recRef.current = rec
+    setError(null)
+    setQuestion('')
+    setListening(true)
+    rec.start()
+  }
+  useEffect(() => () => recRef.current?.abort(), [])
 
   const send = async (text) => {
     const q = (text ?? question).trim()
@@ -162,7 +198,13 @@ export default function AssistantWidget({ crewId, member, day, live, selected, s
           {error && <div className="toast error">{error}</div>}
           <form className="chat-input" onSubmit={(e) => { e.preventDefault(); send() }}>
             <input ref={input} value={question} onChange={(e) => setQuestion(e.target.value)}
-              placeholder="Ask anything…" maxLength={2000} aria-label="Your question" />
+              placeholder={listening ? 'Listening… speak your question' : 'Ask anything, or tap 🎙 to speak'} maxLength={2000} aria-label="Your question" />
+            {Recognition && (
+              <button type="button" className={`chip mic ask-mic ${listening ? 'on' : ''}`} onClick={listen}
+                aria-label={listening ? 'Stop listening' : 'Speak your question'} title={listening ? 'Stop listening' : 'Speak your question'}>
+                {listening ? '■' : '🎙'}
+              </button>
+            )}
             <button className="primary" disabled={busy || !question.trim()}>Send</button>
           </form>
           <div className="muted tiny assistant-foot">Not a substitute for the flight surgeon. Alert levels come from AURA&apos;s rule engine.</div>

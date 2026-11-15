@@ -19,6 +19,31 @@ function Transit({ m, label, from }) {
   )
 }
 
+// Delivery status for a message to ground, like read receipts: each step lights up as it happens.
+function Status({ m, reply }) {
+  const steps = [
+    { key: 'sent', label: 'Sent', done: true },
+    { key: 'delivered', label: 'Delivered to Earth', done: secs(m.arrives_at) <= 0, at: m.arrives_at },
+    { key: 'seen', label: 'Seen by flight surgeon', done: !!reply && secs(reply.sent_at) <= 0, at: reply?.sent_at },
+    { key: 'replied', label: 'Reply received', done: !!reply && secs(reply.arrives_at) <= 0, at: reply?.arrives_at },
+  ]
+  const current = steps.findIndex((x) => !x.done)
+  const next = current === -1 ? null : steps[current]
+  const label = next ? `${steps[current - 1].label}. Next: ${next.label.toLowerCase()}` : 'Reply received'
+  return (
+    <div className="msg-status" role="status" aria-label={`Message status: ${label}`}>
+      <ol className="msg-steps" aria-hidden="true">
+        {steps.map((x, i) => (
+          <li key={x.key} className={x.done ? 'done' : i === current ? 'now' : ''}>
+            <span className="tick">{x.done ? '✓' : i === current ? '…' : ''}</span>{x.label}
+          </li>
+        ))}
+      </ol>
+      {next?.at && <span className="muted msg-eta">{next.label} in {Math.max(0, secs(next.at)).toFixed(0)} s on the demo clock</span>}
+    </div>
+  )
+}
+
 export default function CommsPanel({ crewId, member, live, prefill }) {
   const [data, setData] = useState(null)
   const [text, setText] = useState('')
@@ -44,7 +69,7 @@ export default function CommsPanel({ crewId, member, live, prefill }) {
   }, [prefill])
 
   // While anything is in flight, refresh the countdown every second and pull arrived replies.
-  const waiting = data?.messages.some((m) => m.pending || (m.direction === 'to_ground' && secs(m.arrives_at) > 0))
+  const waiting = data?.messages.some((m) => m.pending || secs(m.arrives_at) > 0)
   useEffect(() => {
     if (!waiting) return
     const t = setInterval(async () => {
@@ -106,9 +131,9 @@ export default function CommsPanel({ crewId, member, live, prefill }) {
               <div className="muted packet">Status packet: {m.status_packet.overall}
                 {m.status_packet.flagged.length > 0 && ` · ${m.status_packet.flagged.length} flagged`}</div>
             )}
-            {m.direction === 'to_ground' && secs(m.arrives_at) > 0
-              ? <Transit m={m} label={`Travelling to Earth (${fmtTrue(m.delay_s)} real delay)`} />
-              : m.direction === 'to_ground' && <div className="muted delivered">✓ Delivered to Earth</div>}
+            {m.direction === 'to_ground' && secs(m.arrives_at) > 0 &&
+              <Transit m={m} label={`Travelling to Earth (${fmtTrue(m.delay_s)} real delay)`} />}
+            {m.direction === 'to_ground' && <Status m={m} reply={data.messages.find((r) => r.in_reply_to === m.id)} />}
             {m.simulated && <div className="muted sim">Simulated ground response (demo)</div>}
           </li>
         ))}
