@@ -60,3 +60,42 @@ def test_wellness_tick_and_validation():
     r = client.post("/api/crew/aura-2/tasks/call_home/complete").json()
     assert by_id(r)["call_home"]["done"]
     assert client.post("/api/crew/aura-2/tasks/vitals/complete").status_code == 422
+
+
+def test_weekly_challenges_and_crew_board():
+    from fastapi.testclient import TestClient
+    from aura import main
+    from aura.simulator import generate
+    main.store.load(generate())
+    main.outbox.clear()
+    c = TestClient(main.app)
+    t = c.get("/api/crew/aura-1/tasks").json()
+    ch = {x["id"]: x for x in t["challenges"]}
+    assert set(ch) == {"sleep7", "exercise7", "symptoms3", "plan3"}
+    assert ch["sleep7"]["week"] == 9 and ch["sleep7"]["goal"] == 5  # day 60 is in week 9 (days 57-63)
+    assert 0 <= ch["symptoms3"]["progress"] <= 3
+    board = t["crew"]["board"]
+    assert len(board) == 3 and sum(r["me"] for r in board) == 1
+    assert [r["rank"] for r in board] == [1, 2, 3]
+    assert board == sorted(board, key=lambda r: -r["points"])
+    assert t["crew"]["goal"]["total"] == 3
+    badges = {b["id"]: b for b in t["badges"]}
+    assert badges["ground_link"]["earned"] is False
+    c.post("/api/crew/aura-1/messages", json={"text": "hello ground"})
+    c.post("/api/crew/aura-1/symptoms", json={"symptoms": [{"key": "headache", "severity": 2}]})
+    badges = {b["id"]: b for b in c.get("/api/crew/aura-1/tasks").json()["badges"]}
+    assert badges["ground_link"]["earned"] and badges["honest"]["earned"]
+
+
+def test_plan_challenge_and_badge():
+    from fastapi.testclient import TestClient
+    from aura import main
+    from aura.simulator import generate
+    main.store.load(generate())
+    c = TestClient(main.app)
+    blocks = [b["id"] for b in c.get("/api/crew/aura-1/plan").json()["blocks"]]
+    for b in blocks:
+        c.post(f"/api/crew/aura-1/plan/{b}/toggle")
+    t = c.get("/api/crew/aura-1/tasks").json()
+    assert {b["id"]: b for b in t["badges"]}["planner"]["earned"]
+    assert {x["id"]: x for x in t["challenges"]}["plan3"]["progress"] == 1

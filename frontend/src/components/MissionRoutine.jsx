@@ -6,6 +6,7 @@ const KIND_LABEL = { routine: 'Routine', follow_up: 'Follow-up', wellness: 'Well
 export default function MissionRoutine({ crewId, data, onChange, onGoToCheckin }) {
   const [busy, setBusy] = useState(null)
   const [showBadges, setShowBadges] = useState(false)
+  const [showCrew, setShowCrew] = useState(false)
   if (!data) return null
 
   const { level, streaks, progress, tasks, badges } = data
@@ -78,6 +79,48 @@ export default function MissionRoutine({ crewId, data, onChange, onGoToCheckin }
           </li>
         ))}
       </ul>
+
+      {data.challenges && (
+        <div className="challenges">
+          <div className="task-head">
+            <span>Week {data.challenges[0].week} challenges</span>
+            <span className="muted">{data.challenges[0].days_left} day(s) left · +{data.challenges[0].points} each</span>
+          </div>
+          <ul>
+            {data.challenges.map((c) => (
+              <li key={c.id} className={c.done ? 'done' : ''} title={c.description}>
+                <span className="ch-title">{c.title}{c.done && ' ✓'}</span>
+                <span className="ch-desc">{c.description}</span>
+                <span className="ch-bar"><span style={{ width: `${(100 * c.progress) / c.goal}%` }} /></span>
+                <span className="ch-num">{c.progress}/{c.goal}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {data.crew && (
+        <div className="crew-board">
+          <button className="link" onClick={() => setShowCrew(!showCrew)}>
+            👥 Crew board · goal {data.crew.goal.done}/{data.crew.goal.total} {showCrew ? '▴' : '▾'}
+          </button>
+          {showCrew && (
+            <>
+              <p className="hint">{data.crew.goal.title}{data.crew.goal.met ? ' · done! 🎉' : ''}</p>
+              <ol>
+                {data.crew.board.map((r) => (
+                  <li key={r.crew_id} className={r.me ? 'me' : ''}>
+                    <span className="rank">{r.rank}</span>
+                    <span className="who">{r.name}{r.me && ' (you)'}<small>{r.title} · 🔥 {r.streak}</small></span>
+                    <span className="pts">{r.points.toLocaleString()}</span>
+                    <span title={r.routine_done ? 'Routine logged today' : 'Routine not logged yet'}>{r.routine_done ? '✓' : '·'}</span>
+                  </li>
+                ))}
+              </ol>
+            </>
+          )}
+        </div>
+      )}
 
       <button className="link" onClick={() => setShowBadges(!showBadges)}>
         🏅 Badges {earned.length}/{badges.length} {showBadges ? '▴' : '▾'}

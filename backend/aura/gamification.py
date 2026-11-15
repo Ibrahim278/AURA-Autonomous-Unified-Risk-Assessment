@@ -105,7 +105,41 @@ def _level(points: int) -> dict:
             "floor": current[0]}
 
 
-def mission_tasks(store: MissionStore, crew_id: str) -> dict:
+CHALLENGE_POINTS = 50
+
+
+def _week_bounds(day: int) -> tuple[int, int]:
+    start = ((day - 1) // 7) * 7 + 1
+    return start, start + 6
+
+
+def weekly_challenges(store: MissionStore, crew_id: str, day: int) -> list[dict]:
+    """This mission week's challenges (days 1-7, 8-14, ...), with progress up to ``day``."""
+    start, end = _week_bounds(day)
+    days = range(start, day + 1)
+    sleep_ok = sum(bool((r := _reading(store, crew_id, "sleep_hours", d)) and r.value >= 7) for d in days)
+    ex_ok = sum(bool((r := _reading(store, crew_id, "exercise_minutes", d)) and r.value >= EXERCISE_TARGET) for d in days)
+    sym_days = len({e["day"] for e in store.symptoms.get(crew_id, []) if start <= e["day"] <= day})
+    plan_days = sum(1 for d in days if len(store.plan_done.get((crew_id, d), ())) >= 3)
+    spec = [
+        ("sleep7", "🌙 Rest up", "Sleep 7+ hours on 5 nights this week", sleep_ok, 5),
+        ("exercise7", "🏋️ Every day counts", f"Hit {EXERCISE_TARGET}+ min of exercise on 6 days this week", ex_ok, 6),
+        ("symptoms3", "🩺 Body check", "Log how you feel in the symptom log on 3 days this week", sym_days, 3),
+        ("plan3", "🗓 Plan it, do it", "Tick off 3+ blocks of the countermeasure plan on 3 days this week", plan_days, 3),
+    ]
+    return [{"id": cid, "title": t, "description": d, "progress": min(p, goal), "goal": goal,
+             "done": p >= goal, "points": CHALLENGE_POINTS, "week": (start - 1) // 7 + 1,
+             "days_left": max(0, end - day)} for cid, t, d, p, goal in spec]
+
+
+def _challenge_points(store: MissionStore, crew_id: str, today: int) -> int:
+    total = 0
+    for week_end in range(7, today + 7, 7):
+        total += sum(c["points"] for c in weekly_challenges(store, crew_id, min(week_end, today)) if c["done"])
+    return total
+
+
+def mission_tasks(store: MissionStore, crew_id: str, outbox=None, include_crew: bool = True) -> dict:
     today = store.current_day
     status = store.status(crew_id, today)
     flagged = [a for a in status["indicators"] if a["level"] != Level.NORMAL.label]
@@ -156,6 +190,7 @@ def mission_tasks(store: MissionStore, crew_id: str) -> dict:
 
     points = sum(t.points for t in ROUTINE for ok in history[t.id] if ok)
     points += sum(x["points"] for x in tasks if x["done"])
+    points += _challenge_points(store, crew_id, today)
     points += 10 * sum(len(v) for d, v in store.task_completions.get(crew_id, {}).items() if d != today)
 
     streaks = {
@@ -179,10 +214,17 @@ def mission_tasks(store: MissionStore, crew_id: str) -> dict:
         _badge("early_catch", "Early Catch", "🎯", "Re-measured every flagged indicator the same day.",
                bool(followups) and all(x["done"] for x in followups)),
         _badge("rested", "Well Rested", "🌙", f"7 nights in a row with {SLEEP_TARGET}+ hours of sleep.", max_run(sleep_flags) >= 7),
+        _badge("ground_link", "Ground Link", "📡", "Sent a message to the flight surgeon.",
+               bool(outbox) and any(m["crew_id"] == crew_id and m["direction"] == "to_ground" for m in outbox.messages)),
+        _badge("honest", "Honest Reporter", "📝", "Logged your own symptoms in the symptom log.",
+               any(e.get("source") == "manual" for e in store.symptoms.get(crew_id, []))),
+        _badge("planner", "On Plan", "🗓", "Ticked off every block of today's countermeasure plan.",
+               _plan_complete(store, crew_id, today)),
+        _badge("challenger", "Challenger", "🏆", "Completed a weekly challenge.", _challenge_points(store, crew_id, today) > 0),
     ]
 
     done = [x for x in tasks if x["done"]]
-    return {
+    result = {
         "crew_id": crew_id,
         "day": today,
         "tasks": tasks,
@@ -191,7 +233,38 @@ def mission_tasks(store: MissionStore, crew_id: str) -> dict:
         "streaks": streaks,
         "level": _level(points),
         "badges": badges,
+        "challenges": weekly_challenges(store, crew_id, today),
     }
+    if include_crew:
+        result["crew"] = crew_board(store, crew_id, result, outbox)
+    return result
+
+
+def _plan_complete(store: MissionStore, crew_id: str, day: int) -> bool:
+    from .planner import plan  # local import: planner imports radiation/symptoms
+
+    done = store.plan_done.get((crew_id, day), set())
+    return bool(done) and {b["id"] for b in plan(store, crew_id, day)["blocks"]} <= done
+
+
+def _summary(store: MissionStore, cid: str, t: dict) -> dict:
+    return {"crew_id": cid, "name": store.crew[cid].name, "points": t["level"]["points"],
+            "title": t["level"]["title"], "streak": t["streaks"]["checkin"],
+            "routine_done": all(x["done"] for x in t["tasks"] if x["kind"] == "routine" and x["id"] != "exercise")}
+
+
+def crew_board(store: MissionStore, crew_id: str, mine: dict, outbox=None) -> dict:
+    """Friendly crew leaderboard plus a cooperative crew goal: everyone logs the routine today."""
+    rows = [_summary(store, crew_id, mine)]
+    rows += [_summary(store, cid, mission_tasks(store, cid, outbox, include_crew=False))
+             for cid in store.crew if cid != crew_id]
+    rows.sort(key=lambda r: -r["points"])
+    for i, r in enumerate(rows, 1):
+        r["rank"] = i
+        r["me"] = r["crew_id"] == crew_id
+    done = sum(r["routine_done"] for r in rows)
+    return {"board": rows, "goal": {"title": "Crew goal: everyone logs their routine today",
+                                    "done": done, "total": len(rows), "met": done == len(rows)}}
 
 
 class _Zero:

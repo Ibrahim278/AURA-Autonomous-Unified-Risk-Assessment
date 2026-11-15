@@ -480,7 +480,7 @@ def crew_ask(crew_id: str, body: AskRequest):
 def crew_tasks(crew_id: str):
     """Today's mission health tasks, streaks, points, level and badges."""
     _crew_or_404(crew_id)
-    return gamification.mission_tasks(store, crew_id)
+    return gamification.mission_tasks(store, crew_id, outbox)
 
 
 @app.post("/api/crew/{crew_id}/tasks/{task_id}/complete", tags=["routine"])
@@ -491,7 +491,7 @@ def complete_task(crew_id: str, task_id: str):
         gamification.complete_wellness(store, crew_id, task_id)
     except ValueError as exc:
         raise HTTPException(422, str(exc)) from exc
-    return gamification.mission_tasks(store, crew_id)
+    return gamification.mission_tasks(store, crew_id, outbox)
 
 
 # ---------------------------------------------------------------- real research data (NASA OSDR)
