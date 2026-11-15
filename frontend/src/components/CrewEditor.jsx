@@ -8,6 +8,7 @@ function ImportForm({ roles, full, onImported, onCancel, customKeys = [] }) {
   const [role, setRole] = useState('Mission Specialist')
   const [age, setAge] = useState(35)
   const [file, setFile] = useState(null)
+  const [launch, setLaunch] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState(null)
 
@@ -16,7 +17,7 @@ function ImportForm({ roles, full, onImported, onCancel, customKeys = [] }) {
     setError(null)
     try {
       const csv = await file.text()
-      const r = await api.importCrew({ name: name.trim(), role, age: Number(age), csv })
+      const r = await api.importCrew({ name: name.trim(), role, age: Number(age), csv, launch_date: launch || null })
       await onImported(r)
     } catch (e) {
       setError(e.message)
@@ -34,14 +35,23 @@ function ImportForm({ roles, full, onImported, onCancel, customKeys = [] }) {
         preflight and build your personal baseline; days 1, 2, 3… are mission days. Blank cells are fine.{' '}
         <a href={api.importTemplateUrl} download>Download the template</a>.
       </p>
+      <p className="muted small">
+        Exports from wearables, apps or Excel work too: a <code>date</code> column instead of <code>day</code>,
+        {' '}<code>;</code> or tab separators, units in headers like <code>Sleep (min)</code>, °F, glucose in mmol/L,
+        blood pressure as <code>120/80</code>, and several readings a day (averaged). AURA tells you what it converted.
+      </p>
       <div className="crew-row-main">
         <input aria-label="Import name" placeholder="Your name" value={name} maxLength={60} onChange={(e) => setName(e.target.value)} />
         <select aria-label="Import role" value={role} onChange={(e) => setRole(e.target.value)}>
           {roles.map((x) => <option key={x}>{x}</option>)}
         </select>
         <input aria-label="Import age" type="number" min={18} max={80} value={age} className="age" onChange={(e) => setAge(e.target.value)} />
-        <input aria-label="CSV file" type="file" accept=".csv,text/csv" onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
+        <input aria-label="CSV file" type="file" accept=".csv,.tsv,.txt,text/csv" onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
       </div>
+      <label className="muted small import-launch">
+        Launch date (only if your file has dates): the date that becomes mission day 1{' '}
+        <input aria-label="Launch date" type="date" value={launch} onChange={(e) => setLaunch(e.target.value)} />
+      </label>
       {full && <p className="muted small">The crew is full (6). Remove someone and save first.</p>}
       {error && <div className="toast error">{error}</div>}
       <div className="modal-foot">

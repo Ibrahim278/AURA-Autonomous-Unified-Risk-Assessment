@@ -1,0 +1,51 @@
+[
+  {
+    "name": "Body weight",
+    "unit": "kg",
+    "body_system": "musculoskeletal",
+    "hazards": [
+      "gravity_fields"
+    ],
+    "adverse_direction": "low",
+    "typical_low": 68,
+    "typical_high": 74,
+    "warning_low": 64,
+    "critical_low": 60,
+    "decimals": 1,
+    "min_meaningful_change": 1.0,
+    "why_it_matters": "Weight loss in flight usually means too few calories, which speeds up muscle and bone loss.",
+    "how_to_measure": "Same scale (or mass-measurement device) each morning, before breakfast."
+  },
+  {
+    "name": "HRV",
+    "unit": "ms",
+    "body_system": "heart",
+    "hazards": [
+      "isolation_confinement"
+    ],
+    "adverse_direction": "low",
+    "typical_low": 40,
+    "typical_high": 80,
+    "warning_low": 30,
+    "critical_low": 20,
+    "decimals": 0,
+    "min_meaningful_change": 6,
+    "why_it_matters": "Heart rate variability falls with stress, poor sleep, overtraining and illness.",
+    "how_to_measure": "Overnight average from a wearable, or a 1-minute morning reading lying down."
+  },
+  {
+    "name": "Grip strength",
+    "unit": "kg",
+    "body_system": "musculoskeletal",
+    "hazards": [
+      "gravity_fields"
+    ],
+    "adverse_direction": "low",
+    "typical_low": 38,
+    "typical_high": 52,
+    "warning_low": 32,
+    "decimals": 0,
+    "why_it_matters": "A quick proxy for whole-body muscle strength, which declines without loading.",
+    "how_to_measure": "Hand dynamometer, dominant hand, best of three."
+  }
+]

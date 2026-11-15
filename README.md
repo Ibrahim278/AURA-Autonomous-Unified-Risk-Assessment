@@ -55,7 +55,7 @@ already being abnormal *for that person*.
 | 💬 | **Ask AURA**: a chat button in the bottom-right corner on every screen. Ask anything (health, "how do I…", the NASA data) and get an answer, numbered steps and one-click buttons that take you to the right place. It knows which crew member, day and indicator you're viewing, **remembers** facts you tell it ("remember I get headaches after exercise"), and can act: open panels, jump to a day, draft a message to ground or pre-fill a symptom |
 | 🎮 | **Gamified routine.** Daily tasks, streaks, points, levels and 11 badges reward measuring regularly and following up on warnings, plus **weekly challenges** (+50 each), a **crew board** and a shared crew goal |
 | ⏪ | **Mission replay** to see what AURA showed on any day, plus ISS, lunar surface and Mars transit environments |
-| 🧪 | **Real crew data.** Actual Inspiration4 bloodwork from NASA OSDR (metabolic panel, blood count, **71 immune cytokines** and **9 cardiovascular and inflammation proteins**), charted per crew member against lab ranges, with an **AI review** of each person's changes versus their own preflight baseline |
+| 🧪 | **Real crew data.** Actual Inspiration4 bloodwork from NASA OSDR (metabolic panel, blood count, **71 immune cytokines**, **9 cardiovascular and inflammation proteins**, and the **Alamar 200-plex protein panels in serum and urine**), charted per crew member against lab ranges, with an **AI review** of each person's changes versus their own preflight baseline |
 | 👩‍🚀 | **Editable crew.** Add or edit up to 6 members: name, role, age, personal baselines and a health scenario (5 to choose from). The AI isn't told the scenario, so it has to find the pattern |
 | ➕ | **Custom indicators.** Add any measurement (body weight, HRV, steps, water intake, or your own) with its unit, typical range and warning/critical limits. It gets baselines, alerts, charts, check-ins, CSV import and AI coverage like the built-in ten |
 | ⬆ | **Import your own data** from a CSV (one row per day) and become a crew member: alerts, tasks and the AI briefing all run on your readings |
@@ -193,7 +193,7 @@ built around that:
 | AI | **Anthropic Claude API** (`anthropic` Python SDK 2.8) | Daily briefing, Ask AURA assistant, review of the real crew bloodwork |
 | Front end | **React** 19.3 (JavaScript/JSX), **Vite** 8.3 | Single-page dashboard and dev server (proxies `/api` to the back end) |
 | Charts | **Recharts** 3.10 | Trend charts, sparklines, forecast projections, research charts |
-| Testing | **pytest** 9.2, **httpx** | 134 back-end tests, including a mocked Claude API |
+| Testing | **pytest** 9.2, **httpx** | 177 back-end tests, including a mocked Claude API |
 | Data | NASA OSDR (CSV), JSON, in-memory store | Real Inspiration4 labs; mission data kept in memory for zero-setup demos |
 
 No database or cloud services are needed: clone, install, and run two terminals.
@@ -270,7 +270,7 @@ data/osdr/  NASA OSDR files (unchanged)        data/import_template.csv  example
 | POST | `/api/crew/{id}/ask` | Ask the AI flight surgeon a question |
 | POST | `/api/assistant` | Ask AURA: any question, with the current view; returns answer, steps and actions |
 | GET | `/api/research` | Real research datasets and whether each is loaded |
-| GET | `/api/research/{cmp\|cbc\|immune\|cardio}` | Real Inspiration4 crew bloodwork from NASA OSDR |
+| GET | `/api/research/{cmp\|cbc\|immune\|cardio\|alamar\|urine}` | Real Inspiration4 crew bloodwork from NASA OSDR |
 | POST | `/api/research/crew/{C001..C004}/review` | AI review of one real crew member's bloodwork |
 
 ## Data and sources
@@ -330,7 +330,7 @@ In line with the NASA Space Apps guidance on AI use, here is where AI was and wa
 cd backend && python -m pytest
 ```
 
-134 tests cover the alert engine, the simulator scenarios, every API endpoint, gamification,
+177 tests cover the alert engine, the simulator scenarios, every API endpoint, gamification,
 the OSDR parser and quality check, the CSV importer, crew editing, custom indicators, the forecast
 (confidence band and related trends), symptom triage, ground messaging and signal delay, the radiation
 budget, the ground view and reports, plausibility checks, the planner, the adaptive baseline, crew wellbeing,

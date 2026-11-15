@@ -6,6 +6,8 @@ import { api } from '../api.js'
 import ResearchReview from './ResearchReview.jsx'
 
 const CREW_COLORS = { C001: '#a5c8ff', C002: '#c084fc', C003: '#f472b6', C004: '#2dd4bf' }
+// Crew in files a team adds to data/osdr/ (other IDs) take these in order.
+const EXTRA_COLORS = ['#fbbf24', '#a3e635', '#fb923c', '#67e8f9', '#e879f9', '#94a3b8']
 const DATASET_LABELS = { cmp: 'Metabolic panel', cbc: 'Blood count', immune: 'Immune cytokines', cardio: 'Cardio & inflammation' }
 
 function FlagDot({ cx, cy, payload, dataKey, stroke }) {
@@ -42,6 +44,7 @@ function ChartTooltip({ active, payload, label, unit }) {
 
 export default function ResearchPanel({ focus = null }) {
   const [datasets, setDatasets] = useState([])
+  const [problems, setProblems] = useState([]) // files in data/osdr/ AURA could not read
   const [dataset, setDataset] = useState('cmp')
   const [data, setData] = useState(null)
   const [key, setKey] = useState(null)
@@ -56,7 +59,10 @@ export default function ResearchPanel({ focus = null }) {
   }, [focus])
 
   useEffect(() => {
-    api.research().then((list) => setDatasets(list.filter((d) => d.loaded))).catch((e) => setError(e.message))
+    api.research().then((list) => {
+      setDatasets(list.filter((d) => d.loaded))
+      setProblems(list.filter((d) => !d.loaded && d.user_added && d.problem))
+    }).catch((e) => setError(e.message))
   }, [])
 
   useEffect(() => {
@@ -99,6 +105,12 @@ export default function ResearchPanel({ focus = null }) {
       return row
     })
   }, [data, analyte])
+  const colors = useMemo(() => {
+    const out = {}
+    let extra = 0
+    for (const c of data?.crew ?? []) out[c] = CREW_COLORS[c] ?? EXTRA_COLORS[extra++ % EXTRA_COLORS.length]
+    return out
+  }, [data])
 
   if (error) return <div className="panel research-panel"><h2>Real crew data</h2><p className="muted">{error}</p></div>
   if (!data || !analyte) return <div className="panel research-panel"><h2>Real crew data</h2><p className="muted">Loading…</p></div>
@@ -118,20 +130,22 @@ export default function ResearchPanel({ focus = null }) {
     <div className="panel research-panel" id="research">
       <div className="panel-head">
         <div>
-          <h2>Real crew data · Inspiration4</h2>
+          <h2>Real crew data · {data.user_added ? 'added by your team' : 'Inspiration4'}</h2>
           <div className="muted small">
-            NASA OSDR <a href={data.url} target="_blank" rel="noreferrer">{data.osd}</a> ({data.lsds}) ·
-            {' '}{data.title} · 4 civilian crew, 3-day orbital flight, Sept 2021
+            {data.user_added
+              ? <>data/osdr/{data.file} · {data.crew.length} people, {data.analytes.length} markers</>
+              : <>NASA OSDR <a href={data.url} target="_blank" rel="noreferrer">{data.osd}</a> ({data.lsds}) ·
+                {' '}{data.title} · 4 civilian crew, 3-day orbital flight, Sept 2021</>}
           </div>
         </div>
-        <span className="source-tag research">research data</span>
+        <span className="source-tag research">{data.user_added ? 'added data' : 'research data'}</span>
       </div>
 
       <div className="research-controls">
         <div className="seg">
           {datasets.map((d) => (
             <button key={d.dataset} className={d.dataset === dataset ? 'active' : ''} onClick={() => setDataset(d.dataset)}>
-              {DATASET_LABELS[d.dataset] ?? d.dataset}
+              {d.label ?? DATASET_LABELS[d.dataset] ?? d.dataset}
             </button>
           ))}
         </div>
@@ -155,21 +169,23 @@ export default function ResearchPanel({ focus = null }) {
           <XAxis dataKey="label" stroke="var(--muted)" tick={{ fontSize: 11 }} />
           <YAxis domain={domain} stroke="var(--muted)" tick={{ fontSize: 11 }} allowDataOverflow tickFormatter={tick}
             label={{ value: analyte.unit, angle: -90, position: 'insideLeft', fill: 'var(--muted)', fontSize: 11 }} />
-          <ReferenceArea x1="L-3" x2="R+1" fill="var(--accent)" fillOpacity={0.1}
-            label={{ value: 'spaceflight', fill: 'var(--accent)', fontSize: 10, position: 'insideTop' }} />
+          {rows.some((r) => r.label === 'L-3') && rows.some((r) => r.label === 'R+1') && (
+            <ReferenceArea x1="L-3" x2="R+1" fill="var(--accent)" fillOpacity={0.1}
+              label={{ value: 'spaceflight', fill: 'var(--accent)', fontSize: 10, position: 'insideTop' }} />
+          )}
           {(rmin != null || rmax != null) && (
             <ReferenceArea y1={rmin ?? domain[0]} y2={rmax ?? domain[1]} fill="var(--normal)" fillOpacity={0.08} ifOverflow="hidden" />
           )}
           <Tooltip content={<ChartTooltip unit={analyte.unit} />} />
           {data.crew.map((c) => (
-            <Line key={c} type="linear" dataKey={c} stroke={CREW_COLORS[c] ?? 'var(--line)'} strokeWidth={2}
+            <Line key={c} type="linear" dataKey={c} stroke={colors[c]} strokeWidth={2}
               dot={<FlagDot />} connectNulls isAnimationActive={false} />
           ))}
         </ComposedChart>
       </ResponsiveContainer>
 
       <div className="chart-legend">
-        {data.crew.map((c) => <span key={c}><i className="sw" style={{ background: CREW_COLORS[c] }} /> {c}</span>)}
+        {data.crew.map((c) => <span key={c}><i className="sw" style={{ background: colors[c] }} /> {c}</span>)}
         {data.has_ranges ? (
           <>
             <span><i className="sw band" /> typical lab range (flags use each sample&apos;s own range)</span>
@@ -178,15 +194,20 @@ export default function ResearchPanel({ focus = null }) {
         ) : <span className="muted">No clinical range for this assay: compare each line with its own preflight points</span>}
       </div>
       <p className="research-notice">
-        {data.notice} Timepoints are days before launch (L−) and after return (R+). Crew IDs C001–C004 are
-        the published de-identified codes, separate from AURA&apos;s synthetic demo crew.
+        {data.notice} Timepoints are days before launch (L−) and after return (R+).
+        {!data.user_added && <> Crew IDs C001–C004 are the published de-identified codes, separate from AURA&apos;s synthetic demo crew.</>}
         {data.quality_issues.map((q) => (
           <span key={q.reason}> Excluded by AURA&apos;s quality check: {q.crew ? `${q.crew} at ${q.timepoint}. ` : ''}{q.reason}</span>
         ))}
       </p>
+      {problems.length > 0 && (
+        <p className="research-notice">
+          {problems.map((p) => <span key={p.dataset}>Not shown: {p.problem} </span>)}
+        </p>
+      )}
       <ResearchReview
         crew={data.crew}
-        colors={CREW_COLORS}
+        colors={colors}
         focusCrew={focus?.crew}
         onSelectMarker={(name) => {
           const a = data.analytes.find((x) => x.name === name)
