@@ -89,7 +89,7 @@ slept six and a half hours, mood 7"; mentioned symptoms can be sent to the sympt
 checks plausibility: impossible values are rejected with a unit hint (°F, mmol/L, minutes) and a "Use" fix; \
 values far from baseline or swapped blood pressure ask for confirmation.
 - Alert timeline: every change of alert level; click one to jump there.
-- Real crew data · Inspiration4 panel (bottom): real NASA OSDR bloodwork (metabolic panel and blood count) \
+- Real crew data · Inspiration4 panel (bottom): real NASA OSDR bloodwork (metabolic panel, blood count, immune cytokines and cardiovascular proteins) \
 for 4 civilian crew, 92 days before launch to 194 days after return; "Review C00n" gives an AI review.
 Alert rules: Critical = a predefined critical limit is crossed (contact the flight surgeon now). Warning = a \
 warning limit is crossed, or the last 3 readings sit on the adverse side of the personal baseline (each \

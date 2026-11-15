@@ -361,7 +361,11 @@ Open Science Data Repository. The reader is a mission medical team or a judge ev
 
 What you receive: JSON with each blood marker's personal preflight mean (the mean of L-92, L-44 \
 and L-3), the value 1 day after return (R+1) and its change from preflight, the latest value, the \
-lab's reference range, any out-of-range timepoints, and samples excluded by AURA's quality check.
+lab's reference range, any out-of-range timepoints, and samples excluded by AURA's quality check. \
+Panels: cmp (metabolic), cbc (blood count), immune (serum cytokines) and cardio (cardiovascular and \
+acute-phase proteins). Cytokine and cardio markers have no lab range and vary widely; treat only \
+large, consistent changes from preflight as meaningful, and prefer patterns across related markers \
+(e.g. IL-6 with CRP) over a single cytokine.
 
 Rules:
 1. Compare the astronaut to their OWN preflight baseline first, then to the lab range. A big \

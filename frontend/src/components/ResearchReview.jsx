@@ -46,7 +46,7 @@ export default function ResearchReview({ crew, colors, onSelectMarker, focusCrew
       {!rv && (
         <div className="briefing-empty">
           <p className="muted">
-            Claude compares {who}&apos;s metabolic panel and blood count to their own preflight baseline
+            Claude compares {who}&apos;s metabolic panel, blood count and cytokines to their own preflight baseline
             and the lab ranges, then suggests what AURA would monitor on a future flight.
           </p>
           <button className="primary" onClick={run} disabled={loading}>

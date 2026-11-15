@@ -7,10 +7,17 @@ is returned with the lab's own reference range for that sample, plus a low/norma
 Files live in ``data/osdr/`` at the repo root:
     LSDS-8_Comprehensive_Metabolic_Panel_CMP_TRANSFORMED.csv   (OSD-575, blood serum)
     LSDS-7_Complete_Blood_Count_CBC_TRANSFORMED.csv            (OSD-569, whole blood; optional)
+    LSDS-8_Multiplex_serum_immune_EvePanel_TRANSFORMED.csv     (OSD-575, serum cytokines; optional)
+    LSDS-8_Multiplex_serum_cardiovascular_EvePanel_TRANSFORMED.csv (OSD-575, serum cardiovascular
+                                                               and inflammation proteins; optional)
 
 Column convention: ``<analyte>_value_<unit>``, ``<analyte>_range_min_<unit>`` and
 ``<analyte>_range_max_<unit>`` (a few files write ``<analyte>_max_<unit>``). Sample names look
 like ``C001_serum_L-92``: crew C001, launch minus 92 days.
+
+The multiplex (Eve Technologies) cytokine files instead use ``<analyte>_concentration_<unit>``
+plus ``<analyte>_percent`` (the value as a percent of the panel mean; not used here). They have
+no clinical reference range, so each crew member is compared with their own preflight values.
 """
 
 from __future__ import annotations
@@ -41,6 +48,22 @@ DATASETS = {
         "lsds": "LSDS-7",
         "title": "Complete blood count (whole blood)",
         "url": "https://osdr.nasa.gov/bio/repo/data/studies/OSD-569",
+    },
+    "immune": {
+        "file": "LSDS-8_Multiplex_serum_immune_EvePanel_TRANSFORMED.csv",
+        "osd": "OSD-575",
+        "lsds": "LSDS-8",
+        "title": "Immune cytokine array (blood serum, multiplex)",
+        "url": "https://osdr.nasa.gov/bio/repo/data/studies/OSD-575",
+        "ranges": False,
+    },
+    "cardio": {
+        "file": "LSDS-8_Multiplex_serum_cardiovascular_EvePanel_TRANSFORMED.csv",
+        "osd": "OSD-575",
+        "lsds": "LSDS-8",
+        "title": "Cardiovascular and inflammation proteins (blood serum, multiplex)",
+        "url": "https://osdr.nasa.gov/bio/repo/data/studies/OSD-575",
+        "ranges": False,
     },
 }
 
@@ -94,6 +117,40 @@ ANALYTE_INFO: dict[str, dict] = {
     "mcv": {"name": "Mean red cell volume (MCV)", "system": "lungs", "why": "Average red cell size."},
     "rdw": {"name": "Red cell size variation (RDW)", "system": "lungs",
             "why": "Rises when new red cells are being made to replace lost ones."},
+    # --- Immune cytokines (LSDS-8 multiplex)
+    "il_6": {"name": "IL-6", "system": "immune",
+             "why": "A main inflammation signal. It rises with stress, muscle strain and infection, and "
+                    "spaceflight studies often report it raised around launch and landing."},
+    "tnfα": {"name": "TNF-α", "system": "immune",
+             "why": "Pro-inflammatory cytokine. Persistent rises are linked to bone loss and muscle wasting."},
+    "il_10": {"name": "IL-10", "system": "immune",
+              "why": "The main 'calm down' cytokine that limits inflammation; it balances IL-6 and TNF-α."},
+    "ifnγ": {"name": "IFN-γ", "system": "immune",
+             "why": "Antiviral T-cell signal. Spaceflight can reduce T-cell function and let dormant viruses reactivate."},
+    "il_8": {"name": "IL-8", "system": "immune",
+             "why": "Calls neutrophils to the site of stress or infection."},
+    "il_1ra": {"name": "IL-1 receptor antagonist", "system": "immune",
+               "why": "A natural brake on IL-1 inflammation that rises with physical stress."},
+    "ip_10": {"name": "IP-10 (CXCL10)", "system": "immune",
+              "why": "Interferon-driven chemokine, a marker of antiviral immune activity."},
+    "mcp_1": {"name": "MCP-1", "system": "immune",
+              "why": "Recruits monocytes. Linked to vascular inflammation and radiation response."},
+    "il_17a": {"name": "IL-17A", "system": "immune", "why": "Inflammatory T-cell signal involved in barrier immunity."},
+    "vegf_a": {"name": "VEGF-A", "system": "heart",
+               "why": "Blood-vessel growth signal; relevant to fluid shifts and eye changes (SANS)."},
+    # --- Cardiovascular / acute-phase proteins (LSDS-8 multiplex)
+    "crp": {"name": "C-reactive protein (CRP)", "system": "heart",
+            "why": "Acute-phase inflammation marker and a cardiovascular risk marker."},
+    "fibrinogen": {"name": "Fibrinogen", "system": "heart",
+                   "why": "Clotting protein and acute-phase marker. Venous clots have been seen in astronauts' neck veins."},
+    "haptoglobin": {"name": "Haptoglobin", "system": "lungs",
+                    "why": "Binds free haemoglobin from destroyed red cells; it falls when red cell breakdown rises ('space anaemia')."},
+    "sap": {"name": "Serum amyloid P", "system": "immune", "why": "Acute-phase protein of the innate immune system."},
+    "a2_macroglobulin": {"name": "α2-macroglobulin", "system": "heart",
+                         "why": "Blocks clotting and inflammatory enzymes; a broad marker of vascular stress."},
+    "agp": {"name": "α1-acid glycoprotein (AGP)", "system": "immune", "why": "Acute-phase protein that rises with inflammation."},
+    "pf4": {"name": "Platelet factor 4", "system": "heart", "why": "Released by activated platelets; a clotting-activation marker."},
+    "l_selectin": {"name": "L-selectin", "system": "immune", "why": "Helps white cells leave the blood vessels to reach tissue."},
 }
 
 
@@ -137,7 +194,7 @@ class Analyte:
         common = max(set(ranges), key=ranges.count) if ranges else (None, None)
         return {
             "key": self.key,
-            "name": info.get("name", self.key.replace("_", " ").capitalize()),
+            "name": info.get("name", pretty_name(self.key)),
             "unit": info.get("unit", self.unit),
             "system": info.get("system"),
             "aura_indicator": info.get("aura_indicator"),
@@ -147,6 +204,23 @@ class Analyte:
             "out_of_range": sum(p.flag in ("low", "high") for pts in self.series.values() for p in pts),
             "series": {crew: [p.to_dict() for p in pts] for crew, pts in sorted(self.series.items())},
         }
+
+
+ACRONYM_PREFIXES = ("il_", "ifn", "tnf", "mip_", "mcp_", "pdgf", "sdf_", "g_csf", "gm_csf", "m_csf", "flt_",
+                    "ip_", "egf", "fgf", "tgf", "scd", "ena_", "bca_", "i_309", "6ckine", "mig", "tpo", "tslp",
+                    "trail", "lif", "mdc", "tarc", "scf", "ctack", "gro", "vegf")
+
+
+def pretty_name(key: str) -> str:
+    """'il_17e_per_il_25' -> 'IL-17E/IL-25', 'mip_1α' -> 'MIP-1α', 'total_protein' -> 'Total protein'."""
+    special = {"scd40l": "sCD40L", "rantes": "RANTES", "fetuin_a36": "Fetuin-A", "groα": "GRO-α",
+               "tgfα": "TGF-α", "tnfβ": "TNF-β", "6ckine": "6Ckine", "il_12p40": "IL-12p40", "il_12p70": "IL-12p70"}
+    if key in special:
+        return special[key]
+    k = key.replace("_per_", "/").replace("_plus_", "+")
+    if k.startswith(ACRONYM_PREFIXES):
+        return "".join(c.upper() if c.isascii() else c for c in k).replace("_", "-")
+    return k.replace("_", " ").capitalize()
 
 
 def _num(raw: str | None) -> float | None:
@@ -165,6 +239,7 @@ def timepoint_day(tp: str) -> int:
 
 def _humanize_unit(unit: str) -> str:
     return (unit.replace("milliliter_per_minute_per_1.73_meter_squared", "mL/min/1.73m²")
+            .replace("nanogram_per_milliliter", "ng/mL").replace("picogram_per_milliliter", "pg/mL")
             .replace("milligram_per_deciliter", "mg/dL").replace("grams_per_deciliter", "g/dL")
             .replace("gram_per_deciliter", "g/dL").replace("cells_per_microliter", "cells/µL")
             .replace("millimol_per_liter", "mmol/L").replace("units_per_liter", "U/L")
@@ -181,7 +256,8 @@ def parse_transformed_csv(path: Path) -> dict[str, Analyte]:
     # Map analyte -> (value col, min col, max col, unit)
     columns: dict[str, dict] = {}
     for h in headers:
-        m = re.match(r"^(?P<a>.+?)_value(?:_(?P<u>.+))?$", h)
+        m = (re.match(r"^(?P<a>.+?)_value(?:_(?P<u>.+))?$", h)
+             or re.match(r"^(?P<a>.+?)_concentration_(?P<u>.+)$", h))
         if m:
             columns.setdefault(m["a"], {})["value"] = h
             columns[m["a"]]["unit"] = m["u"] or ""
@@ -240,6 +316,36 @@ def quality_check(analytes: dict[str, Analyte]) -> list[dict]:
     return issues
 
 
+def _fmt(v: float) -> str:
+    return f"{v:,.0f}" if abs(v) >= 1000 else f"{v:g}"
+
+
+def assay_limit_check(analytes: dict[str, Analyte]) -> list[dict]:
+    """Multiplex rule: real concentrations almost never repeat to the last digit, so when 3+ samples
+    of a marker share one exact value, the assay hit a measurement limit and the true value is
+    unknown (e.g. haptoglobin reads exactly 17,907,000 pg/mL in 8 samples). Those points are kept
+    but marked, so they can't skew the charts or the AI.
+    """
+    issues = []
+    for an in analytes.values():
+        counts: dict[float, list[Point]] = {}
+        for ps in an.series.values():
+            for p in ps:
+                if p.value is not None:
+                    counts.setdefault(p.value, []).append(p)
+        for value, hit in sorted(counts.items()):
+            digits = len(f"{value:g}".replace(".", "").replace("-", "").strip("0"))
+            if len(hit) < 3 or (digits < 4 and len(hit) < 5):  # 1.1 x3 can be chance; 120.88 x4 is not
+                continue
+            for p in hit:
+                p.suspect = True
+            name = ANALYTE_INFO.get(an.key, {}).get("name", pretty_name(an.key))
+            issues.append({"crew": None, "timepoint": None, "analyte": an.key,
+                           "reason": f"{name}: {len(hit)} samples read exactly {_fmt(value)} {an.unit}, which looks "
+                                     "like the assay's measurement limit, so they are excluded."})
+    return issues
+
+
 @lru_cache(maxsize=None)
 def load(dataset: str) -> dict | None:
     meta = DATASETS[dataset]
@@ -247,7 +353,7 @@ def load(dataset: str) -> dict | None:
     if not path.exists():
         return None
     analytes = parse_transformed_csv(path)
-    qc = quality_check(analytes)
+    qc = quality_check(analytes) + (assay_limit_check(analytes) if meta.get("ranges") is False else [])
     ordered = sorted(analytes.values(), key=lambda a: (a.key not in ANALYTE_INFO,
                                                        list(ANALYTE_INFO).index(a.key) if a.key in ANALYTE_INFO else 0,
                                                        a.key))
@@ -260,9 +366,13 @@ def load(dataset: str) -> dict | None:
         "mission": {"name": "Inspiration4", "launch": "2021-09-15", "return": "2021-09-18",
                     "flight_days": FLIGHT_DAYS, "crew_size": len(crews)},
         "source": "research",
+        "has_ranges": meta.get("ranges", True),
         "notice": ("Real, de-identified crew data from NASA OSDR, shown exactly as published. "
-                   "Reference ranges are the clinical lab's, per sample. An out-of-range value "
-                   "alone is not a diagnosis, and it can reflect sample handling."),
+                   + ("Reference ranges are the clinical lab's, per sample. An out-of-range value "
+                      "alone is not a diagnosis, and it can reflect sample handling."
+                      if meta.get("ranges", True) else
+                      "Research assay with no clinical reference range: compare each person with their "
+                      "own preflight values (L−92 to L−3). Cytokines swing a lot between people and days.")),
         "quality_issues": qc,
         "crew": crews,
         "timepoints": [{"label": t, "day": timepoint_day(t),
@@ -323,5 +433,7 @@ def crew_profile(crew: str) -> dict | None:
         "timepoints": "L-n = n days before launch; R+n = n days after return",
         "source": "NASA OSDR " + ", ".join(f"{d['osd']} ({d['lsds']})" for d in datasets),
         "excluded_samples": [q for d in datasets for q in d["quality_issues"] if q["crew"] == crew],
+        "note": "Markers from the immune and cardio panels have lab_range null: no clinical range exists, "
+                "so judge them only against the preflight mean.",
         "markers": markers,
     }

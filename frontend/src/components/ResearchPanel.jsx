@@ -6,7 +6,7 @@ import { api } from '../api.js'
 import ResearchReview from './ResearchReview.jsx'
 
 const CREW_COLORS = { C001: '#a5c8ff', C002: '#c084fc', C003: '#f472b6', C004: '#2dd4bf' }
-const DATASET_LABELS = { cmp: 'Metabolic panel', cbc: 'Blood count' }
+const DATASET_LABELS = { cmp: 'Metabolic panel', cbc: 'Blood count', immune: 'Immune cytokines', cardio: 'Cardio & inflammation' }
 
 function FlagDot({ cx, cy, payload, dataKey, stroke }) {
   if (cx == null || cy == null) return null
@@ -46,7 +46,7 @@ export default function ResearchPanel({ focus = null }) {
   const [data, setData] = useState(null)
   const [key, setKey] = useState(null)
   const [error, setError] = useState(null)
-  const [pending, setPending] = useState(null) // marker name to show once the other panel loads
+  const [pending, setPending] = useState(null) // { name, tries }: marker to find in another panel
   const [pendingKey, setPendingKey] = useState(null) // marker key requested by the demo tour
 
   useEffect(() => {
@@ -78,10 +78,13 @@ export default function ResearchPanel({ focus = null }) {
 
   useEffect(() => {
     if (!data || !pending) return
-    const a = data.analytes.find((x) => x.name === pending)
-    if (a) setKey(a.key)
-    setPending(null)
-  }, [data, pending])
+    const a = data.analytes.find((x) => x.name === pending.name)
+    if (a) { setKey(a.key); setPending(null); return }
+    if (pending.tries + 1 >= datasets.length) { setPending(null); return }
+    const i = datasets.findIndex((d) => d.dataset === dataset)
+    setPending({ name: pending.name, tries: pending.tries + 1 })
+    setDataset(datasets[(i + 1) % datasets.length].dataset)
+  }, [data, pending, datasets, dataset])
 
   const analyte = data?.analytes.find((a) => a.key === key)
   const rows = useMemo(() => {
@@ -106,7 +109,8 @@ export default function ResearchPanel({ focus = null }) {
   const lo = Math.min(...values, rmin ?? Infinity)
   const hi = Math.max(...values, rmax ?? -Infinity)
   const pad = (hi - lo) * 0.12 || 1
-  const domain = [+(lo - pad).toPrecision(3), +(hi + pad).toPrecision(3)]
+  const domain = [lo >= 0 ? Math.max(0, +(lo - pad).toPrecision(3)) : +(lo - pad).toPrecision(3), +(hi + pad).toPrecision(3)]
+  const tick = (v) => (Math.abs(v) >= 10000 ? new Intl.NumberFormat('en', { notation: 'compact', maximumSignificantDigits: 3 }).format(v) : +v.toPrecision(3))
   const featured = data.analytes.filter((a) => a.featured)
   const others = data.analytes.filter((a) => !a.featured)
 
@@ -149,7 +153,7 @@ export default function ResearchPanel({ focus = null }) {
         <ComposedChart data={rows} margin={{ top: 10, right: 20, bottom: 0, left: 0 }}>
           <CartesianGrid stroke="var(--grid)" strokeDasharray="3 3" />
           <XAxis dataKey="label" stroke="var(--muted)" tick={{ fontSize: 11 }} />
-          <YAxis domain={domain} stroke="var(--muted)" tick={{ fontSize: 11 }} allowDataOverflow tickFormatter={(v) => +v.toPrecision(3)}
+          <YAxis domain={domain} stroke="var(--muted)" tick={{ fontSize: 11 }} allowDataOverflow tickFormatter={tick}
             label={{ value: analyte.unit, angle: -90, position: 'insideLeft', fill: 'var(--muted)', fontSize: 11 }} />
           <ReferenceArea x1="L-3" x2="R+1" fill="var(--accent)" fillOpacity={0.1}
             label={{ value: 'spaceflight', fill: 'var(--accent)', fontSize: 10, position: 'insideTop' }} />
@@ -166,14 +170,18 @@ export default function ResearchPanel({ focus = null }) {
 
       <div className="chart-legend">
         {data.crew.map((c) => <span key={c}><i className="sw" style={{ background: CREW_COLORS[c] }} /> {c}</span>)}
-        <span><i className="sw band" /> typical lab range (flags use each sample's own range)</span>
-        <span><i className="sw ring" /> outside range</span>
+        {data.has_ranges ? (
+          <>
+            <span><i className="sw band" /> typical lab range (flags use each sample&apos;s own range)</span>
+            <span><i className="sw ring" /> outside range</span>
+          </>
+        ) : <span className="muted">No clinical range for this assay: compare each line with its own preflight points</span>}
       </div>
       <p className="research-notice">
         {data.notice} Timepoints are days before launch (L−) and after return (R+). Crew IDs C001–C004 are
         the published de-identified codes, separate from AURA&apos;s synthetic demo crew.
         {data.quality_issues.map((q) => (
-          <span key={q.crew + q.timepoint}> Excluded by AURA&apos;s quality check: {q.crew} at {q.timepoint}. {q.reason}</span>
+          <span key={q.reason}> Excluded by AURA&apos;s quality check: {q.crew ? `${q.crew} at ${q.timepoint}. ` : ''}{q.reason}</span>
         ))}
       </p>
       <ResearchReview
@@ -183,9 +191,10 @@ export default function ResearchPanel({ focus = null }) {
         onSelectMarker={(name) => {
           const a = data.analytes.find((x) => x.name === name)
           if (a) setKey(a.key)
-          else {
-            setPending(name)
-            setDataset(dataset === 'cmp' ? 'cbc' : 'cmp')
+          else if (datasets.length > 1) {
+            const i = datasets.findIndex((d) => d.dataset === dataset)
+            setPending({ name, tries: 1 })
+            setDataset(datasets[(i + 1) % datasets.length].dataset)
           }
           document.getElementById('research')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
         }}

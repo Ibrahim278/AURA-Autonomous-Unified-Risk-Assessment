@@ -28,11 +28,13 @@ and stored unchanged in `data/osdr/`:
 | --- | --- | --- |
 | `LSDS-8_Comprehensive_Metabolic_Panel_CMP_TRANSFORMED.csv` | [OSD-575](https://osdr.nasa.gov/bio/repo/data/studies/OSD-575) | Serum metabolic panel: glucose, electrolytes, kidney and liver markers, proteins |
 | `LSDS-7_Complete_Blood_Count_CBC_TRANSFORMED.csv` | [OSD-569](https://osdr.nasa.gov/bio/repo/data/studies/OSD-569) | Whole-blood count: red and white cells, haemoglobin, platelets |
+| `LSDS-8_Multiplex_serum_immune_EvePanel_TRANSFORMED.csv` | [OSD-575](https://osdr.nasa.gov/bio/repo/data/studies/OSD-575) | Serum immune cytokine array (Eve Technologies multiplex): 71 cytokines and chemokines, pg/mL |
+| `LSDS-8_Multiplex_serum_cardiovascular_EvePanel_TRANSFORMED.csv` | [OSD-575](https://osdr.nasa.gov/bio/repo/data/studies/OSD-575) | Serum cardiovascular and acute-phase proteins: CRP, fibrinogen, haptoglobin, SAP, α2-macroglobulin, AGP, PF4, L-selectin, fetuin-A |
 
 Crew C001–C004, sampled at L-92, L-44 and L-3 (days before launch) and R+1, R+45, R+82 and
 R+194 (days after return). `backend/aura/research.py` parses the files, keeps each value and the
 lab's own per-sample reference range, and flags it low, normal or high. API:
-`GET /api/research` and `GET /api/research/{cmp|cbc}`; every response has `source: research`.
+`GET /api/research` and `GET /api/research/{cmp|cbc|immune|cardio}`; every response has `source: research`.
 
 Notes on interpretation:
 - An out-of-range value alone is not a diagnosis. The low glucose of three crew at R+45 may
@@ -42,6 +44,14 @@ Notes on interpretation:
 - Quality check: in a CBC, absolute neutrophils must equal WBC × neutrophil %. The published
   C003 L-92 row breaks this (10.1/µL vs about 6,826/µL expected) and several red-cell indices are
   shifted too, so AURA excludes that whole sample from charts and the AI review and says why.
+- The multiplex files give `<marker>_concentration_<unit>` and `<marker>_percent` (the value as a
+  percent of the panel mean). AURA uses the concentration only. These research assays have no
+  clinical reference range, so nothing is flagged high or low; compare each person with their own
+  preflight samples.
+- Assay-limit check: real concentrations almost never repeat to the last digit, so when 3 or more
+  samples of a marker read exactly the same value (with at least 4 significant digits) AURA treats
+  them as the assay's measurement limit and excludes them: haptoglobin (7 samples at 17,907,000
+  ng/mL), IFN-α2 (4 at 120.88 pg/mL) and IL-28A (5 at 15.56 pg/mL).
 - These crew are separate people from AURA's synthetic demo crew; the two are never mixed.
 
 ## Your own data (CSV import)
