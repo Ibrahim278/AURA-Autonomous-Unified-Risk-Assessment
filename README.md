@@ -134,6 +134,14 @@ The whole app runs as **one web service**: the `Dockerfile` builds the React fro
 2. Optional: paste an `ANTHROPIC_API_KEY` when asked to turn on AI answers. Without it AURA uses its offline answers, and every alert still works.
 3. The free plan sleeps after 15 minutes idle, and the first visit then takes about a minute. Open the link a few minutes before judging.
 
+**Vercel front end + Render back end:** the back end keeps the mission in memory and runs the speech model, so it needs an always-on server (Render). The front end can live on Vercel:
+
+1. Deploy the back end on Render as above, and note its URL (for example `https://aura-demo.onrender.com`).
+2. If that URL is different, change the `destination` in `frontend/vercel.json` to it.
+3. In Vercel: **Add New > Project**, pick this repo, set **Root Directory** to `frontend`, and deploy. `vercel.json` forwards every `/api` call to Render, so no CORS setup is needed and the Vercel link is the only one judges see.
+
+The `ANTHROPIC_API_KEY` goes on **Render** (the back end), not Vercel. `ant login` only works on your own computer.
+
 **Any Docker host:** `docker build -t aura . && docker run -p 8000:8000 aura`, then open http://localhost:8000.
 
 Everyone who opens the demo shares one mission, so use **Reset** in the header to start fresh.
