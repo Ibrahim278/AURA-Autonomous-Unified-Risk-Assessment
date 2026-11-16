@@ -10,7 +10,7 @@
 | **Team** | NeuralAI |
 | **Project lead** | Ibrahim Irfan |
 | **Team members** | Ibrahim Irfan, Melvyn Avoa |
-| **Live demo** | **[www.aura-neuralai.com](https://www.aura-neuralai.com)** |
+| **Live app** | **[www.aura-neuralai.com](https://www.aura-neuralai.com)** |
 | **30 s video** | **[Watch on YouTube](https://youtu.be/J6jX4fARXOU)** (English subtitles) |
 
 # AURA: Autonomous Unified Risk Assessment
