@@ -11,7 +11,7 @@
 | **Project lead** | Ibrahim Irfan |
 | **Team members** | Ibrahim Irfan, Melvyn Avoa |
 | **Live demo** | **[www.aura-neuralai.com](https://www.aura-neuralai.com)** |
-| **30 s video** | [docs/video/AURA_30s_demo.mp4](docs/video/AURA_30s_demo.mp4) (English subtitles burned in, plus [.srt](docs/video/AURA_30s_demo.en.srt)) |
+| **30 s video** | **[Watch on YouTube](https://youtu.be/J6jX4fARXOU)** · [docs/video/AURA_30s_demo.mp4](docs/video/AURA_30s_demo.mp4) (English subtitles burned in, plus [.srt](docs/video/AURA_30s_demo.en.srt)) |
 
 # AURA: Autonomous Unified Risk Assessment
 
@@ -20,7 +20,7 @@
 **Health monitoring that lets astronauts on long-duration missions assess their own health,
 see changes early, and know exactly when to act or call the ground.**
 
-**▶ Try it live: [www.aura-neuralai.com](https://www.aura-neuralai.com)** (the first visit after a quiet spell can take about a minute while the server wakes up). Press **▶ Demo tour** for the 19-step story.
+**▶ Watch the [30-second demo](https://youtu.be/J6jX4fARXOU) · Try it live: [www.aura-neuralai.com](https://www.aura-neuralai.com)** (the first visit after a quiet spell can take about a minute while the server wakes up). Press **▶ Demo tour** for the 19-step story.
 
 ![AURA home page](docs/screenshots/home.png)
 
