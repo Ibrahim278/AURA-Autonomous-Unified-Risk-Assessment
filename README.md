@@ -11,7 +11,7 @@
 | **Project lead** | Ibrahim Irfan |
 | **Team members** | Ibrahim Irfan, Melvyn Avoa |
 | **Live demo** | **[www.aura-neuralai.com](https://www.aura-neuralai.com)** |
-| **30 s video** | **[Watch on YouTube](https://youtu.be/J6jX4fARXOU)** · [docs/video/AURA_30s_demo.mp4](docs/video/AURA_30s_demo.mp4) (English subtitles burned in, plus [.srt](docs/video/AURA_30s_demo.en.srt)) |
+| **30 s video** | **[Watch on YouTube](https://youtu.be/J6jX4fARXOU)** (English subtitles) |
 
 # AURA: Autonomous Unified Risk Assessment
 

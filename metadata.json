@@ -26,8 +26,7 @@
     "data_sources": "docs/DATA_SOURCES.md",
     "demo_script": "docs/DEMO_SCRIPT.md",
     "ui_guide": "docs/AURA_UI_Guide.docx",
-    "demo_video": "docs/video/AURA_30s_demo.mp4",
-    "demo_video_youtube": "https://youtu.be/J6jX4fARXOU"
+    "demo_video": "https://youtu.be/J6jX4fARXOU"
   },
   "stack": {
     "backend": [
