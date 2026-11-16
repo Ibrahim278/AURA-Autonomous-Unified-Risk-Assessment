@@ -39,6 +39,10 @@ hostile closed environment. Communication delays mean they must spot health chan
 themselves. Most changes are gradual, and many stay inside "normal" Earth ranges while
 already being abnormal *for that person*.
 
+## The motivation
+
+As an AI engineer and computer science graduate, I (Ibrahim) have long been fascinated by AI-driven healthcare, and curious about how artificial intelligence can support medical care. This challenge puts that question in its hardest setting: a crew that has to look after itself when the doctor is minutes away. It pushed us to build AI that helps people understand their own health, while every alert stays transparent, rule-based and safe.
+
 ## What AURA does
 
 | | Feature |
