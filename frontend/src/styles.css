@@ -417,7 +417,19 @@ button:disabled { opacity: 0.6; cursor: default; }
 .chip.action { border-color: #2366a5; color: var(--violet); cursor: pointer; }
 .tiny { font-size: 0.7rem; margin-top: 4px; }
 .assistant-foot { text-align: center; margin: 0; }
-@media (max-width: 600px) { .aura-assistant { right: 8px; bottom: 8px; width: calc(100vw - 16px); height: calc(100vh - 16px); } .assistant-fab { right: 12px; bottom: 12px; } }
+.aura-assistant { height: min(600px, calc(100dvh - 48px)); }
+.assistant-head-actions { align-items: center; }
+.assistant-min { flex-shrink: 0; display: inline-grid; place-items: center; width: 32px; height: 32px; padding: 0; border-radius: 50%;
+  border: 1px solid var(--border); background: var(--panel2); color: var(--text); font: inherit; font-size: 0.95rem; cursor: pointer; }
+.assistant-min:hover { border-color: var(--teal); color: var(--teal); }
+/* Phones: pin the chat to all four edges of the visible screen (dvh + safe areas), so mobile browser
+   toolbars can't push the header, and its close button, off the top. */
+@media (max-width: 600px) {
+  .aura-assistant { top: max(8px, env(safe-area-inset-top)); bottom: max(8px, env(safe-area-inset-bottom));
+    left: 8px; right: 8px; width: auto; height: auto; max-height: calc(100dvh - 16px); }
+  .assistant-min { width: 40px; height: 40px; font-size: 1.05rem; }
+  .assistant-fab { right: 12px; bottom: 12px; }
+}
 .bubble.rich { white-space: normal; }
 .assistant-log { min-height: 0; }
 .assistant-log > * { flex-shrink: 0; }

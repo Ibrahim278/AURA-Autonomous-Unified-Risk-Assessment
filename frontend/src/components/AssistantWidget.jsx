@@ -237,7 +237,8 @@ export default function AssistantWidget({ crewId, member, day, live, selected, s
         </button>
       )}
       {open && (
-        <div className="aura-assistant" role="dialog" aria-label="Ask AURA">
+        <div className="aura-assistant" role="dialog" aria-label="Ask AURA"
+          onKeyDown={(e) => { if (e.key === 'Escape') setOpen(false) }}>
           <div className="assistant-head">
             <div>
               <strong>✦ Ask AURA</strong>
@@ -254,7 +255,9 @@ export default function AssistantWidget({ crewId, member, day, live, selected, s
               )}
               <button className="link" onClick={() => setShowMemory((v) => !v)} title="Notes Ask AURA remembers">🧠 {memory.length}</button>
               {chat.length > 0 && <button className="link" onClick={() => setChat([])}>Clear</button>}
-              <button className="link" onClick={() => setOpen(false)} aria-label="Minimise">—</button>
+              <button className="assistant-min" onClick={() => setOpen(false)} aria-label="Minimise Ask AURA" title="Minimise">
+                <span aria-hidden="true">✕</span>
+              </button>
             </span>
           </div>
 
